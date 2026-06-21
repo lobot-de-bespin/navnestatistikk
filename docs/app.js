@@ -261,14 +261,18 @@ function selectTopN() {
   els.topNYear.value = state.topNYear;
   const n = Number(els.topNCount.value);
   const mode = els.topNMode.value;
-  const rows = state.matches.map((item) => {
-    const value = mode === "year" ? countInYear(item, state.topNYear) : countInPeriod(item, state.fromYear, state.toYear);
-    return { item, value };
-  })
+  const rows = state.data.names
+    .filter((item) => state.sex === "alle" || item.sex === state.sex)
+    .map((item) => {
+      const value = mode === "year" ? countInYear(item, state.topNYear) : countInPeriod(item, state.fromYear, state.toYear);
+      return { item, value };
+    })
     .filter((row) => row.value > 0)
     .sort((a, b) => b.value - a.value || a.item.name.localeCompare(b.item.name, "no"));
   state.selected = new Set(rows.slice(0, n).map((row) => row.item.id));
-  renderAll();
+  state.regex = ".*";
+  els.regexInput.value = state.regex;
+  updateMatches();
 }
 
 function countInYear(item, year) {

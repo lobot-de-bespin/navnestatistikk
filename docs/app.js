@@ -511,6 +511,14 @@ function renderSelected() {
     const pill = document.createElement("span");
     pill.className = "pill";
     pill.textContent = `${item.name} (${item.sex})`;
+    const reference = document.createElement("button");
+    reference.type = "button";
+    reference.textContent = "ref";
+    reference.setAttribute("aria-label", `Bruk ${item.name} som referanse`);
+    reference.addEventListener("click", () => {
+      state.similar.referenceId = item.id;
+      renderAll();
+    });
     const remove = document.createElement("button");
     remove.type = "button";
     remove.textContent = "×";
@@ -519,7 +527,7 @@ function renderSelected() {
       state.selected.delete(item.id);
       renderAll();
     });
-    pill.append(remove);
+    pill.append(reference, remove);
     els.selectedNames.append(pill);
   });
   renderSimilarReferenceOptions(items);
@@ -528,6 +536,14 @@ function renderSelected() {
 function renderSimilarReferenceOptions(items) {
   const previous = state.similar.referenceId;
   els.similarReference.innerHTML = "";
+  if (!items.length) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "Velg navn til graf først";
+    els.similarReference.append(option);
+    state.similar.referenceId = "";
+    return;
+  }
   items.forEach((item) => {
     const option = document.createElement("option");
     option.value = item.id;

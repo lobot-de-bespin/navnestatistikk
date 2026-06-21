@@ -116,11 +116,16 @@ function wireEvents() {
     });
   });
   [els.schoolBirthYear, els.childGrade, els.gradeSize].forEach((input) => {
-    ["input", "change"].forEach((eventName) => input.addEventListener(eventName, () => {
-      readSchoolControls();
+    input.addEventListener("input", () => {
+      readSchoolControls(false);
       renderSchoolEstimate();
       updateUrl();
-    }));
+    });
+    input.addEventListener("change", () => {
+      readSchoolControls(true);
+      renderSchoolEstimate();
+      updateUrl();
+    });
   });
   els.markersToggle.addEventListener("change", () => {
     state.markers = els.markersToggle.checked;
@@ -280,13 +285,14 @@ function countInPeriod(item, fromYear, toYear) {
   }, 0);
 }
 
-function readSchoolControls() {
-  state.schoolBirthYear = clampYear(Number(els.schoolBirthYear.value));
-  state.childGrade = clampGrade(Number(els.childGrade.value));
-  state.gradeSize = Math.max(1, Number(els.gradeSize.value) || 100);
-  els.schoolBirthYear.value = state.schoolBirthYear;
-  els.childGrade.value = state.childGrade;
-  els.gradeSize.value = state.gradeSize;
+function readSchoolControls(commit = false) {
+  state.schoolBirthYear = parseIntegerInput(els.schoolBirthYear.value);
+  state.childGrade = parseIntegerInput(els.childGrade.value);
+  state.gradeSize = parseNumberInput(els.gradeSize.value);
+  if (!commit) return;
+  if (state.schoolBirthYear != null && isValidYear(state.schoolBirthYear)) els.schoolBirthYear.value = state.schoolBirthYear;
+  if (state.childGrade != null && isValidGrade(state.childGrade)) els.childGrade.value = state.childGrade;
+  if (state.gradeSize != null && state.gradeSize > 0) els.gradeSize.value = state.gradeSize;
 }
 
 function renderSelected() {
@@ -412,7 +418,7 @@ function renderSummary() {
 
 function renderSchoolEstimate() {
   if (!state.data) return;
-  readSchoolControls();
+  readSchoolControls(false);
   const scope = schoolScopeForGrade(state.childGrade);
   els.schoolScopeHeader.textContent = scope.label;
   const rows = selectedItems().map((item) => schoolEstimate(item, scope));
@@ -439,21 +445,25 @@ function schoolEstimate(item, scope) {
 }
 
 function schoolScopeForGrade(grade) {
+  if (!isValidGrade(grade)) return { from: null, to: null, label: "Relevant skole" };
   if (grade <= 7) return { from: 1, to: 7, label: "Barneskole 1.-7." };
   if (grade <= 10) return { from: 8, to: 10, label: "Ungdomsskole 8.-10." };
   return { from: 11, to: 13, label: "VGS 1.-3." };
 }
 
 function estimateForGrades(item, fromGrade, toGrade) {
+  if (!isValidYear(state.schoolBirthYear) || !isValidGrade(state.childGrade) || !state.gradeSize || state.gradeSize <= 0 || fromGrade == null || toGrade == null) {
+    return { expected: 0, share: 0, years: [], complete: false };
+  }
   const years = [];
   let expected = 0;
   let usedPupils = 0;
   for (let grade = fromGrade; grade <= toGrade; grade += 1) {
     const year = state.schoolBirthYear - (grade - state.childGrade);
     const yearIndex = state.data.years.indexOf(year);
-    if (yearIndex < 0) continue;
+    if (yearIndex < 0) return { expected: 0, share: 0, years, complete: false };
     const totalBirths = state.data.totalBirths[yearIndex];
-    if (!totalBirths) continue;
+    if (!totalBirths) return { expected: 0, share: 0, years, complete: false };
     const count = countInYear(item, year);
     expected += (count / totalBirths) * state.gradeSize;
     usedPupils += state.gradeSize;
@@ -463,6 +473,7 @@ function estimateForGrades(item, fromGrade, toGrade) {
     expected,
     share: usedPupils ? (expected / usedPupils) * 100 : 0,
     years,
+    complete: true,
   };
 }
 
@@ -494,9 +505,9 @@ function updateUrl() {
   params.set("from", String(state.fromYear));
   params.set("to", String(state.toYear));
   params.set("topYear", String(state.topNYear));
-  params.set("schoolYear", String(state.schoolBirthYear));
-  params.set("grade", String(state.childGrade));
-  params.set("gradeSize", String(state.gradeSize));
+  if (state.schoolBirthYear != null) params.set("schoolYear", String(state.schoolBirthYear));
+  if (state.childGrade != null) params.set("grade", String(state.childGrade));
+  if (state.gradeSize != null) params.set("gradeSize", String(state.gradeSize));
   if (state.selected.size) params.set("names", [...state.selected].join(","));
   history.replaceState(null, "", `${location.pathname}?${params.toString()}`);
 }
@@ -532,6 +543,26 @@ function clampGrade(grade) {
   return Math.max(1, Math.min(13, Number.isFinite(grade) ? Math.round(grade) : 1));
 }
 
+function parseIntegerInput(value) {
+  if (String(value).trim() === "") return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.round(number) : null;
+}
+
+function parseNumberInput(value) {
+  if (String(value).trim() === "") return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function isValidYear(year) {
+  return Number.isInteger(year) && state.data && state.data.years.includes(year);
+}
+
+function isValidGrade(grade) {
+  return Number.isInteger(grade) && grade >= 1 && grade <= 13;
+}
+
 function formatNumber(value) {
   return new Intl.NumberFormat("no-NO").format(value);
 }
@@ -541,7 +572,7 @@ function formatDecimal(value, digits) {
 }
 
 function formatEstimate(value) {
-  if (!value.years.length) return "–";
+  if (!value.complete) return "–";
   return `${formatDecimal(value.expected, 2)} (${formatDecimal(value.share, 3)} %)`;
 }
 

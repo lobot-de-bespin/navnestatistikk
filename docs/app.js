@@ -24,6 +24,14 @@ const state = {
     sort: "school",
     rows: [],
   },
+  similar: {
+    referenceId: "",
+    method: "pearson",
+    metric: "shareSex",
+    smooth: 3,
+    minYears: 10,
+    rows: [],
+  },
   markers: false,
 };
 
@@ -48,8 +56,19 @@ document.addEventListener("DOMContentLoaded", () => {
     "fromYear",
     "toYear",
     "markersToggle",
+    "selectedCount",
     "selectedNames",
     "chart",
+    "similarReference",
+    "similarMethod",
+    "similarMetric",
+    "similarSmooth",
+    "similarMinYears",
+    "findSimilar",
+    "addSimilarTop",
+    "similarCount",
+    "similarBasis",
+    "similarTable",
     "summaryGrid",
     "schoolBirthYear",
     "childGrade",
@@ -186,6 +205,22 @@ function wireEvents() {
     state.markers = els.markersToggle.checked;
     renderChart();
   });
+  [els.similarReference, els.similarMethod, els.similarMetric, els.similarSmooth, els.similarMinYears].forEach((input) => {
+    input.addEventListener("change", () => {
+      readSimilarControls(true);
+      renderSimilar();
+      updateUrl();
+    });
+  });
+  els.findSimilar.addEventListener("click", () => {
+    readSimilarControls(true);
+    renderSimilar();
+    updateUrl();
+  });
+  els.addSimilarTop.addEventListener("click", () => {
+    state.similar.rows.slice(0, 5).forEach((row) => state.selected.add(row.item.id));
+    renderAll();
+  });
   els.copyLink.addEventListener("click", copyShareLink);
   els.downloadCsv.addEventListener("click", downloadCsv);
   els.downloadPng.addEventListener("click", () => {
@@ -252,6 +287,11 @@ function restoreFromUrl() {
   if (params.has("candidateSize")) state.candidate.gradeSize = Math.max(1, Number(params.get("candidateSize")) || 100);
   if (params.has("candidateMax")) state.candidate.maxSchoolmates = Math.max(0, Number(params.get("candidateMax")) || 0);
   if (params.has("candidateSort")) state.candidate.sort = params.get("candidateSort");
+  if (params.has("similarReference")) state.similar.referenceId = params.get("similarReference");
+  if (params.has("similarMethod")) state.similar.method = params.get("similarMethod");
+  if (params.has("similarMetric")) state.similar.metric = params.get("similarMetric");
+  if (params.has("similarSmooth")) state.similar.smooth = Math.max(1, Number(params.get("similarSmooth")) || 3);
+  if (params.has("similarMinYears")) state.similar.minYears = Math.max(3, Number(params.get("similarMinYears")) || 10);
   els.fromYear.value = state.fromYear;
   els.toYear.value = state.toYear;
   els.topNYear.value = state.topNYear;
@@ -262,6 +302,7 @@ function restoreFromUrl() {
   if (params.has("names")) {
     params.get("names").split(",").filter(Boolean).forEach((id) => state.selected.add(id));
   }
+  writeSimilarControls();
 }
 
 function updateMatches(autoSelect = false) {
@@ -288,6 +329,7 @@ function renderAll() {
   renderResults();
   renderSelected();
   renderChart();
+  renderSimilar();
   renderSummary();
   renderSchoolEstimate();
   renderCandidates();
@@ -444,9 +486,28 @@ function copyExploreToCandidates() {
   writeCandidateControls();
 }
 
+function readSimilarControls(commit = false) {
+  state.similar.referenceId = els.similarReference.value || state.similar.referenceId;
+  state.similar.method = els.similarMethod.value;
+  state.similar.metric = els.similarMetric.value;
+  state.similar.smooth = Number(els.similarSmooth.value) || 1;
+  state.similar.minYears = parseIntegerInput(els.similarMinYears.value);
+  if (!commit) return;
+  if (state.similar.minYears != null && state.similar.minYears >= 3) els.similarMinYears.value = state.similar.minYears;
+}
+
+function writeSimilarControls() {
+  els.similarMethod.value = state.similar.method;
+  els.similarMetric.value = state.similar.metric;
+  els.similarSmooth.value = String(state.similar.smooth);
+  els.similarMinYears.value = state.similar.minYears;
+}
+
 function renderSelected() {
+  const items = selectedItems();
+  els.selectedCount.textContent = `${items.length} navn`;
   els.selectedNames.innerHTML = "";
-  selectedItems().forEach((item) => {
+  items.forEach((item) => {
     const pill = document.createElement("span");
     pill.className = "pill";
     pill.textContent = `${item.name} (${item.sex})`;
@@ -461,6 +522,24 @@ function renderSelected() {
     pill.append(remove);
     els.selectedNames.append(pill);
   });
+  renderSimilarReferenceOptions(items);
+}
+
+function renderSimilarReferenceOptions(items) {
+  const previous = state.similar.referenceId;
+  els.similarReference.innerHTML = "";
+  items.forEach((item) => {
+    const option = document.createElement("option");
+    option.value = item.id;
+    option.textContent = `${item.name} (${item.sex})`;
+    els.similarReference.append(option);
+  });
+  if (items.some((item) => item.id === previous)) {
+    state.similar.referenceId = previous;
+  } else {
+    state.similar.referenceId = items[0]?.id ?? "";
+  }
+  els.similarReference.value = state.similar.referenceId;
 }
 
 function renderChart() {
@@ -474,7 +553,7 @@ function renderChart() {
       mode: state.markers ? "lines+markers" : "lines",
       name: `${item.name} (${item.sex})`,
       line: { width: 2.5 },
-      hovertemplate: hoverTemplate(),
+      hovertemplate: hoverTemplate(effectiveMetric),
       customdata: points.map((p) => [p.count, p.rank, p.shareAll, p.shareSex, p.year]),
     };
   });
@@ -543,12 +622,166 @@ function yAxisConfig(metric = state.metric) {
   return axis;
 }
 
-function hoverTemplate() {
-  if (state.metric === "rank") return "%{x}<br>Rang: %{y}<br>Antall: %{customdata[0]}<extra>%{fullData.name}</extra>";
-  if (state.metric === "shareAll") return "%{x}<br>Andel: %{y:.3f}%<br>Antall: %{customdata[0]}<br>Rang: %{customdata[1]}<extra>%{fullData.name}</extra>";
-  if (state.metric === "shareSex") return "%{x}<br>Andel: %{y:.3f}%<br>Antall: %{customdata[0]}<br>Rang: %{customdata[1]}<extra>%{fullData.name}</extra>";
-  if (state.metric === "index") return "%{x}<br>Indeks: %{y:.1f}<br>Antall: %{customdata[0]}<br>Rang: %{customdata[1]}<extra>%{fullData.name}</extra>";
+function hoverTemplate(metric = state.metric) {
+  if (metric === "rank") return "%{x}<br>Rang: %{y}<br>Antall: %{customdata[0]}<extra>%{fullData.name}</extra>";
+  if (metric === "shareAll") return "%{x}<br>Andel: %{y:.3f}%<br>Antall: %{customdata[0]}<br>Rang: %{customdata[1]}<extra>%{fullData.name}</extra>";
+  if (metric === "shareSex") return "%{x}<br>Andel: %{y:.3f}%<br>Antall: %{customdata[0]}<br>Rang: %{customdata[1]}<extra>%{fullData.name}</extra>";
+  if (metric === "index") return "%{x}<br>Indeks: %{y:.1f}<br>Antall: %{customdata[0]}<br>Rang: %{customdata[1]}<extra>%{fullData.name}</extra>";
   return "%{x}<br>Antall: %{y}<br>Rang: %{customdata[1]}<br>Andel: %{customdata[2]:.3f}%<extra>%{fullData.name}</extra>";
+}
+
+function renderSimilar() {
+  if (!state.data) return;
+  readSimilarControls(false);
+  const reference = selectedItems().find((item) => item.id === state.similar.referenceId);
+  const methodLabel = { pearson: "Pearson", spearman: "Spearman", euclidean: "Euklidsk" }[state.similar.method] ?? "Pearson";
+  els.similarBasis.textContent = methodLabel;
+  if (!reference) {
+    state.similar.rows = [];
+    els.similarCount.textContent = "0 treff";
+    els.similarTable.innerHTML = '<tr><td colspan="5">Velg et referansenavn</td></tr>';
+    return;
+  }
+  const referenceSeries = comparableSeries(reference, state.similar.metric);
+  const rows = state.data.names
+    .filter((item) => item.id !== reference.id)
+    .filter((item) => state.sex === "alle" || item.sex === state.sex)
+    .map((item) => similarityRow(referenceSeries, item))
+    .filter(Boolean)
+    .sort((a, b) => b.similarity - a.similarity || a.item.name.localeCompare(b.item.name, "no"));
+  state.similar.rows = rows;
+  els.similarCount.textContent = `${formatNumber(rows.length)} treff`;
+  if (!rows.length) {
+    els.similarTable.innerHTML = '<tr><td colspan="5">Ingen lignende kurver</td></tr>';
+    return;
+  }
+  els.similarTable.innerHTML = "";
+  const fragment = document.createDocumentFragment();
+  rows.slice(0, 50).forEach((row) => {
+    const tr = document.createElement("tr");
+    const nameCell = document.createElement("td");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "linkButton";
+    button.textContent = row.item.name;
+    button.addEventListener("click", () => {
+      state.selected.add(row.item.id);
+      renderAll();
+    });
+    nameCell.append(button);
+    [
+      nameCell,
+      cell(row.item.sex),
+      cell(formatDecimal(row.similarity * 100, 0)),
+      cell(formatScore(row.score)),
+      cell(`${row.item.peakYear} (${formatNumber(row.item.peakCount)})`),
+    ].forEach((td) => tr.append(td));
+    fragment.append(tr);
+  });
+  els.similarTable.append(fragment);
+}
+
+function similarityRow(referenceSeries, item) {
+  const candidateSeries = comparableSeries(item, state.similar.metric);
+  const pairs = [];
+  referenceSeries.forEach((refValue, year) => {
+    const candidateValue = candidateSeries.get(year);
+    if (refValue != null && candidateValue != null) pairs.push([refValue, candidateValue]);
+  });
+  if (pairs.length < (state.similar.minYears ?? 10)) return null;
+  const left = smoothValues(pairs.map(([value]) => value), state.similar.smooth);
+  const right = smoothValues(pairs.map(([, value]) => value), state.similar.smooth);
+  const score = similarityScore(left, right, state.similar.method);
+  if (score == null) return null;
+  return {
+    item,
+    score,
+    similarity: normalizedSimilarity(score, state.similar.method),
+  };
+}
+
+function comparableSeries(item, metric) {
+  const points = visiblePoints(item);
+  const values = points.map((point) => [point.year, comparableValue(point, item, metric)]);
+  if (metric !== "index") return new Map(values.filter(([, value]) => value != null));
+  const base = values.find(([, value]) => value != null && value > 0)?.[1];
+  if (!base) return new Map();
+  return new Map(values.map(([year, value]) => [year, value == null ? null : (value / base) * 100]).filter(([, value]) => value != null));
+}
+
+function comparableValue(point, item, metric) {
+  if (metric === "rank") return point.rank;
+  if (metric === "index") return point.shareSex;
+  return point.shareSex;
+}
+
+function similarityScore(left, right, method) {
+  if (method === "spearman") return pearson(rankValues(left), rankValues(right));
+  if (method === "euclidean") return euclidean(zScores(left), zScores(right));
+  return pearson(zScores(left), zScores(right));
+}
+
+function normalizedSimilarity(score, method) {
+  if (method === "euclidean") return 1 / (1 + score);
+  return Math.max(0, Math.min(1, (score + 1) / 2));
+}
+
+function pearson(left, right) {
+  if (left.length !== right.length || left.length < 3) return null;
+  const leftMean = mean(left);
+  const rightMean = mean(right);
+  let numerator = 0;
+  let leftSum = 0;
+  let rightSum = 0;
+  for (let i = 0; i < left.length; i += 1) {
+    const lx = left[i] - leftMean;
+    const ry = right[i] - rightMean;
+    numerator += lx * ry;
+    leftSum += lx * lx;
+    rightSum += ry * ry;
+  }
+  const denominator = Math.sqrt(leftSum * rightSum);
+  return denominator ? numerator / denominator : null;
+}
+
+function euclidean(left, right) {
+  if (left.length !== right.length || left.length < 3) return null;
+  return Math.sqrt(left.reduce((sum, value, index) => sum + (value - right[index]) ** 2, 0));
+}
+
+function zScores(values) {
+  const avg = mean(values);
+  const variance = mean(values.map((value) => (value - avg) ** 2));
+  const sd = Math.sqrt(variance);
+  return sd ? values.map((value) => (value - avg) / sd) : values.map(() => 0);
+}
+
+function rankValues(values) {
+  const sorted = values.map((value, index) => ({ value, index })).sort((a, b) => a.value - b.value);
+  const ranks = Array(values.length);
+  for (let i = 0; i < sorted.length; i += 1) {
+    let j = i;
+    while (j + 1 < sorted.length && sorted[j + 1].value === sorted[i].value) j += 1;
+    const rank = (i + j + 2) / 2;
+    for (let k = i; k <= j; k += 1) ranks[sorted[k].index] = rank;
+    i = j;
+  }
+  return ranks;
+}
+
+function smoothValues(values, width) {
+  const size = Math.max(1, Math.round(width || 1));
+  if (size <= 1) return values;
+  const radius = Math.floor(size / 2);
+  return values.map((_, index) => {
+    const from = Math.max(0, index - radius);
+    const to = Math.min(values.length, index + radius + 1);
+    return mean(values.slice(from, to));
+  });
+}
+
+function mean(values) {
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
 function renderSummary() {
@@ -663,6 +896,7 @@ function candidateRow(item, scope) {
     birthCount,
     school,
     schoolmates: school.complete ? Math.max(0, school.expected - 1) : 0,
+    similarity: state.similar.rows.find((row) => row.item.id === item.id)?.similarity ?? null,
     trend: priorYear == null ? null : birthCount - priorYear,
   };
 }
@@ -673,6 +907,9 @@ function candidateSorter(a, b) {
   }
   if (state.candidate.sort === "trend") {
     return (b.trend ?? -Infinity) - (a.trend ?? -Infinity) || b.birthCount - a.birthCount || a.item.name.localeCompare(b.item.name, "no");
+  }
+  if (state.candidate.sort === "similar") {
+    return (b.similarity ?? -Infinity) - (a.similarity ?? -Infinity) || a.item.name.localeCompare(b.item.name, "no");
   }
   if (state.candidate.sort === "name") {
     return a.item.name.localeCompare(b.item.name, "no") || a.item.sex.localeCompare(b.item.sex, "no");
@@ -769,6 +1006,11 @@ function updateUrl() {
   if (state.candidate.gradeSize != null) params.set("candidateSize", String(state.candidate.gradeSize));
   if (state.candidate.maxSchoolmates != null) params.set("candidateMax", String(state.candidate.maxSchoolmates));
   params.set("candidateSort", state.candidate.sort);
+  if (state.similar.referenceId) params.set("similarReference", state.similar.referenceId);
+  params.set("similarMethod", state.similar.method);
+  params.set("similarMetric", state.similar.metric);
+  params.set("similarSmooth", String(state.similar.smooth));
+  if (state.similar.minYears != null) params.set("similarMinYears", String(state.similar.minYears));
   if (state.selected.size) params.set("names", [...state.selected].join(","));
   history.replaceState(null, "", `${location.pathname}?${params.toString()}`);
 }
@@ -850,6 +1092,11 @@ function formatSigned(value) {
 function formatEstimate(value) {
   if (!value.complete) return "–";
   return `${formatDecimal(value.expected, 2)} (${formatDecimal(value.share, 3)} %)`;
+}
+
+function formatScore(value) {
+  if (value == null) return "–";
+  return state.similar.method === "euclidean" ? formatDecimal(value, 3) : formatDecimal(value, 3);
 }
 
 function round(value) {

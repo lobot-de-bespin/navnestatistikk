@@ -115,8 +115,79 @@
           </div>
         </div>
 
-        <div id="selectedNames" class="selectedNames" aria-label="Valgte navn"></div>
+        <section class="selectedPanel">
+          <div class="sectionHead">
+            <h2>Valgte navn til graf</h2>
+            <span id="selectedCount">0 navn</span>
+          </div>
+          <div id="selectedNames" class="selectedNames" aria-label="Valgte navn"></div>
+        </section>
         <div id="chart" class="chart" role="img" aria-label="Trendkurver"></div>
+
+        <section class="similarPanel">
+          <div class="candidateHead">
+            <div>
+              <h2>Lignende kurver</h2>
+              <p>Finn navn med lignende form i valgt tidsrom.</p>
+            </div>
+            <button id="addSimilarTop" type="button">Legg topp 5 i graf</button>
+          </div>
+          <div class="similarControls">
+            <div>
+              <label for="similarReference">Referansenavn</label>
+              <select id="similarReference"></select>
+            </div>
+            <div>
+              <label for="similarMethod">Metode</label>
+              <select id="similarMethod">
+                <option value="pearson">Pearson</option>
+                <option value="spearman">Spearman</option>
+                <option value="euclidean">Euklidsk</option>
+              </select>
+            </div>
+            <div>
+              <label for="similarMetric">Serie</label>
+              <select id="similarMetric">
+                <option value="shareSex">Andel samme kjønn</option>
+                <option value="rank">Rang</option>
+                <option value="index">Indeks</option>
+              </select>
+            </div>
+            <div>
+              <label for="similarSmooth">Glatting</label>
+              <select id="similarSmooth">
+                <option value="1">Av</option>
+                <option value="3" selected>3 år</option>
+                <option value="5">5 år</option>
+              </select>
+            </div>
+            <div>
+              <label for="similarMinYears">Minst år</label>
+              <input id="similarMinYears" type="number" min="3" max="146" value="10" />
+            </div>
+            <div class="candidateAction">
+              <button id="findSimilar" type="button" class="primary">Finn lignende</button>
+            </div>
+          </div>
+          <div class="sectionHead">
+            <span id="similarCount">0 treff</span>
+            <span id="similarBasis">Pearson</span>
+          </div>
+          <div class="tableWrap similarWrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Navn</th>
+                  <th>Kjønn</th>
+                  <th>Likhet</th>
+                  <th>Rå score</th>
+                  <th>Toppår</th>
+                </tr>
+              </thead>
+              <tbody id="similarTable"></tbody>
+            </table>
+          </div>
+        </section>
 
         <section class="candidatePanel">
           <div class="candidateHead">
@@ -161,6 +232,7 @@
                 <option value="school">Færrest navnesøsken</option>
                 <option value="birthYear">Flest i fødselsåret</option>
                 <option value="trend">Sterkest trend</option>
+                <option value="similar">Mest lik kurve</option>
                 <option value="name">Navn A-Å</option>
               </select>
             </div>

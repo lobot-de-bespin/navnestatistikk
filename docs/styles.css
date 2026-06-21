@@ -286,6 +286,10 @@ label {
   box-shadow: var(--shadow);
 }
 
+.selectedPanel {
+  margin-bottom: 10px;
+}
+
 .below {
   display: grid;
   grid-template-columns: 0.9fr 1.1fr;
@@ -296,7 +300,8 @@ label {
 .summary,
 .schoolPanel,
 .tablePanel,
-.candidatePanel {
+.candidatePanel,
+.similarPanel {
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -313,7 +318,8 @@ h2 {
   font-size: 1.05rem;
 }
 
-.candidatePanel {
+.candidatePanel,
+.similarPanel {
   margin-top: 16px;
 }
 
@@ -338,8 +344,17 @@ h2 {
   align-items: end;
 }
 
+.similarControls {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.1fr) minmax(120px, 0.8fr) minmax(160px, 1fr) minmax(100px, 0.7fr) minmax(90px, 0.6fr) minmax(130px, 0.8fr);
+  gap: 10px;
+  align-items: end;
+}
+
 .candidateFilters input,
-.candidateFilters select {
+.candidateFilters select,
+.similarControls input,
+.similarControls select {
   width: 100%;
 }
 
@@ -354,6 +369,11 @@ h2 {
 .candidateWrap {
   margin-top: 10px;
   max-height: 440px;
+}
+
+.similarWrap {
+  margin-top: 10px;
+  max-height: 300px;
 }
 
 .summaryGrid {
@@ -448,6 +468,10 @@ th {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .similarControls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .actions {
     justify-content: start;
   }
@@ -486,6 +510,10 @@ th {
   }
 
   .candidateFilters {
+    grid-template-columns: 1fr;
+  }
+
+  .similarControls {
     grid-template-columns: 1fr;
   }
 

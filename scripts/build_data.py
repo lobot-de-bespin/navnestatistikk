@@ -81,11 +81,6 @@ def clean_name_id(code: str) -> tuple[str, str]:
 
 def build() -> dict:
     metadata = request_json(f"{API_V2}/{NAME_TABLE}/metadata?lang=no")
-    name_codes = sorted_codes(metadata["dimension"]["Fornavn"]["category"])
-    year_codes = sorted_codes(metadata["dimension"]["Tid"]["category"])
-    name_labels = metadata["dimension"]["Fornavn"]["category"]["label"]
-    years = [int(y) for y in year_codes]
-
     name_data = post_table(
         NAME_TABLE,
         [
@@ -94,6 +89,12 @@ def build() -> dict:
             all_query("Tid"),
         ],
     )
+    # Use the dimensions returned with the data response. SSB v0 data and v2
+    # metadata can have slightly different category indexes.
+    name_codes = sorted_codes(name_data["dimension"]["Fornavn"]["category"])
+    year_codes = sorted_codes(name_data["dimension"]["Tid"]["category"])
+    name_labels = name_data["dimension"]["Fornavn"]["category"]["label"]
+    years = [int(y) for y in year_codes]
     values = name_data.get("value", [])
     shape = name_data["size"]
 

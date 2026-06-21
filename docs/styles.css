@@ -272,18 +272,23 @@ label {
 
 .below {
   display: grid;
-  grid-template-columns: 0.9fr 1.3fr;
+  grid-template-columns: 0.9fr 1.1fr;
   gap: 16px;
   margin-top: 16px;
 }
 
 .summary,
+.schoolPanel,
 .tablePanel {
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
   padding: 14px;
+}
+
+.tablePanel {
+  grid-column: 1 / -1;
 }
 
 h2 {
@@ -318,6 +323,20 @@ h2 {
 
 .tableWrap {
   overflow: auto;
+}
+
+.tableWrap.compact {
+  margin-top: 12px;
+}
+
+.schoolControls {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(90px, 1fr));
+  gap: 10px;
+}
+
+.schoolControls input {
+  width: 100%;
 }
 
 table {
@@ -387,6 +406,10 @@ th {
 
   .toolbar {
     grid-template-columns: 1fr;
+  }
+
+  .schoolControls {
+    grid-template-columns: 1fr 1fr;
   }
 
   .chart {

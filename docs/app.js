@@ -9,6 +9,10 @@ const state = {
   fromYear: 1880,
   toYear: 2025,
   topNYear: 2025,
+  schoolBirthYear: 2018,
+  gradeFrom: 1,
+  gradeTo: 1,
+  gradeSize: 100,
   markers: false,
 };
 
@@ -36,6 +40,11 @@ document.addEventListener("DOMContentLoaded", () => {
     "selectedNames",
     "chart",
     "summaryGrid",
+    "schoolBirthYear",
+    "gradeFrom",
+    "gradeTo",
+    "gradeSize",
+    "schoolTable",
     "dataTable",
     "copyLink",
     "downloadCsv",
@@ -107,6 +116,13 @@ function wireEvents() {
       renderAll();
     });
   });
+  [els.schoolBirthYear, els.gradeFrom, els.gradeTo, els.gradeSize].forEach((input) => {
+    input.addEventListener("change", () => {
+      readSchoolControls();
+      renderSchoolEstimate();
+      updateUrl();
+    });
+  });
   els.markersToggle.addEventListener("change", () => {
     state.markers = els.markersToggle.checked;
     renderChart();
@@ -132,6 +148,8 @@ async function loadData() {
   els.toYear.max = state.toYear;
   els.topNYear.min = state.fromYear;
   els.topNYear.max = state.toYear;
+  els.schoolBirthYear.min = state.fromYear;
+  els.schoolBirthYear.max = state.toYear;
   els.fromYear.value = state.fromYear;
   els.toYear.value = state.toYear;
   state.topNYear = state.toYear;
@@ -160,9 +178,18 @@ function restoreFromUrl() {
   if (params.has("from")) state.fromYear = clampYear(Number(params.get("from")));
   if (params.has("to")) state.toYear = clampYear(Number(params.get("to")));
   if (params.has("topYear")) state.topNYear = clampYear(Number(params.get("topYear")));
+  if (params.has("schoolYear")) state.schoolBirthYear = clampYear(Number(params.get("schoolYear")));
+  if (params.has("gradeFrom")) state.gradeFrom = clampGrade(Number(params.get("gradeFrom")));
+  if (params.has("gradeTo")) state.gradeTo = clampGrade(Number(params.get("gradeTo")));
+  if (params.has("gradeSize")) state.gradeSize = Math.max(1, Number(params.get("gradeSize")) || 100);
+  if (state.gradeFrom > state.gradeTo) [state.gradeFrom, state.gradeTo] = [state.gradeTo, state.gradeFrom];
   els.fromYear.value = state.fromYear;
   els.toYear.value = state.toYear;
   els.topNYear.value = state.topNYear;
+  els.schoolBirthYear.value = state.schoolBirthYear;
+  els.gradeFrom.value = state.gradeFrom;
+  els.gradeTo.value = state.gradeTo;
+  els.gradeSize.value = state.gradeSize;
   if (params.has("names")) {
     params.get("names").split(",").filter(Boolean).forEach((id) => state.selected.add(id));
   }
@@ -193,6 +220,7 @@ function renderAll() {
   renderSelected();
   renderChart();
   renderSummary();
+  renderSchoolEstimate();
   renderTable();
   updateUrl();
 }
@@ -254,6 +282,18 @@ function countInPeriod(item, fromYear, toYear) {
     const year = state.data.years[yearIndex];
     return year >= fromYear && year <= toYear ? sum + count : sum;
   }, 0);
+}
+
+function readSchoolControls() {
+  state.schoolBirthYear = clampYear(Number(els.schoolBirthYear.value));
+  state.gradeFrom = clampGrade(Number(els.gradeFrom.value));
+  state.gradeTo = clampGrade(Number(els.gradeTo.value));
+  state.gradeSize = Math.max(1, Number(els.gradeSize.value) || 100);
+  if (state.gradeFrom > state.gradeTo) [state.gradeFrom, state.gradeTo] = [state.gradeTo, state.gradeFrom];
+  els.schoolBirthYear.value = state.schoolBirthYear;
+  els.gradeFrom.value = state.gradeFrom;
+  els.gradeTo.value = state.gradeTo;
+  els.gradeSize.value = state.gradeSize;
 }
 
 function renderSelected() {
@@ -377,6 +417,46 @@ function renderSummary() {
   });
 }
 
+function renderSchoolEstimate() {
+  if (!state.data) return;
+  els.schoolTable.innerHTML = "";
+  const rows = selectedItems().map((item) => schoolEstimate(item));
+  rows.sort((a, b) => b.expected - a.expected || a.item.name.localeCompare(b.item.name, "no"));
+  rows.forEach((row) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(row.item.name)}</td>
+      <td>${row.expected.toLocaleString("no-NO", { maximumFractionDigits: 2 })}</td>
+      <td>${row.share.toLocaleString("no-NO", { maximumFractionDigits: 3 })} %</td>
+      <td>${row.years.join(", ")}</td>
+    `;
+    els.schoolTable.append(tr);
+  });
+}
+
+function schoolEstimate(item) {
+  const years = [];
+  let expected = 0;
+  let usedPupils = 0;
+  for (let grade = state.gradeFrom; grade <= state.gradeTo; grade += 1) {
+    const year = state.schoolBirthYear - (grade - 1);
+    const yearIndex = state.data.years.indexOf(year);
+    if (yearIndex < 0) continue;
+    const totalBirths = state.data.totalBirths[yearIndex];
+    if (!totalBirths) continue;
+    const count = countInYear(item, year);
+    expected += (count / totalBirths) * state.gradeSize;
+    usedPupils += state.gradeSize;
+    years.push(year);
+  }
+  return {
+    item,
+    expected,
+    share: usedPupils ? (expected / usedPupils) * 100 : 0,
+    years,
+  };
+}
+
 function renderTable() {
   els.dataTable.innerHTML = "";
   selectedItems().forEach((item) => {
@@ -405,6 +485,10 @@ function updateUrl() {
   params.set("from", String(state.fromYear));
   params.set("to", String(state.toYear));
   params.set("topYear", String(state.topNYear));
+  params.set("schoolYear", String(state.schoolBirthYear));
+  params.set("gradeFrom", String(state.gradeFrom));
+  params.set("gradeTo", String(state.gradeTo));
+  params.set("gradeSize", String(state.gradeSize));
   if (state.selected.size) params.set("names", [...state.selected].join(","));
   history.replaceState(null, "", `${location.pathname}?${params.toString()}`);
 }
@@ -434,6 +518,10 @@ function downloadCsv() {
 function clampYear(year) {
   if (!state.data) return year;
   return Math.max(state.data.years[0], Math.min(state.data.years.at(-1), year));
+}
+
+function clampGrade(grade) {
+  return Math.max(1, Math.min(10, Number.isFinite(grade) ? Math.round(grade) : 1));
 }
 
 function formatNumber(value) {

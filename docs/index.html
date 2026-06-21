@@ -123,6 +123,40 @@
             <h2>Oppsummering</h2>
             <div id="summaryGrid" class="summaryGrid"></div>
           </section>
+          <section class="schoolPanel">
+            <h2>Skoletrinn</h2>
+            <div class="schoolControls">
+              <div>
+                <label for="schoolBirthYear">Fødselsår i 1. trinn</label>
+                <input id="schoolBirthYear" type="number" min="1880" max="2025" value="2018" />
+              </div>
+              <div>
+                <label for="gradeFrom">Fra trinn</label>
+                <input id="gradeFrom" type="number" min="1" max="10" value="1" />
+              </div>
+              <div>
+                <label for="gradeTo">Til trinn</label>
+                <input id="gradeTo" type="number" min="1" max="10" value="1" />
+              </div>
+              <div>
+                <label for="gradeSize">Elever per trinn</label>
+                <input id="gradeSize" type="number" min="1" max="10000" value="100" />
+              </div>
+            </div>
+            <div class="tableWrap compact">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Navn</th>
+                    <th>Forventet</th>
+                    <th>Andel av trinn</th>
+                    <th>Fødselsår brukt</th>
+                  </tr>
+                </thead>
+                <tbody id="schoolTable"></tbody>
+              </table>
+            </div>
+          </section>
           <section class="tablePanel">
             <h2>Data</h2>
             <div class="tableWrap">

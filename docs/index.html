@@ -118,6 +118,78 @@
         <div id="selectedNames" class="selectedNames" aria-label="Valgte navn"></div>
         <div id="chart" class="chart" role="img" aria-label="Trendkurver"></div>
 
+        <section class="candidatePanel">
+          <div class="candidateHead">
+            <div>
+              <h2>Kandidatliste</h2>
+              <p>Alle navn som passer filtrene.</p>
+            </div>
+            <button id="copyExploreToCandidates" type="button">Hent fra utforsking</button>
+          </div>
+          <div class="candidateFilters">
+            <div>
+              <label for="candidateRegex">Regex</label>
+              <input id="candidateRegex" type="text" spellcheck="false" value=".*" />
+            </div>
+            <div>
+              <label for="candidateSex">Kjønn</label>
+              <select id="candidateSex">
+                <option value="alle">Alle</option>
+                <option value="jente">Jente</option>
+                <option value="gutt">Gutt</option>
+              </select>
+            </div>
+            <div>
+              <label for="candidateBirthYear">Fødselsår</label>
+              <input id="candidateBirthYear" type="number" min="1880" max="2025" value="2023" />
+            </div>
+            <div>
+              <label for="candidateGrade">Trinn</label>
+              <input id="candidateGrade" type="number" min="1" max="13" value="3" />
+            </div>
+            <div>
+              <label for="candidateGradeSize">Elever per trinn</label>
+              <input id="candidateGradeSize" type="number" min="1" max="10000" value="100" />
+            </div>
+            <div>
+              <label for="candidateMaxSchool">Maks navnesøsken</label>
+              <input id="candidateMaxSchool" type="number" min="0" step="0.1" value="1" />
+            </div>
+            <div>
+              <label for="candidateSort">Sorter</label>
+              <select id="candidateSort">
+                <option value="school">Færrest navnesøsken</option>
+                <option value="birthYear">Flest i fødselsåret</option>
+                <option value="trend">Sterkest trend</option>
+                <option value="name">Navn A-Å</option>
+              </select>
+            </div>
+            <div class="candidateAction">
+              <button id="applyCandidateFilters" type="button" class="primary">Oppdater</button>
+            </div>
+          </div>
+          <p id="candidateError" class="error" role="alert"></p>
+          <div class="sectionHead">
+            <span id="candidateCount">0 navn</span>
+            <span id="candidateScope">Barneskole 1.-7.</span>
+          </div>
+          <div class="tableWrap candidateWrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Navn</th>
+                  <th>Kjønn</th>
+                  <th>Fødselsår</th>
+                  <th>Navnesøsken</th>
+                  <th>Toppår</th>
+                  <th>Trend</th>
+                </tr>
+              </thead>
+              <tbody id="candidateTable"></tbody>
+            </table>
+          </div>
+        </section>
+
         <div class="below">
           <section class="summary">
             <h2>Oppsummering</h2>

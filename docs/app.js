@@ -12,6 +12,16 @@ const state = {
   schoolBirthYear: 2018,
   childGrade: 1,
   gradeSize: 100,
+  candidate: {
+    regex: ".*",
+    sex: "alle",
+    birthYear: 2023,
+    grade: 3,
+    gradeSize: 100,
+    maxSchoolmates: 1,
+    sort: "school",
+    rows: [],
+  },
   markers: false,
 };
 
@@ -44,6 +54,19 @@ document.addEventListener("DOMContentLoaded", () => {
     "gradeSize",
     "schoolScopeHeader",
     "schoolTable",
+    "copyExploreToCandidates",
+    "candidateRegex",
+    "candidateSex",
+    "candidateBirthYear",
+    "candidateGrade",
+    "candidateGradeSize",
+    "candidateMaxSchool",
+    "candidateSort",
+    "applyCandidateFilters",
+    "candidateError",
+    "candidateCount",
+    "candidateScope",
+    "candidateTable",
     "dataTable",
     "copyLink",
     "downloadCsv",
@@ -127,6 +150,36 @@ function wireEvents() {
       updateUrl();
     });
   });
+  [
+    els.candidateRegex,
+    els.candidateSex,
+    els.candidateBirthYear,
+    els.candidateGrade,
+    els.candidateGradeSize,
+    els.candidateMaxSchool,
+    els.candidateSort,
+  ].forEach((input) => {
+    input.addEventListener("input", () => {
+      readCandidateControls(false);
+      renderCandidates();
+      updateUrl();
+    });
+    input.addEventListener("change", () => {
+      readCandidateControls(true);
+      renderCandidates();
+      updateUrl();
+    });
+  });
+  els.applyCandidateFilters.addEventListener("click", () => {
+    readCandidateControls(true);
+    renderCandidates();
+    updateUrl();
+  });
+  els.copyExploreToCandidates.addEventListener("click", () => {
+    copyExploreToCandidates();
+    renderCandidates();
+    updateUrl();
+  });
   els.markersToggle.addEventListener("change", () => {
     state.markers = els.markersToggle.checked;
     renderChart();
@@ -154,6 +207,8 @@ async function loadData() {
   els.topNYear.max = state.toYear;
   els.schoolBirthYear.min = state.fromYear;
   els.schoolBirthYear.max = state.toYear;
+  els.candidateBirthYear.min = state.fromYear;
+  els.candidateBirthYear.max = state.toYear;
   els.fromYear.value = state.fromYear;
   els.toYear.value = state.toYear;
   state.topNYear = state.toYear;
@@ -185,12 +240,20 @@ function restoreFromUrl() {
   if (params.has("schoolYear")) state.schoolBirthYear = clampYear(Number(params.get("schoolYear")));
   if (params.has("grade")) state.childGrade = clampGrade(Number(params.get("grade")));
   if (params.has("gradeSize")) state.gradeSize = Math.max(1, Number(params.get("gradeSize")) || 100);
+  if (params.has("candidateQ")) state.candidate.regex = params.get("candidateQ");
+  if (params.has("candidateSex")) state.candidate.sex = params.get("candidateSex");
+  if (params.has("candidateYear")) state.candidate.birthYear = clampYear(Number(params.get("candidateYear")));
+  if (params.has("candidateGrade")) state.candidate.grade = clampGrade(Number(params.get("candidateGrade")));
+  if (params.has("candidateSize")) state.candidate.gradeSize = Math.max(1, Number(params.get("candidateSize")) || 100);
+  if (params.has("candidateMax")) state.candidate.maxSchoolmates = Math.max(0, Number(params.get("candidateMax")) || 0);
+  if (params.has("candidateSort")) state.candidate.sort = params.get("candidateSort");
   els.fromYear.value = state.fromYear;
   els.toYear.value = state.toYear;
   els.topNYear.value = state.topNYear;
   els.schoolBirthYear.value = state.schoolBirthYear;
   els.childGrade.value = state.childGrade;
   els.gradeSize.value = state.gradeSize;
+  writeCandidateControls();
   if (params.has("names")) {
     params.get("names").split(",").filter(Boolean).forEach((id) => state.selected.add(id));
   }
@@ -222,6 +285,7 @@ function renderAll() {
   renderChart();
   renderSummary();
   renderSchoolEstimate();
+  renderCandidates();
   renderTable();
   updateUrl();
 }
@@ -297,6 +361,41 @@ function readSchoolControls(commit = false) {
   if (state.schoolBirthYear != null && isValidYear(state.schoolBirthYear)) els.schoolBirthYear.value = state.schoolBirthYear;
   if (state.childGrade != null && isValidGrade(state.childGrade)) els.childGrade.value = state.childGrade;
   if (state.gradeSize != null && state.gradeSize > 0) els.gradeSize.value = state.gradeSize;
+}
+
+function readCandidateControls(commit = false) {
+  state.candidate.regex = els.candidateRegex.value.trim() || ".*";
+  state.candidate.sex = els.candidateSex.value;
+  state.candidate.birthYear = parseIntegerInput(els.candidateBirthYear.value);
+  state.candidate.grade = parseIntegerInput(els.candidateGrade.value);
+  state.candidate.gradeSize = parseNumberInput(els.candidateGradeSize.value);
+  state.candidate.maxSchoolmates = parseNumberInput(els.candidateMaxSchool.value);
+  state.candidate.sort = els.candidateSort.value;
+  if (!commit) return;
+  if (state.candidate.birthYear != null && isValidYear(state.candidate.birthYear)) els.candidateBirthYear.value = state.candidate.birthYear;
+  if (state.candidate.grade != null && isValidGrade(state.candidate.grade)) els.candidateGrade.value = state.candidate.grade;
+  if (state.candidate.gradeSize != null && state.candidate.gradeSize > 0) els.candidateGradeSize.value = state.candidate.gradeSize;
+  if (state.candidate.maxSchoolmates != null && state.candidate.maxSchoolmates >= 0) els.candidateMaxSchool.value = state.candidate.maxSchoolmates;
+}
+
+function writeCandidateControls() {
+  els.candidateRegex.value = state.candidate.regex;
+  els.candidateSex.value = state.candidate.sex;
+  els.candidateBirthYear.value = state.candidate.birthYear;
+  els.candidateGrade.value = state.candidate.grade;
+  els.candidateGradeSize.value = state.candidate.gradeSize;
+  els.candidateMaxSchool.value = state.candidate.maxSchoolmates;
+  els.candidateSort.value = state.candidate.sort;
+}
+
+function copyExploreToCandidates() {
+  readSchoolControls(false);
+  state.candidate.regex = state.regex;
+  state.candidate.sex = state.sex;
+  state.candidate.birthYear = state.schoolBirthYear;
+  state.candidate.grade = state.childGrade;
+  state.candidate.gradeSize = state.gradeSize;
+  writeCandidateControls();
 }
 
 function renderSelected() {
@@ -440,6 +539,101 @@ function renderSchoolEstimate() {
   `).join("");
 }
 
+function renderCandidates() {
+  if (!state.data) return;
+  readCandidateControls(false);
+  let pattern;
+  try {
+    pattern = new RegExp(state.candidate.regex, "iu");
+    els.candidateError.textContent = "";
+  } catch (error) {
+    els.candidateError.textContent = error.message;
+    state.candidate.rows = [];
+    els.candidateCount.textContent = "0 navn";
+    els.candidateTable.innerHTML = "";
+    return;
+  }
+  const scope = schoolScopeForGrade(state.candidate.grade);
+  els.candidateScope.textContent = scope.label;
+  const maxSchoolmates = state.candidate.maxSchoolmates;
+  const rows = state.data.names
+    .filter((item) => state.candidate.sex === "alle" || item.sex === state.candidate.sex)
+    .filter((item) => pattern.test(item.name) || pattern.test(item.key.replaceAll("_", " ")))
+    .map((item) => candidateRow(item, scope))
+    .filter((row) => maxSchoolmates == null || (row.school.complete && row.schoolmates <= maxSchoolmates));
+  rows.sort(candidateSorter);
+  state.candidate.rows = rows;
+  els.candidateCount.textContent = `${formatNumber(rows.length)} navn`;
+  if (!rows.length) {
+    els.candidateTable.innerHTML = '<tr><td colspan="6">Ingen kandidater</td></tr>';
+    return;
+  }
+  els.candidateTable.innerHTML = "";
+  const fragment = document.createDocumentFragment();
+  rows.slice(0, 300).forEach((row) => {
+    const tr = document.createElement("tr");
+    const nameCell = document.createElement("td");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "linkButton";
+    button.textContent = row.item.name;
+    button.addEventListener("click", () => {
+      state.selected.add(row.item.id);
+      renderAll();
+    });
+    nameCell.append(button);
+    [
+      nameCell,
+      cell(row.item.sex),
+      cell(formatNumber(row.birthCount)),
+      cell(row.school.complete ? formatDecimal(row.schoolmates, 2) : "–"),
+      cell(`${row.item.peakYear} (${formatNumber(row.item.peakCount)})`),
+      cell(formatSigned(row.trend)),
+    ].forEach((td) => tr.append(td));
+    fragment.append(tr);
+  });
+  els.candidateTable.append(fragment);
+}
+
+function candidateRow(item, scope) {
+  const school = estimateForGradesWithControls(
+    item,
+    scope.from,
+    scope.to,
+    state.candidate.birthYear,
+    state.candidate.grade,
+    state.candidate.gradeSize,
+  );
+  const birthCount = isValidYear(state.candidate.birthYear) ? countInYear(item, state.candidate.birthYear) : 0;
+  const priorYear = isValidYear(state.candidate.birthYear - 5) ? countInYear(item, state.candidate.birthYear - 5) : null;
+  return {
+    item,
+    birthCount,
+    school,
+    schoolmates: school.complete ? Math.max(0, school.expected - 1) : 0,
+    trend: priorYear == null ? null : birthCount - priorYear,
+  };
+}
+
+function candidateSorter(a, b) {
+  if (state.candidate.sort === "birthYear") {
+    return b.birthCount - a.birthCount || a.item.name.localeCompare(b.item.name, "no");
+  }
+  if (state.candidate.sort === "trend") {
+    return (b.trend ?? -Infinity) - (a.trend ?? -Infinity) || b.birthCount - a.birthCount || a.item.name.localeCompare(b.item.name, "no");
+  }
+  if (state.candidate.sort === "name") {
+    return a.item.name.localeCompare(b.item.name, "no") || a.item.sex.localeCompare(b.item.sex, "no");
+  }
+  return a.schoolmates - b.schoolmates || b.birthCount - a.birthCount || a.item.name.localeCompare(b.item.name, "no");
+}
+
+function cell(value) {
+  const td = document.createElement("td");
+  td.textContent = value;
+  return td;
+}
+
 function schoolEstimate(item, scope) {
   return {
     item,
@@ -456,21 +650,25 @@ function schoolScopeForGrade(grade) {
 }
 
 function estimateForGrades(item, fromGrade, toGrade) {
-  if (!isValidYear(state.schoolBirthYear) || !isValidGrade(state.childGrade) || !state.gradeSize || state.gradeSize <= 0 || fromGrade == null || toGrade == null) {
+  return estimateForGradesWithControls(item, fromGrade, toGrade, state.schoolBirthYear, state.childGrade, state.gradeSize);
+}
+
+function estimateForGradesWithControls(item, fromGrade, toGrade, birthYear, grade, gradeSize) {
+  if (!isValidYear(birthYear) || !isValidGrade(grade) || !gradeSize || gradeSize <= 0 || fromGrade == null || toGrade == null) {
     return { expected: 0, share: 0, years: [], complete: false };
   }
   const years = [];
   let expected = 0;
   let usedPupils = 0;
-  for (let grade = fromGrade; grade <= toGrade; grade += 1) {
-    const year = state.schoolBirthYear - (grade - state.childGrade);
+  for (let currentGrade = fromGrade; currentGrade <= toGrade; currentGrade += 1) {
+    const year = birthYear - (currentGrade - grade);
     const yearIndex = state.data.years.indexOf(year);
     if (yearIndex < 0) return { expected: 0, share: 0, years, complete: false };
     const totalBirths = state.data.totalBirths[yearIndex];
     if (!totalBirths) return { expected: 0, share: 0, years, complete: false };
     const count = countInYear(item, year);
-    expected += (count / totalBirths) * state.gradeSize;
-    usedPupils += state.gradeSize;
+    expected += (count / totalBirths) * gradeSize;
+    usedPupils += gradeSize;
     years.push(year);
   }
   return {
@@ -512,6 +710,13 @@ function updateUrl() {
   if (state.schoolBirthYear != null) params.set("schoolYear", String(state.schoolBirthYear));
   if (state.childGrade != null) params.set("grade", String(state.childGrade));
   if (state.gradeSize != null) params.set("gradeSize", String(state.gradeSize));
+  params.set("candidateQ", state.candidate.regex);
+  params.set("candidateSex", state.candidate.sex);
+  if (state.candidate.birthYear != null) params.set("candidateYear", String(state.candidate.birthYear));
+  if (state.candidate.grade != null) params.set("candidateGrade", String(state.candidate.grade));
+  if (state.candidate.gradeSize != null) params.set("candidateSize", String(state.candidate.gradeSize));
+  if (state.candidate.maxSchoolmates != null) params.set("candidateMax", String(state.candidate.maxSchoolmates));
+  params.set("candidateSort", state.candidate.sort);
   if (state.selected.size) params.set("names", [...state.selected].join(","));
   history.replaceState(null, "", `${location.pathname}?${params.toString()}`);
 }
@@ -573,6 +778,11 @@ function formatNumber(value) {
 
 function formatDecimal(value, digits) {
   return new Intl.NumberFormat("no-NO", { maximumFractionDigits: digits }).format(value);
+}
+
+function formatSigned(value) {
+  if (value == null) return "–";
+  return value > 0 ? `+${formatNumber(value)}` : formatNumber(value);
 }
 
 function formatEstimate(value) {

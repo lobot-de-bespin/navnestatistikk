@@ -51,6 +51,22 @@ button.primary {
   color: #fff;
 }
 
+.linkButton {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--accent-dark);
+  font-weight: 700;
+  text-align: left;
+}
+
+.linkButton:hover {
+  border-color: transparent;
+  text-decoration: underline;
+}
+
 input,
 select {
   min-height: 36px;
@@ -279,7 +295,8 @@ label {
 
 .summary,
 .schoolPanel,
-.tablePanel {
+.tablePanel,
+.candidatePanel {
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -294,6 +311,49 @@ label {
 h2 {
   margin: 0 0 10px;
   font-size: 1.05rem;
+}
+
+.candidatePanel {
+  margin-top: 16px;
+}
+
+.candidateHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 12px;
+}
+
+.candidateHead p {
+  margin: -4px 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.candidateFilters {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.3fr) minmax(90px, 0.6fr) repeat(5, minmax(100px, 0.7fr));
+  gap: 10px;
+  align-items: end;
+}
+
+.candidateFilters input,
+.candidateFilters select {
+  width: 100%;
+}
+
+.candidateAction {
+  display: flex;
+}
+
+.candidateAction button {
+  width: 100%;
+}
+
+.candidateWrap {
+  margin-top: 10px;
+  max-height: 440px;
 }
 
 .summaryGrid {
@@ -384,6 +444,10 @@ th {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .candidateFilters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .actions {
     justify-content: start;
   }
@@ -410,6 +474,19 @@ th {
 
   .schoolControls {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .candidateHead {
+    display: block;
+  }
+
+  .candidateHead button {
+    margin-top: 10px;
+    width: 100%;
+  }
+
+  .candidateFilters {
+    grid-template-columns: 1fr;
   }
 
   .chart {

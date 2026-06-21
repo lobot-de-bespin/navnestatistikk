@@ -117,11 +117,11 @@ function wireEvents() {
     });
   });
   [els.schoolBirthYear, els.gradeFrom, els.gradeTo, els.gradeSize].forEach((input) => {
-    input.addEventListener("change", () => {
+    ["input", "change"].forEach((eventName) => input.addEventListener(eventName, () => {
       readSchoolControls();
       renderSchoolEstimate();
       updateUrl();
-    });
+    }));
   });
   els.markersToggle.addEventListener("change", () => {
     state.markers = els.markersToggle.checked;
@@ -419,19 +419,21 @@ function renderSummary() {
 
 function renderSchoolEstimate() {
   if (!state.data) return;
-  els.schoolTable.innerHTML = "";
+  readSchoolControls();
   const rows = selectedItems().map((item) => schoolEstimate(item));
   rows.sort((a, b) => b.expected - a.expected || a.item.name.localeCompare(b.item.name, "no"));
-  rows.forEach((row) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
+  if (!rows.length) {
+    els.schoolTable.innerHTML = '<tr><td colspan="4">Ingen valgte navn</td></tr>';
+    return;
+  }
+  els.schoolTable.innerHTML = rows.map((row) => `
+    <tr>
       <td>${escapeHtml(row.item.name)}</td>
-      <td>${row.expected.toLocaleString("no-NO", { maximumFractionDigits: 2 })}</td>
-      <td>${row.share.toLocaleString("no-NO", { maximumFractionDigits: 3 })} %</td>
-      <td>${row.years.join(", ")}</td>
-    `;
-    els.schoolTable.append(tr);
-  });
+      <td>${formatDecimal(row.expected, 2)}</td>
+      <td>${formatDecimal(row.share, 3)} %</td>
+      <td>${row.years.length ? row.years.join(", ") : "Ingen"}</td>
+    </tr>
+  `).join("");
 }
 
 function schoolEstimate(item) {
@@ -526,6 +528,10 @@ function clampGrade(grade) {
 
 function formatNumber(value) {
   return new Intl.NumberFormat("no-NO").format(value);
+}
+
+function formatDecimal(value, digits) {
+  return new Intl.NumberFormat("no-NO", { maximumFractionDigits: digits }).format(value);
 }
 
 function round(value) {

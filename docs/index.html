@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="no">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Norsk navnestatistikk</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script defer src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <h1>Norsk navnestatistikk</h1>
+        <p>Utforsk fornavn i SSBs fødselsstatistikk fra 1880 til 2025.</p>
+      </div>
+      <div class="source">
+        <span id="dataStatus">Laster data</span>
+        <a href="https://www.ssb.no/statbank/table/10467" target="_blank" rel="noreferrer">SSB 10467</a>
+      </div>
+    </header>
+
+    <main class="layout">
+      <aside class="sidebar" aria-label="Filtre">
+        <section>
+          <label for="regexInput">Regex</label>
+          <div class="searchRow">
+            <input id="regexInput" type="text" spellcheck="false" value="^anna$|^ole$" />
+            <button id="applyRegex" type="button">Søk</button>
+          </div>
+          <div class="quickFilters" aria-label="Raske regex-filtre">
+            <button type="button" data-template="^ann">starter ann</button>
+            <button type="button" data-template="a$">slutter a</button>
+            <button type="button" data-template=".*mar.*">inneholder mar</button>
+            <button type="button" data-template=".* .*">dobbeltnavn</button>
+          </div>
+          <p id="regexError" class="error" role="alert"></p>
+        </section>
+
+        <section>
+          <label>Kjønn</label>
+          <div class="segmented" role="group" aria-label="Kjønn">
+            <button type="button" class="active" data-sex="alle">Alle</button>
+            <button type="button" data-sex="jente">Jente</button>
+            <button type="button" data-sex="gutt">Gutt</button>
+          </div>
+        </section>
+
+        <section>
+          <div class="sectionHead">
+            <label for="resultList">Treff</label>
+            <span id="resultCount">0</span>
+          </div>
+          <div class="listActions">
+            <button id="selectVisible" type="button">Velg synlige</button>
+            <button id="clearSelected" type="button">Tøm</button>
+          </div>
+          <div id="resultList" class="resultList" role="listbox" aria-label="Navnetreff"></div>
+        </section>
+      </aside>
+
+      <section class="content">
+        <div class="toolbar">
+          <div class="control">
+            <label for="metricSelect">Metrikk</label>
+            <select id="metricSelect">
+              <option value="count">Antall fødte</option>
+              <option value="shareAll">Andel av alle levendefødte</option>
+              <option value="shareSex">Andel av levendefødte samme kjønn</option>
+              <option value="rank">Rang innen kjønn</option>
+              <option value="index">Indeks fra første valgte år</option>
+            </select>
+          </div>
+          <div class="control">
+            <label for="scaleSelect">Skala</label>
+            <select id="scaleSelect">
+              <option value="linear">Lineær</option>
+              <option value="log">Logaritmisk</option>
+            </select>
+          </div>
+          <div class="control years">
+            <label>Tidsrom</label>
+            <div>
+              <input id="fromYear" type="number" min="1880" max="2025" value="1880" />
+              <span>til</span>
+              <input id="toYear" type="number" min="1880" max="2025" value="2025" />
+            </div>
+          </div>
+          <div class="control toggles">
+            <label>Visning</label>
+            <label class="check"><input id="markersToggle" type="checkbox" /> punkter</label>
+          </div>
+          <div class="actions">
+            <button id="copyLink" type="button">Kopier lenke</button>
+            <button id="downloadCsv" type="button">CSV</button>
+            <button id="downloadPng" type="button">PNG</button>
+          </div>
+        </div>
+
+        <div id="selectedNames" class="selectedNames" aria-label="Valgte navn"></div>
+        <div id="chart" class="chart" role="img" aria-label="Trendkurver"></div>
+
+        <div class="below">
+          <section class="summary">
+            <h2>Oppsummering</h2>
+            <div id="summaryGrid" class="summaryGrid"></div>
+          </section>
+          <section class="tablePanel">
+            <h2>Data</h2>
+            <div class="tableWrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Navn</th>
+                    <th>Kjønn</th>
+                    <th>Total</th>
+                    <th>Toppår</th>
+                    <th>Maks</th>
+                    <th>Første</th>
+                    <th>Siste</th>
+                    <th>Beste rang</th>
+                  </tr>
+                </thead>
+                <tbody id="dataTable"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

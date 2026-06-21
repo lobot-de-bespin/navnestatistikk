@@ -42,6 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
     "schoolBirthYear",
     "childGrade",
     "gradeSize",
+    "schoolScopeHeader",
     "schoolTable",
     "dataTable",
     "copyLink",
@@ -412,31 +413,35 @@ function renderSummary() {
 function renderSchoolEstimate() {
   if (!state.data) return;
   readSchoolControls();
-  const rows = selectedItems().map((item) => schoolEstimate(item));
+  const scope = schoolScopeForGrade(state.childGrade);
+  els.schoolScopeHeader.textContent = scope.label;
+  const rows = selectedItems().map((item) => schoolEstimate(item, scope));
   rows.sort((a, b) => b.own.expected - a.own.expected || a.item.name.localeCompare(b.item.name, "no"));
   if (!rows.length) {
-    els.schoolTable.innerHTML = '<tr><td colspan="5">Ingen valgte navn</td></tr>';
+    els.schoolTable.innerHTML = '<tr><td colspan="3">Ingen valgte navn</td></tr>';
     return;
   }
   els.schoolTable.innerHTML = rows.map((row) => `
     <tr>
       <td>${escapeHtml(row.item.name)}</td>
       <td>${formatEstimate(row.own)}</td>
-      <td>${formatEstimate(row.primary)}</td>
-      <td>${formatEstimate(row.lowerSecondary)}</td>
-      <td>${formatEstimate(row.upperSecondary)}</td>
+      <td>${formatEstimate(row.scope)}</td>
     </tr>
   `).join("");
 }
 
-function schoolEstimate(item) {
+function schoolEstimate(item, scope) {
   return {
     item,
     own: estimateForGrades(item, state.childGrade, state.childGrade),
-    primary: estimateForGrades(item, 1, 7),
-    lowerSecondary: estimateForGrades(item, 8, 10),
-    upperSecondary: estimateForGrades(item, 11, 13),
+    scope: estimateForGrades(item, scope.from, scope.to),
   };
+}
+
+function schoolScopeForGrade(grade) {
+  if (grade <= 7) return { from: 1, to: 7, label: "Barneskole 1.-7." };
+  if (grade <= 10) return { from: 8, to: 10, label: "Ungdomsskole 8.-10." };
+  return { from: 11, to: 13, label: "VGS 1.-3." };
 }
 
 function estimateForGrades(item, fromGrade, toGrade) {

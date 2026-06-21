@@ -12,26 +12,12 @@ const state = {
 };
 
 const els = {};
-const groupDefinitions = {
-  "group:boys2025:noah": { name: "Noah", sex: "gutt", members: ["2NOAH", "2NOA"] },
-  "group:boys2025:jakob": { name: "Jakob", sex: "gutt", members: ["2JAKOB", "2JACOB"] },
-  "group:boys2025:lucas": { name: "Lucas", sex: "gutt", members: ["2LUCAS", "2LUKAS"] },
-  "group:boys2025:emil": { name: "Emil", sex: "gutt", members: ["2EMIL"] },
-  "group:boys2025:oskar": { name: "Oskar", sex: "gutt", members: ["2OSKAR", "2OSCAR"] },
-  "group:boys2025:william": { name: "William", sex: "gutt", members: ["2WILLIAM"] },
-  "group:boys2025:elias": { name: "Elias", sex: "gutt", members: ["2ELIAS"] },
-  "group:boys2025:isak": { name: "Isak", sex: "gutt", members: ["2ISAK", "2ISAAC", "2ISAC"] },
-  "group:boys2025:oliver": { name: "Oliver", sex: "gutt", members: ["2OLIVER"] },
-  "group:boys2025:ludvig": { name: "Ludvig", sex: "gutt", members: ["2LUDVIG", "2LUDVIK"], extra: [{ year: 2025, count: 5, label: "Ludwig" }] },
-};
-const boys2025Preset = Object.keys(groupDefinitions);
 
 document.addEventListener("DOMContentLoaded", () => {
   [
     "dataStatus",
     "regexInput",
     "applyRegex",
-    "presetBoys2025",
     "regexError",
     "resultCount",
     "resultList",
@@ -90,7 +76,6 @@ function wireEvents() {
     state.selected.clear();
     renderAll();
   });
-  els.presetBoys2025.addEventListener("click", applyBoys2025Preset);
   els.metricSelect.addEventListener("change", () => {
     state.metric = els.metricSelect.value;
     renderAll();
@@ -162,7 +147,6 @@ function restoreFromUrl() {
   if (params.has("names")) {
     params.get("names").split(",").filter(Boolean).forEach((id) => state.selected.add(id));
   }
-  if (params.get("preset") === "boys2025") applyBoys2025Preset(false);
 }
 
 function updateMatches(autoSelect = false) {
@@ -220,60 +204,7 @@ function renderResults() {
 
 function selectedItems() {
   const byId = new Map(state.data.names.map((item) => [item.id, item]));
-  return [...state.selected].map((id) => groupDefinitions[id] ? makeGroupItem(id, byId) : byId.get(id)).filter(Boolean);
-}
-
-function makeGroupItem(id, byId) {
-  const definition = groupDefinitions[id];
-  const members = definition.members.map((memberId) => byId.get(memberId)).filter(Boolean);
-  const byYear = new Map();
-  members.forEach((member) => {
-    member.series.forEach(([yearIndex, count]) => {
-      byYear.set(yearIndex, (byYear.get(yearIndex) || 0) + count);
-    });
-  });
-  (definition.extra || []).forEach((extra) => {
-    const yearIndex = state.data.years.indexOf(extra.year);
-    if (yearIndex >= 0) byYear.set(yearIndex, (byYear.get(yearIndex) || 0) + extra.count);
-  });
-  const series = [...byYear.entries()].sort((a, b) => a[0] - b[0]).map(([yearIndex, count]) => [yearIndex, count, null]);
-  const counts = series.map(([yearIndex, count]) => [yearIndex, count]);
-  const total = counts.reduce((sum, [, count]) => sum + count, 0);
-  const [peakIndex, peakCount] = counts.reduce((best, row) => row[1] > best[1] ? row : best, counts[0]);
-  return {
-    id,
-    key: id,
-    name: definition.name,
-    sex: definition.sex,
-    series,
-    total,
-    peakYear: state.data.years[peakIndex],
-    peakCount,
-    firstYear: state.data.years[counts[0][0]],
-    lastYear: state.data.years[counts.at(-1)[0]],
-    members: members.map((member) => member.name).concat((definition.extra || []).map((extra) => extra.label)),
-  };
-}
-
-function applyBoys2025Preset(render = true) {
-  state.sex = "gutt";
-  state.regex = ".*";
-  state.metric = "count";
-  state.scale = "linear";
-  state.fromYear = 2025;
-  state.toYear = 2025;
-  state.markers = true;
-  state.selected = new Set(boys2025Preset);
-  els.regexInput.value = state.regex;
-  els.metricSelect.value = state.metric;
-  els.scaleSelect.value = state.scale;
-  els.fromYear.value = state.fromYear;
-  els.toYear.value = state.toYear;
-  els.markersToggle.checked = true;
-  document.querySelectorAll("[data-sex]").forEach((button) => {
-    button.classList.toggle("active", button.dataset.sex === state.sex);
-  });
-  if (render) updateMatches();
+  return [...state.selected].map((id) => byId.get(id)).filter(Boolean);
 }
 
 function renderSelected() {
@@ -297,9 +228,7 @@ function renderSelected() {
 
 function renderChart() {
   if (!state.data || !window.Plotly) return;
-  const items = selectedItems();
-  const singleYear = state.fromYear === state.toYear;
-  const traces = singleYear ? [barTrace(items)] : items.map((item) => {
+  const traces = selectedItems().map((item) => {
     const points = visiblePoints(item);
     return {
       x: points.map((p) => p.year),
@@ -316,30 +245,12 @@ function renderChart() {
     paper_bgcolor: "#ffffff",
     plot_bgcolor: "#ffffff",
     hovermode: "x unified",
-    showlegend: !singleYear,
     legend: { orientation: "h", y: -0.2 },
-    xaxis: singleYear ? { title: "Navn" } : { title: "År", range: [state.fromYear, state.toYear] },
+    xaxis: { title: "År", range: [state.fromYear, state.toYear] },
     yaxis: yAxisConfig(),
   };
   const config = { responsive: true, displaylogo: false };
   Plotly.react(els.chart, traces, layout, config);
-}
-
-function barTrace(items) {
-  const rows = items.map((item) => {
-    const point = visiblePoints(item)[0];
-    return { item, point, value: point ? metricValue(point, item) : null };
-  }).filter((row) => row.point && row.value != null);
-  return {
-    type: "bar",
-    x: rows.map((row) => row.item.name),
-    y: rows.map((row) => row.value),
-    marker: { color: "#11675a" },
-    text: rows.map((row) => state.metric === "count" ? String(row.point.count) : String(round(row.value))),
-    textposition: "outside",
-    customdata: rows.map((row) => [row.point.count, row.point.rank, row.point.shareAll, row.point.shareSex]),
-    hovertemplate: "%{x}<br>Verdi: %{y}<br>Antall: %{customdata[0]}<extra></extra>",
-  };
 }
 
 function visiblePoints(item) {

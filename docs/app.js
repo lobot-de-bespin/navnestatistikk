@@ -1,5 +1,7 @@
 const state = {
   data: null,
+  nameFromYear: 1945,
+  nameToYear: 2025,
   sex: "alle",
   regex: "^anna$|^ole$",
   matches: [],
@@ -117,7 +119,7 @@ function wireEvents() {
     els.topNYear.disabled = els.topNMode.value === "period";
   });
   els.topNYear.addEventListener("change", () => {
-    state.topNYear = clampYear(Number(els.topNYear.value));
+    state.topNYear = clampNameYear(Number(els.topNYear.value));
     els.topNYear.value = state.topNYear;
   });
   els.metricSelect.addEventListener("change", () => {
@@ -130,8 +132,8 @@ function wireEvents() {
   });
   [els.fromYear, els.toYear].forEach((input) => {
     input.addEventListener("change", () => {
-      state.fromYear = clampYear(Number(els.fromYear.value));
-      state.toYear = clampYear(Number(els.toYear.value));
+      state.fromYear = clampNameYear(Number(els.fromYear.value));
+      state.toYear = clampNameYear(Number(els.toYear.value));
       if (state.fromYear > state.toYear) [state.fromYear, state.toYear] = [state.toYear, state.fromYear];
       els.fromYear.value = state.fromYear;
       els.toYear.value = state.toYear;
@@ -197,24 +199,27 @@ function wireEvents() {
 async function loadData() {
   const response = await fetch("assets/names-data.json");
   state.data = await response.json();
-  state.fromYear = state.data.years[0];
-  state.toYear = state.data.years[state.data.years.length - 1];
-  els.fromYear.min = state.fromYear;
-  els.fromYear.max = state.toYear;
-  els.toYear.min = state.fromYear;
-  els.toYear.max = state.toYear;
-  els.topNYear.min = state.fromYear;
-  els.topNYear.max = state.toYear;
-  els.schoolBirthYear.min = state.fromYear;
-  els.schoolBirthYear.max = state.toYear;
-  els.candidateBirthYear.min = state.fromYear;
-  els.candidateBirthYear.max = state.toYear;
+  const [nameFromYear, nameToYear] = nameYearRange();
+  state.nameFromYear = nameFromYear;
+  state.nameToYear = nameToYear;
+  state.fromYear = state.nameFromYear;
+  state.toYear = state.nameToYear;
+  els.fromYear.min = state.nameFromYear;
+  els.fromYear.max = state.nameToYear;
+  els.toYear.min = state.nameFromYear;
+  els.toYear.max = state.nameToYear;
+  els.topNYear.min = state.nameFromYear;
+  els.topNYear.max = state.nameToYear;
+  els.schoolBirthYear.min = state.nameFromYear;
+  els.schoolBirthYear.max = state.nameToYear;
+  els.candidateBirthYear.min = state.nameFromYear;
+  els.candidateBirthYear.max = state.nameToYear;
   els.fromYear.value = state.fromYear;
   els.toYear.value = state.toYear;
   state.topNYear = state.toYear;
   els.topNYear.value = state.topNYear;
   restoreFromUrl();
-  els.dataStatus.textContent = `Data: ${state.data.years[0]}-${state.data.years.at(-1)}, bygget ${state.data.meta.builtAt.slice(0, 10)}`;
+  els.dataStatus.textContent = `Navnedata: ${state.nameFromYear}-${state.nameToYear}, bygget ${state.data.meta.builtAt.slice(0, 10)}`;
   updateMatches(true);
 }
 
@@ -234,15 +239,15 @@ function restoreFromUrl() {
     state.metric = params.get("metric");
     els.metricSelect.value = state.metric;
   }
-  if (params.has("from")) state.fromYear = clampYear(Number(params.get("from")));
-  if (params.has("to")) state.toYear = clampYear(Number(params.get("to")));
-  if (params.has("topYear")) state.topNYear = clampYear(Number(params.get("topYear")));
-  if (params.has("schoolYear")) state.schoolBirthYear = clampYear(Number(params.get("schoolYear")));
+  if (params.has("from")) state.fromYear = clampNameYear(Number(params.get("from")));
+  if (params.has("to")) state.toYear = clampNameYear(Number(params.get("to")));
+  if (params.has("topYear")) state.topNYear = clampNameYear(Number(params.get("topYear")));
+  if (params.has("schoolYear")) state.schoolBirthYear = clampNameYear(Number(params.get("schoolYear")));
   if (params.has("grade")) state.childGrade = clampGrade(Number(params.get("grade")));
   if (params.has("gradeSize")) state.gradeSize = Math.max(1, Number(params.get("gradeSize")) || 100);
   if (params.has("candidateQ")) state.candidate.regex = params.get("candidateQ");
   if (params.has("candidateSex")) state.candidate.sex = params.get("candidateSex");
-  if (params.has("candidateYear")) state.candidate.birthYear = clampYear(Number(params.get("candidateYear")));
+  if (params.has("candidateYear")) state.candidate.birthYear = clampNameYear(Number(params.get("candidateYear")));
   if (params.has("candidateGrade")) state.candidate.grade = clampGrade(Number(params.get("candidateGrade")));
   if (params.has("candidateSize")) state.candidate.gradeSize = Math.max(1, Number(params.get("candidateSize")) || 100);
   if (params.has("candidateMax")) state.candidate.maxSchoolmates = Math.max(0, Number(params.get("candidateMax")) || 0);
@@ -321,7 +326,7 @@ function selectedItems() {
 
 function selectTopN() {
   if (!state.data) return;
-  state.topNYear = clampYear(Number(els.topNYear.value));
+  state.topNYear = clampNameYear(Number(els.topNYear.value));
   els.topNYear.value = state.topNYear;
   const n = Number(els.topNCount.value);
   const mode = els.topNMode.value;
@@ -353,12 +358,19 @@ function countInPeriod(item, fromYear, toYear) {
   }, 0);
 }
 
+function nameYearRange() {
+  const indexes = state.data.names.flatMap((item) => item.series.map(([yearIndex]) => yearIndex));
+  const minIndex = Math.min(...indexes);
+  const maxIndex = Math.max(...indexes);
+  return [state.data.years[minIndex], state.data.years[maxIndex]];
+}
+
 function readSchoolControls(commit = false) {
   state.schoolBirthYear = parseIntegerInput(els.schoolBirthYear.value);
   state.childGrade = parseIntegerInput(els.childGrade.value);
   state.gradeSize = parseNumberInput(els.gradeSize.value);
   if (!commit) return;
-  if (state.schoolBirthYear != null && isValidYear(state.schoolBirthYear)) els.schoolBirthYear.value = state.schoolBirthYear;
+  if (state.schoolBirthYear != null && hasNameDataYear(state.schoolBirthYear)) els.schoolBirthYear.value = state.schoolBirthYear;
   if (state.childGrade != null && isValidGrade(state.childGrade)) els.childGrade.value = state.childGrade;
   if (state.gradeSize != null && state.gradeSize > 0) els.gradeSize.value = state.gradeSize;
 }
@@ -372,7 +384,7 @@ function readCandidateControls(commit = false) {
   state.candidate.maxSchoolmates = parseNumberInput(els.candidateMaxSchool.value);
   state.candidate.sort = els.candidateSort.value;
   if (!commit) return;
-  if (state.candidate.birthYear != null && isValidYear(state.candidate.birthYear)) els.candidateBirthYear.value = state.candidate.birthYear;
+  if (state.candidate.birthYear != null && hasNameDataYear(state.candidate.birthYear)) els.candidateBirthYear.value = state.candidate.birthYear;
   if (state.candidate.grade != null && isValidGrade(state.candidate.grade)) els.candidateGrade.value = state.candidate.grade;
   if (state.candidate.gradeSize != null && state.candidate.gradeSize > 0) els.candidateGradeSize.value = state.candidate.gradeSize;
   if (state.candidate.maxSchoolmates != null && state.candidate.maxSchoolmates >= 0) els.candidateMaxSchool.value = state.candidate.maxSchoolmates;
@@ -604,8 +616,8 @@ function candidateRow(item, scope) {
     state.candidate.grade,
     state.candidate.gradeSize,
   );
-  const birthCount = isValidYear(state.candidate.birthYear) ? countInYear(item, state.candidate.birthYear) : 0;
-  const priorYear = isValidYear(state.candidate.birthYear - 5) ? countInYear(item, state.candidate.birthYear - 5) : null;
+  const birthCount = hasNameDataYear(state.candidate.birthYear) ? countInYear(item, state.candidate.birthYear) : 0;
+  const priorYear = hasNameDataYear(state.candidate.birthYear - 5) ? countInYear(item, state.candidate.birthYear - 5) : null;
   return {
     item,
     birthCount,
@@ -654,7 +666,7 @@ function estimateForGrades(item, fromGrade, toGrade) {
 }
 
 function estimateForGradesWithControls(item, fromGrade, toGrade, birthYear, grade, gradeSize) {
-  if (!isValidYear(birthYear) || !isValidGrade(grade) || !gradeSize || gradeSize <= 0 || fromGrade == null || toGrade == null) {
+  if (!hasNameDataYear(birthYear) || !isValidGrade(grade) || !gradeSize || gradeSize <= 0 || fromGrade == null || toGrade == null) {
     return { expected: 0, share: 0, years: [], complete: false };
   }
   const years = [];
@@ -663,7 +675,7 @@ function estimateForGradesWithControls(item, fromGrade, toGrade, birthYear, grad
   for (let currentGrade = fromGrade; currentGrade <= toGrade; currentGrade += 1) {
     const year = birthYear - (currentGrade - grade);
     const yearIndex = state.data.years.indexOf(year);
-    if (yearIndex < 0) return { expected: 0, share: 0, years, complete: false };
+    if (yearIndex < 0 || !hasNameDataYear(year)) return { expected: 0, share: 0, years, complete: false };
     const totalBirths = state.data.totalBirths[yearIndex];
     if (!totalBirths) return { expected: 0, share: 0, years, complete: false };
     const count = countInYear(item, year);
@@ -748,6 +760,12 @@ function clampYear(year) {
   return Math.max(state.data.years[0], Math.min(state.data.years.at(-1), year));
 }
 
+function clampNameYear(year) {
+  if (!state.data) return year;
+  const fallback = Number.isFinite(year) ? year : state.nameToYear;
+  return Math.max(state.nameFromYear, Math.min(state.nameToYear, fallback));
+}
+
 function clampGrade(grade) {
   return Math.max(1, Math.min(13, Number.isFinite(grade) ? Math.round(grade) : 1));
 }
@@ -766,6 +784,10 @@ function parseNumberInput(value) {
 
 function isValidYear(year) {
   return Number.isInteger(year) && state.data && state.data.years.includes(year);
+}
+
+function hasNameDataYear(year) {
+  return Number.isInteger(year) && state.data && year >= state.nameFromYear && year <= state.nameToYear;
 }
 
 function isValidGrade(grade) {

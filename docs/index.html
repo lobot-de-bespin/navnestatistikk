@@ -127,16 +127,12 @@
             <h2>Skoletrinn</h2>
             <div class="schoolControls">
               <div>
-                <label for="schoolBirthYear">Fødselsår i 1. trinn</label>
+                <label for="schoolBirthYear">Barnets fødselsår</label>
                 <input id="schoolBirthYear" type="number" min="1880" max="2025" value="2018" />
               </div>
               <div>
-                <label for="gradeFrom">Fra trinn</label>
-                <input id="gradeFrom" type="number" min="1" max="10" value="1" />
-              </div>
-              <div>
-                <label for="gradeTo">Til trinn</label>
-                <input id="gradeTo" type="number" min="1" max="10" value="1" />
+                <label for="childGrade">Barnets trinn</label>
+                <input id="childGrade" type="number" min="1" max="13" value="1" />
               </div>
               <div>
                 <label for="gradeSize">Elever per trinn</label>
@@ -148,9 +144,10 @@
                 <thead>
                   <tr>
                     <th>Navn</th>
-                    <th>Forventet</th>
-                    <th>Andel av trinn</th>
-                    <th>Fødselsår brukt</th>
+                    <th>Eget trinn</th>
+                    <th>1.-7.</th>
+                    <th>8.-10.</th>
+                    <th>VGS</th>
                   </tr>
                 </thead>
                 <tbody id="schoolTable"></tbody>

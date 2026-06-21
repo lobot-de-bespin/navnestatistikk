@@ -333,7 +333,7 @@ function selectTopN() {
   const rows = state.data.names
     .filter((item) => state.sex === "alle" || item.sex === state.sex)
     .map((item) => {
-      const value = mode === "year" ? countInYear(item, state.topNYear) : countInPeriod(item, state.fromYear, state.toYear);
+      const value = mode === "year" ? topNValueInYear(item, state.topNYear) : topNValueInPeriod(item, state.fromYear, state.toYear);
       return { item, value };
     })
     .filter((row) => row.value > 0)
@@ -345,24 +345,61 @@ function selectTopN() {
 }
 
 function countInYear(item, year) {
-  const yearIndex = state.data.years.indexOf(year);
-  if (yearIndex < 0) return 0;
-  const point = item.series.find(([yi]) => yi === yearIndex);
+  const point = pointInYear(item, year);
   return point ? point[1] : 0;
+}
+
+function shareInYear(item, year) {
+  const point = pointInYear(item, year);
+  return point ? point[3] : null;
+}
+
+function pointInYear(item, year) {
+  const yearIndex = state.data.years.indexOf(year);
+  if (yearIndex < 0) return null;
+  return item.series.find(([yi]) => yi === yearIndex) ?? null;
+}
+
+function topNValueInYear(item, year) {
+  const point = pointInYear(item, year);
+  if (!point) return 0;
+  return point[1] ?? point[3] ?? 0;
+}
+
+function topNValueInPeriod(item, fromYear, toYear) {
+  return item.series.reduce((sum, [yearIndex, count, , share]) => {
+    const year = state.data.years[yearIndex];
+    return year >= fromYear && year <= toYear ? sum + (count ?? share ?? 0) : sum;
+  }, 0);
 }
 
 function countInPeriod(item, fromYear, toYear) {
   return item.series.reduce((sum, [yearIndex, count]) => {
     const year = state.data.years[yearIndex];
-    return year >= fromYear && year <= toYear ? sum + count : sum;
+    return year >= fromYear && year <= toYear ? sum + (count ?? 0) : sum;
   }, 0);
 }
 
 function nameYearRange() {
-  const indexes = state.data.names.flatMap((item) => item.series.map(([yearIndex]) => yearIndex));
-  const minIndex = Math.min(...indexes);
-  const maxIndex = Math.max(...indexes);
+  let minIndex = Infinity;
+  let maxIndex = -Infinity;
+  state.data.names.forEach((item) => {
+    item.series.forEach(([yearIndex]) => {
+      minIndex = Math.min(minIndex, yearIndex);
+      maxIndex = Math.max(maxIndex, yearIndex);
+    });
+  });
   return [state.data.years[minIndex], state.data.years[maxIndex]];
+}
+
+function firstCountYear() {
+  let minIndex = Infinity;
+  state.data.names.forEach((item) => {
+    item.series.forEach(([yearIndex, count]) => {
+      if (count != null) minIndex = Math.min(minIndex, yearIndex);
+    });
+  });
+  return Number.isFinite(minIndex) ? state.data.years[minIndex] : state.nameToYear;
 }
 
 function readSchoolControls(commit = false) {
@@ -431,11 +468,12 @@ function renderSelected() {
 
 function renderChart() {
   if (!state.data || !window.Plotly) return;
+  const effectiveMetric = effectiveChartMetric();
   const traces = selectedItems().map((item) => {
     const points = visiblePoints(item);
     return {
       x: points.map((p) => p.year),
-      y: points.map((p) => metricValue(p, item)),
+      y: points.map((p) => metricValue(p, item, effectiveMetric)),
       mode: state.markers ? "lines+markers" : "lines",
       name: `${item.name} (${item.sex})`,
       line: { width: 2.5 },
@@ -450,7 +488,7 @@ function renderChart() {
     hovermode: "x unified",
     legend: { orientation: "h", y: -0.2 },
     xaxis: { title: "År", range: [state.fromYear, state.toYear] },
-    yaxis: yAxisConfig(),
+    yaxis: yAxisConfig(effectiveMetric),
   };
   const config = { responsive: true, displaylogo: false };
   Plotly.react(els.chart, traces, layout, config);
@@ -458,7 +496,7 @@ function renderChart() {
 
 function visiblePoints(item) {
   return item.series
-    .map(([yearIndex, count, rank]) => {
+    .map(([yearIndex, count, rank, sourceShareSex]) => {
       const year = state.data.years[yearIndex];
       const total = state.data.totalBirths[yearIndex];
       const sexTotal = state.data.sexBirths[item.sex]?.[String(year)] ?? null;
@@ -467,25 +505,30 @@ function visiblePoints(item) {
         yearIndex,
         count,
         rank,
-        shareAll: total ? (count / total) * 100 : null,
-        shareSex: sexTotal ? (count / sexTotal) * 100 : null,
+        shareAll: total && count != null ? (count / total) * 100 : null,
+        shareSex: sourceShareSex ?? (sexTotal && count != null ? (count / sexTotal) * 100 : null),
       };
     })
     .filter((p) => p.year >= state.fromYear && p.year <= state.toYear);
 }
 
-function metricValue(point, item) {
-  if (state.metric === "shareAll") return point.shareAll;
-  if (state.metric === "shareSex") return point.shareSex;
-  if (state.metric === "rank") return point.rank;
-  if (state.metric === "index") {
+function metricValue(point, item, metric = state.metric) {
+  if (metric === "shareAll") return point.shareAll;
+  if (metric === "shareSex") return point.shareSex;
+  if (metric === "rank") return point.rank;
+  if (metric === "index") {
     const base = visiblePoints(item).find((p) => p.count > 0)?.count;
     return base ? (point.count / base) * 100 : null;
   }
   return point.count;
 }
 
-function yAxisConfig() {
+function effectiveChartMetric() {
+  if (state.metric === "count" && state.fromYear < firstCountYear()) return "shareSex";
+  return state.metric;
+}
+
+function yAxisConfig(metric = state.metric) {
   const titles = {
     count: "Antall fødte",
     shareAll: "Andel av alle levendefødte (%)",
@@ -493,8 +536,8 @@ function yAxisConfig() {
     rank: "Rang innen kjønn",
     index: "Indeks (første punkt = 100)",
   };
-  const axis = { title: titles[state.metric], rangemode: "tozero" };
-  if (state.metric === "rank") {
+  const axis = { title: titles[metric], rangemode: "tozero" };
+  if (metric === "rank") {
     axis.autorange = "reversed";
     axis.rangemode = undefined;
   } else if (state.scale === "log") {

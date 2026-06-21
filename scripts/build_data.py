@@ -85,7 +85,7 @@ def build() -> dict:
         NAME_TABLE,
         [
             all_query("Fornavn"),
-            item_query("ContentsCode", ["Personer"]),
+            item_query("ContentsCode", ["PersonerProsent", "Personer"]),
             all_query("Tid"),
         ],
     )
@@ -97,6 +97,9 @@ def build() -> dict:
     years = [int(y) for y in year_codes]
     values = name_data.get("value", [])
     shape = name_data["size"]
+    content_codes = sorted_codes(name_data["dimension"]["ContentsCode"]["category"])
+    share_index = content_codes.index("PersonerProsent")
+    count_index = content_codes.index("Personer")
 
     births = post_table(
         BIRTHS_TABLE,
@@ -134,12 +137,16 @@ def build() -> dict:
         label = name_labels.get(code, bare_id).replace("_", " ")
         points = []
         for yi, year in enumerate(years):
-            val = value_at(values, shape, (ni, 0, yi))
-            if val is None:
+            share_val = value_at(values, shape, (ni, share_index, yi))
+            count_val = value_at(values, shape, (ni, count_index, yi))
+            if share_val is None and count_val is None:
                 continue
-            count = int(val)
-            points.append([yi, count])
-            per_year_sex[(yi, sex)].append((ni, count))
+            count = int(count_val) if count_val is not None else None
+            share = float(share_val) if share_val is not None else None
+            points.append([yi, count, share])
+            rank_value = count if count is not None else share
+            if rank_value is not None:
+                per_year_sex[(yi, sex)].append((ni, rank_value))
         raw_records.append(
             {
                 "id": code,
@@ -165,12 +172,13 @@ def build() -> dict:
     for ni, record in enumerate(raw_records):
         series = []
         counts = []
-        for yi, count in record["points"]:
+        for yi, count, share in record["points"]:
             rank = ranks[ni].get(yi)
-            series.append([yi, count, rank])
-            counts.append((yi, count))
+            series.append([yi, count, rank, share])
+            if count is not None:
+                counts.append((yi, count))
         total = sum(count for _, count in counts)
-        peak_i, peak_count = max(counts, key=lambda item: (item[1], -item[0]))
+        peak_i, peak_count = max(counts, key=lambda item: (item[1], -item[0])) if counts else (record["points"][0][0], None)
         records.append(
             {
                 "id": record["id"],
@@ -183,6 +191,8 @@ def build() -> dict:
                 "peakCount": peak_count,
                 "firstYear": years[counts[0][0]],
                 "lastYear": years[counts[-1][0]],
+                "firstDataYear": years[record["points"][0][0]],
+                "lastDataYear": years[record["points"][-1][0]],
             }
         )
 

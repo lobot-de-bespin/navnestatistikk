@@ -47,6 +47,24 @@
         </section>
 
         <section>
+          <label>Topp N</label>
+          <div class="topNGrid">
+            <select id="topNCount" aria-label="Antall navn">
+              <option value="5">5</option>
+              <option value="10" selected>10</option>
+              <option value="15">15</option>
+              <option value="20">20</option>
+            </select>
+            <select id="topNMode" aria-label="Grunnlag">
+              <option value="year">År</option>
+              <option value="period">Tidsrom</option>
+            </select>
+            <input id="topNYear" type="number" min="1880" max="2025" value="2025" aria-label="År for topp N" />
+            <button id="selectTopN" type="button">Velg topp</button>
+          </div>
+        </section>
+
+        <section>
           <div class="sectionHead">
             <label for="resultList">Treff</label>
             <span id="resultCount">0</span>

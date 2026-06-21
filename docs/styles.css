@@ -145,6 +145,16 @@ label {
   padding: 0 9px;
 }
 
+.topNGrid {
+  display: grid;
+  grid-template-columns: 0.65fr 1fr;
+  gap: 8px;
+}
+
+.topNGrid button {
+  grid-column: 1 / -1;
+}
+
 .sectionHead {
   display: flex;
   justify-content: space-between;

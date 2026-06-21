@@ -8,6 +8,7 @@ const state = {
   scale: "linear",
   fromYear: 1880,
   toYear: 2025,
+  topNYear: 2025,
   markers: false,
 };
 
@@ -23,6 +24,10 @@ document.addEventListener("DOMContentLoaded", () => {
     "resultList",
     "selectVisible",
     "clearSelected",
+    "topNCount",
+    "topNMode",
+    "topNYear",
+    "selectTopN",
     "metricSelect",
     "scaleSelect",
     "fromYear",
@@ -76,6 +81,14 @@ function wireEvents() {
     state.selected.clear();
     renderAll();
   });
+  els.selectTopN.addEventListener("click", selectTopN);
+  els.topNMode.addEventListener("change", () => {
+    els.topNYear.disabled = els.topNMode.value === "period";
+  });
+  els.topNYear.addEventListener("change", () => {
+    state.topNYear = clampYear(Number(els.topNYear.value));
+    els.topNYear.value = state.topNYear;
+  });
   els.metricSelect.addEventListener("change", () => {
     state.metric = els.metricSelect.value;
     renderAll();
@@ -117,8 +130,12 @@ async function loadData() {
   els.fromYear.max = state.toYear;
   els.toYear.min = state.fromYear;
   els.toYear.max = state.toYear;
+  els.topNYear.min = state.fromYear;
+  els.topNYear.max = state.toYear;
   els.fromYear.value = state.fromYear;
   els.toYear.value = state.toYear;
+  state.topNYear = state.toYear;
+  els.topNYear.value = state.topNYear;
   restoreFromUrl();
   els.dataStatus.textContent = `Data: ${state.data.years[0]}-${state.data.years.at(-1)}, bygget ${state.data.meta.builtAt.slice(0, 10)}`;
   updateMatches(true);
@@ -142,8 +159,10 @@ function restoreFromUrl() {
   }
   if (params.has("from")) state.fromYear = clampYear(Number(params.get("from")));
   if (params.has("to")) state.toYear = clampYear(Number(params.get("to")));
+  if (params.has("topYear")) state.topNYear = clampYear(Number(params.get("topYear")));
   els.fromYear.value = state.fromYear;
   els.toYear.value = state.toYear;
+  els.topNYear.value = state.topNYear;
   if (params.has("names")) {
     params.get("names").split(",").filter(Boolean).forEach((id) => state.selected.add(id));
   }
@@ -205,6 +224,36 @@ function renderResults() {
 function selectedItems() {
   const byId = new Map(state.data.names.map((item) => [item.id, item]));
   return [...state.selected].map((id) => byId.get(id)).filter(Boolean);
+}
+
+function selectTopN() {
+  if (!state.data) return;
+  state.topNYear = clampYear(Number(els.topNYear.value));
+  els.topNYear.value = state.topNYear;
+  const n = Number(els.topNCount.value);
+  const mode = els.topNMode.value;
+  const rows = state.matches.map((item) => {
+    const value = mode === "year" ? countInYear(item, state.topNYear) : countInPeriod(item, state.fromYear, state.toYear);
+    return { item, value };
+  })
+    .filter((row) => row.value > 0)
+    .sort((a, b) => b.value - a.value || a.item.name.localeCompare(b.item.name, "no"));
+  state.selected = new Set(rows.slice(0, n).map((row) => row.item.id));
+  renderAll();
+}
+
+function countInYear(item, year) {
+  const yearIndex = state.data.years.indexOf(year);
+  if (yearIndex < 0) return 0;
+  const point = item.series.find(([yi]) => yi === yearIndex);
+  return point ? point[1] : 0;
+}
+
+function countInPeriod(item, fromYear, toYear) {
+  return item.series.reduce((sum, [yearIndex, count]) => {
+    const year = state.data.years[yearIndex];
+    return year >= fromYear && year <= toYear ? sum + count : sum;
+  }, 0);
 }
 
 function renderSelected() {
@@ -355,6 +404,7 @@ function updateUrl() {
   params.set("metric", state.metric);
   params.set("from", String(state.fromYear));
   params.set("to", String(state.toYear));
+  params.set("topYear", String(state.topNYear));
   if (state.selected.size) params.set("names", [...state.selected].join(","));
   history.replaceState(null, "", `${location.pathname}?${params.toString()}`);
 }

@@ -288,7 +288,7 @@ label {
 
 .toolbar {
   display: grid;
-  grid-template-columns: minmax(190px, 1.2fr) minmax(120px, 0.7fr) minmax(190px, 0.9fr) minmax(110px, 0.6fr) auto;
+  grid-template-columns: minmax(180px, 1.15fr) minmax(110px, 0.65fr) minmax(180px, 0.9fr) minmax(110px, 0.65fr) minmax(100px, 0.55fr) auto;
   gap: 12px;
   align-items: end;
 }

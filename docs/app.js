@@ -8,6 +8,7 @@ const state = {
   selected: new Set(),
   metric: "count",
   scale: "linear",
+  chartSmooth: 1,
   fromYear: 1880,
   toYear: 2025,
   topNYear: 2025,
@@ -61,6 +62,7 @@ document.addEventListener("DOMContentLoaded", () => {
     "selectTopN",
     "metricSelect",
     "scaleSelect",
+    "chartSmooth",
     "fromYear",
     "toYear",
     "markersToggle",
@@ -167,6 +169,11 @@ function wireEvents() {
   els.scaleSelect.addEventListener("change", () => {
     state.scale = els.scaleSelect.value;
     renderChart();
+  });
+  els.chartSmooth.addEventListener("change", () => {
+    state.chartSmooth = Math.max(1, Number(els.chartSmooth.value) || 1);
+    renderChart();
+    updateUrl();
   });
   [els.fromYear, els.toYear].forEach((input) => {
     input.addEventListener("change", () => {
@@ -311,6 +318,10 @@ function restoreFromUrl() {
   if (params.has("metric")) {
     state.metric = params.get("metric");
     els.metricSelect.value = state.metric;
+  }
+  if (params.has("smooth")) {
+    state.chartSmooth = Math.max(1, Number(params.get("smooth")) || 1);
+    els.chartSmooth.value = String(state.chartSmooth);
   }
   if (params.has("from")) state.fromYear = clampNameYear(Number(params.get("from")));
   if (params.has("to")) state.toYear = clampNameYear(Number(params.get("to")));
@@ -634,9 +645,10 @@ function renderChart() {
   const effectiveMetric = effectiveChartMetric();
   const traces = selectedItems().map((item) => {
     const points = visiblePoints(item);
+    const values = points.map((p) => metricValue(p, item, effectiveMetric));
     return {
       x: points.map((p) => p.year),
-      y: points.map((p) => metricValue(p, item, effectiveMetric)),
+      y: smoothSeries(values, state.chartSmooth),
       mode: state.markers ? "lines+markers" : "lines",
       name: `${item.name} (${item.sex})`,
       line: { width: 2.5 },
@@ -659,6 +671,18 @@ function renderChart() {
 
 function visiblePoints(item) {
   return allPoints(item).filter((p) => p.year >= state.fromYear && p.year <= state.toYear);
+}
+
+function smoothSeries(values, width) {
+  if (Math.max(1, Number(width) || 1) <= 1) return values;
+  const smoothed = [];
+  const size = Math.max(1, Math.round(width));
+  const radius = Math.floor(size / 2);
+  values.forEach((_, index) => {
+    const windowValues = values.slice(Math.max(0, index - radius), index + radius + 1).filter((value) => value != null && Number.isFinite(value));
+    smoothed.push(windowValues.length ? mean(windowValues) : null);
+  });
+  return smoothed;
 }
 
 function allPoints(item) {
@@ -1083,6 +1107,7 @@ function updateUrl() {
   params.set("q", state.regex);
   params.set("sex", state.sex);
   params.set("metric", state.metric);
+  params.set("smooth", String(state.chartSmooth));
   params.set("from", String(state.fromYear));
   params.set("to", String(state.toYear));
   params.set("topMode", els.topNMode.value);

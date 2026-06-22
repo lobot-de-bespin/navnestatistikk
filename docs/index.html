@@ -55,19 +55,51 @@
         <section class="module sidebarModule">
           <div class="moduleHead">
             <label>Topp N</label>
-            <p>Velg de vanligste navnene i ett år eller samlet for tidsrommet i grafen.</p>
+            <p>Velg de vanligste navnene, eller et rangintervall som topp 10 %, midtre 50 % eller nederste kvartil.</p>
           </div>
           <div class="topNGrid">
-            <select id="topNCount" aria-label="Antall navn">
-              <option value="5">5</option>
-              <option value="10" selected>10</option>
-              <option value="15">15</option>
-              <option value="20">20</option>
+            <select id="topNSelectionMode" aria-label="Utvalgstype">
+              <option value="top" selected>Topp N</option>
+              <option value="range">Intervall</option>
             </select>
             <select id="topNMode" aria-label="Grunnlag">
               <option value="year">År</option>
               <option value="period">Tidsrom</option>
             </select>
+            <div id="topNCountControl" class="topNFullControl">
+              <label for="topNCount">Antall navn</label>
+              <select id="topNCount">
+                <option value="5">5</option>
+                <option value="10" selected>10</option>
+                <option value="15">15</option>
+                <option value="20">20</option>
+              </select>
+            </div>
+            <div id="topNRangeControls" class="topNRangeControls" hidden>
+              <div class="topNFullControl">
+                <label for="topNRangePreset">Intervall</label>
+                <select id="topNRangePreset">
+                  <option value="top10">Topp 10 %</option>
+                  <option value="top25">Øvre kvartil</option>
+                  <option value="middle50">Midtre 50 %</option>
+                  <option value="bottom25">Nederste kvartil</option>
+                  <option value="bottom10">Nederste 10 %</option>
+                  <option value="custom">Egendefinert</option>
+                </select>
+              </div>
+              <div>
+                <label for="topNRangeFrom">Fra %</label>
+                <input id="topNRangeFrom" type="number" min="0" max="100" step="1" value="0" />
+              </div>
+              <div>
+                <label for="topNRangeTo">Til %</label>
+                <input id="topNRangeTo" type="number" min="0" max="100" step="1" value="10" />
+              </div>
+              <div>
+                <label for="topNRangeLimit">Maks navn</label>
+                <input id="topNRangeLimit" type="number" min="1" max="250" step="1" value="50" />
+              </div>
+            </div>
             <div id="topNYearControl" class="topNYearControl">
               <label for="topNYear">År</label>
               <input id="topNYear" type="number" min="1880" max="2025" value="2025" />

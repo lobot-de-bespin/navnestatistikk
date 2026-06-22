@@ -11,9 +11,14 @@ const state = {
   chartSmooth: 1,
   fromYear: 1880,
   toYear: 2025,
+  topNSelectionMode: "top",
   topNYear: 2025,
   topNFromYear: 1880,
   topNToYear: 2025,
+  topNRangePreset: "top10",
+  topNRangeFrom: 0,
+  topNRangeTo: 10,
+  topNRangeLimit: 50,
   schoolBirthYear: 2018,
   childGrade: 1,
   gradeSize: 100,
@@ -51,8 +56,15 @@ document.addEventListener("DOMContentLoaded", () => {
     "resultList",
     "selectVisible",
     "clearSelected",
+    "topNSelectionMode",
     "topNCount",
+    "topNCountControl",
     "topNMode",
+    "topNRangeControls",
+    "topNRangePreset",
+    "topNRangeFrom",
+    "topNRangeTo",
+    "topNRangeLimit",
     "topNYearControl",
     "topNYear",
     "topNPeriodControls",
@@ -146,11 +158,20 @@ function wireEvents() {
     renderAll();
   });
   els.selectTopN.addEventListener("click", selectTopN);
+  els.topNSelectionMode.addEventListener("change", () => {
+    state.topNSelectionMode = els.topNSelectionMode.value;
+    writeTopNControls();
+    updateUrl();
+  });
   els.topNMode.addEventListener("change", () => {
     writeTopNControls();
     updateUrl();
   });
-  [els.topNYear, els.topNFromYear, els.topNToYear].forEach((input) => {
+  els.topNRangePreset.addEventListener("change", () => {
+    applyTopNRangePreset();
+    updateUrl();
+  });
+  [els.topNYear, els.topNFromYear, els.topNToYear, els.topNRangeFrom, els.topNRangeTo, els.topNRangeLimit].forEach((input) => {
     input.addEventListener("change", () => {
       readTopNControls(true);
       updateUrl();
@@ -325,11 +346,18 @@ function restoreFromUrl() {
   }
   if (params.has("from")) state.fromYear = clampNameYear(Number(params.get("from")));
   if (params.has("to")) state.toYear = clampNameYear(Number(params.get("to")));
+  if (params.has("topSelect")) state.topNSelectionMode = params.get("topSelect");
+  els.topNSelectionMode.value = state.topNSelectionMode;
   if (params.has("topMode")) els.topNMode.value = params.get("topMode");
   if (params.has("topYear")) state.topNYear = clampNameYear(Number(params.get("topYear")));
   if (params.has("topFrom")) state.topNFromYear = clampNameYear(Number(params.get("topFrom")));
   if (params.has("topTo")) state.topNToYear = clampNameYear(Number(params.get("topTo")));
   if (state.topNFromYear > state.topNToYear) [state.topNFromYear, state.topNToYear] = [state.topNToYear, state.topNFromYear];
+  if (params.has("topRange")) state.topNRangePreset = params.get("topRange");
+  if (params.has("topRangeFrom")) state.topNRangeFrom = clampPercent(Number(params.get("topRangeFrom")));
+  if (params.has("topRangeTo")) state.topNRangeTo = clampPercent(Number(params.get("topRangeTo")));
+  if (params.has("topLimit")) state.topNRangeLimit = Math.max(1, Math.min(250, Number(params.get("topLimit")) || 50));
+  if (state.topNRangeFrom > state.topNRangeTo) [state.topNRangeFrom, state.topNRangeTo] = [state.topNRangeTo, state.topNRangeFrom];
   if (params.has("schoolYear")) state.schoolBirthYear = clampNameYear(Number(params.get("schoolYear")));
   if (params.has("grade")) state.childGrade = clampGrade(Number(params.get("grade")));
   if (params.has("gradeSize")) state.gradeSize = Math.max(1, Number(params.get("gradeSize")) || 100);
@@ -433,7 +461,8 @@ function selectTopN() {
     })
     .filter((row) => row.value > 0)
     .sort((a, b) => b.value - a.value || a.item.name.localeCompare(b.item.name, "no"));
-  state.selected = new Set(rows.slice(0, n).map((row) => row.item.id));
+  const selectedRows = state.topNSelectionMode === "range" ? topNRowsInRange(rows) : rows.slice(0, n);
+  state.selected = new Set(selectedRows.map((row) => row.item.id));
   renderAll();
 }
 
@@ -441,22 +470,79 @@ function readTopNControls(commit = false) {
   const topNYear = parseIntegerInput(els.topNYear.value);
   const topNFromYear = parseIntegerInput(els.topNFromYear.value);
   const topNToYear = parseIntegerInput(els.topNToYear.value);
+  const topNRangeFrom = parseNumberInput(els.topNRangeFrom.value);
+  const topNRangeTo = parseNumberInput(els.topNRangeTo.value);
+  const topNRangeLimit = parseIntegerInput(els.topNRangeLimit.value);
   if (!commit) return;
+  state.topNSelectionMode = els.topNSelectionMode.value;
+  state.topNRangePreset = els.topNRangePreset.value;
   if (topNYear != null) state.topNYear = clampNameYear(topNYear);
   if (topNFromYear != null) state.topNFromYear = clampNameYear(topNFromYear);
   if (topNToYear != null) state.topNToYear = clampNameYear(topNToYear);
   if (state.topNFromYear > state.topNToYear) [state.topNFromYear, state.topNToYear] = [state.topNToYear, state.topNFromYear];
+  if (topNRangeFrom != null) state.topNRangeFrom = clampPercent(topNRangeFrom);
+  if (topNRangeTo != null) state.topNRangeTo = clampPercent(topNRangeTo);
+  if (state.topNRangeFrom > state.topNRangeTo) [state.topNRangeFrom, state.topNRangeTo] = [state.topNRangeTo, state.topNRangeFrom];
+  state.topNRangePreset = matchingTopNRangePreset(state.topNRangeFrom, state.topNRangeTo) ?? "custom";
+  if (topNRangeLimit != null) state.topNRangeLimit = Math.max(1, Math.min(250, topNRangeLimit));
   writeTopNControls();
 }
 
 function writeTopNControls() {
   const periodMode = els.topNMode.value === "period";
+  const rangeMode = state.topNSelectionMode === "range";
+  els.topNSelectionMode.value = state.topNSelectionMode;
+  els.topNCountControl.hidden = rangeMode;
+  els.topNRangeControls.hidden = !rangeMode;
+  els.selectTopN.textContent = rangeMode ? "Velg intervall" : "Velg topp";
   els.topNYearControl.hidden = periodMode;
   els.topNPeriodControls.hidden = !periodMode;
   els.syncTopNYears.hidden = !periodMode;
+  els.topNRangePreset.value = state.topNRangePreset;
+  els.topNRangeFrom.value = state.topNRangeFrom;
+  els.topNRangeTo.value = state.topNRangeTo;
+  els.topNRangeLimit.value = state.topNRangeLimit;
   els.topNYear.value = state.topNYear;
   els.topNFromYear.value = state.topNFromYear;
   els.topNToYear.value = state.topNToYear;
+}
+
+function applyTopNRangePreset() {
+  const preset = els.topNRangePreset.value;
+  const ranges = topNRangePresets();
+  state.topNRangePreset = preset;
+  if (ranges[preset]) {
+    [state.topNRangeFrom, state.topNRangeTo] = ranges[preset];
+  } else {
+    readTopNControls(true);
+    return;
+  }
+  writeTopNControls();
+}
+
+function topNRowsInRange(rows) {
+  if (!rows.length) return [];
+  const from = Math.min(state.topNRangeFrom, state.topNRangeTo);
+  const to = Math.max(state.topNRangeFrom, state.topNRangeTo);
+  const maxRows = Math.max(1, Math.min(250, state.topNRangeLimit));
+  return rows
+    .map((row, index) => ({ ...row, percentile: rows.length === 1 ? 0 : (index / (rows.length - 1)) * 100 }))
+    .filter((row) => row.percentile >= from && row.percentile <= to)
+    .slice(0, maxRows);
+}
+
+function topNRangePresets() {
+  return {
+    top10: [0, 10],
+    top25: [0, 25],
+    middle50: [25, 75],
+    bottom25: [75, 100],
+    bottom10: [90, 100],
+  };
+}
+
+function matchingTopNRangePreset(from, to) {
+  return Object.entries(topNRangePresets()).find(([, range]) => range[0] === from && range[1] === to)?.[0] ?? null;
 }
 
 function countInYear(item, year) {
@@ -1110,10 +1196,15 @@ function updateUrl() {
   params.set("smooth", String(state.chartSmooth));
   params.set("from", String(state.fromYear));
   params.set("to", String(state.toYear));
+  params.set("topSelect", state.topNSelectionMode);
   params.set("topMode", els.topNMode.value);
   params.set("topYear", String(state.topNYear));
   params.set("topFrom", String(state.topNFromYear));
   params.set("topTo", String(state.topNToYear));
+  params.set("topRange", state.topNRangePreset);
+  params.set("topRangeFrom", String(state.topNRangeFrom));
+  params.set("topRangeTo", String(state.topNRangeTo));
+  params.set("topLimit", String(state.topNRangeLimit));
   if (state.schoolBirthYear != null) params.set("schoolYear", String(state.schoolBirthYear));
   if (state.childGrade != null) params.set("grade", String(state.childGrade));
   if (state.gradeSize != null) params.set("gradeSize", String(state.gradeSize));
@@ -1169,6 +1260,10 @@ function clampNameYear(year) {
 
 function clampGrade(grade) {
   return Math.max(1, Math.min(13, Number.isFinite(grade) ? Math.round(grade) : 1));
+}
+
+function clampPercent(percent) {
+  return Math.max(0, Math.min(100, Number.isFinite(percent) ? Math.round(percent) : 0));
 }
 
 function parseIntegerInput(value) {

@@ -559,7 +559,7 @@ function renderStatusTable(tbody, items, mode) {
 }
 
 function renderResults() {
-  els.resultCount.textContent = `${state.matches.length} treff`;
+  els.resultCount.textContent = `${formatNumber(state.matches.length)} navn`;
   els.resultList.innerHTML = "";
   const fragment = document.createDocumentFragment();
   state.matches.slice(0, 250).forEach((item) => {
@@ -1247,7 +1247,7 @@ function renderSimilar() {
   els.similarBasis.textContent = methodLabel;
   if (!reference) {
     state.similar.rows = [];
-    els.similarCount.textContent = "0 treff";
+    els.similarCount.textContent = "0 navn";
     els.similarTable.innerHTML = '<tr><td colspan="6">Velg et referansenavn</td></tr>';
     return;
   }
@@ -1260,7 +1260,7 @@ function renderSimilar() {
     .filter(Boolean)
     .sort((a, b) => b.similarity - a.similarity || a.item.name.localeCompare(b.item.name, "no"));
   state.similar.rows = rows;
-  els.similarCount.textContent = `${formatNumber(rows.length)} treff`;
+  els.similarCount.textContent = `${formatNumber(rows.length)} navn`;
   if (!rows.length) {
     els.similarTable.innerHTML = '<tr><td colspan="6">Ingen lignende kurver</td></tr>';
     return;
@@ -1462,7 +1462,7 @@ function renderCandidates() {
   state.candidate.rows = rows;
   els.candidateCount.textContent = `${formatNumber(rows.length)} navn`;
   if (!rows.length) {
-    els.candidateTable.innerHTML = '<tr><td colspan="7">Ingen kandidater</td></tr>';
+    els.candidateTable.innerHTML = '<tr><td colspan="7">Ingen navn i filterlisten</td></tr>';
     return;
   }
   els.candidateTable.innerHTML = "";

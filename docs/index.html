@@ -44,7 +44,7 @@
         <section class="module sidebarModule">
           <div class="moduleHead">
             <label>Kjønn</label>
-            <p>Avgrens både trefflisten og toppnavn til jente-, gutte- eller alle navn.</p>
+            <p>Avgrens både søkeresultatet og toppnavn til jente-, gutte- eller alle navn.</p>
           </div>
           <div class="segmented" role="group" aria-label="Kjønn">
             <button type="button" class="active" data-sex="alle">Alle</button>
@@ -127,10 +127,10 @@
         <section class="module sidebarModule">
           <div class="sectionHead">
             <div class="moduleHead">
-              <label for="resultList">Treff</label>
-              <p>Velg ett eller flere navn fra listen. De vises som kurver i grafen.</p>
+              <label for="resultList">Søkeresultat</label>
+              <p>Navn som matcher søk og filter. Velg ett eller flere navn fra listen; de vises som kurver i grafen.</p>
             </div>
-            <span id="resultCount">0</span>
+            <span id="resultCount">0 navn</span>
           </div>
           <div class="listActions">
             <button id="selectVisible" type="button">Velg synlige</button>
@@ -138,7 +138,7 @@
             <button id="shortlistVisible" type="button">Merk aktuelle</button>
             <button id="rejectVisible" type="button">Avvis synlige</button>
           </div>
-          <div id="resultList" class="resultList" role="listbox" aria-label="Navnetreff"></div>
+          <div id="resultList" class="resultList" role="listbox" aria-label="Søkeresultat"></div>
         </section>
       </aside>
 
@@ -222,7 +222,7 @@
           <div class="sectionHead">
             <div class="moduleHead">
               <h2>Valgte navn til graf</h2>
-              <p>Fjern enkelt-navn her, eller tøm hele utvalget fra trefflisten.</p>
+              <p>Fjern enkelt-navn her, eller tøm hele utvalget fra søkeresultatet.</p>
             </div>
             <span id="selectedCount">0 navn</span>
           </div>
@@ -293,7 +293,7 @@
             </div>
           </div>
           <div class="sectionHead">
-            <span id="similarCount">0 treff</span>
+            <span id="similarCount">0 navn</span>
             <span id="similarBasis">Pearson</span>
           </div>
           <div class="tableWrap similarWrap">
@@ -316,8 +316,8 @@
         <section class="module candidatePanel">
           <div class="candidateHead">
             <div class="moduleHead">
-              <h2>Kandidatliste</h2>
-              <p>Lag en egen liste over mulige navn, med skolekontekst og sortering uavhengig av grafen.</p>
+              <h2>Filterliste</h2>
+              <p>Sorter og filtrer navn før du bestemmer deg, med skolekontekst og egen sortering.</p>
             </div>
             <button id="copyExploreToCandidates" type="button">Hent fra utforsking</button>
             <div class="inlineActions">
@@ -469,8 +469,8 @@
                   <label for="reviewSource">Kortstokk</label>
                   <select id="reviewSource">
                     <option value="random">Tilfeldige nøytrale</option>
-                    <option value="matches">Fra trefflisten</option>
-                    <option value="candidates">Fra kandidatliste</option>
+                    <option value="matches">Fra søkeresultat</option>
+                    <option value="candidates">Fra filterliste</option>
                     <option value="topn">Fra Topp/intervall</option>
                     <option value="similar">Fra lignende kurver</option>
                   </select>

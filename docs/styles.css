@@ -467,9 +467,57 @@ h2 {
   justify-content: flex-end;
 }
 
-.reviewPanel,
 .listPanel {
   padding: 14px;
+}
+
+.reviewModeActive .topbar {
+  display: none;
+}
+
+.reviewModeActive .layout {
+  grid-template-columns: 1fr;
+  min-height: 100vh;
+}
+
+.reviewModeActive .sidebar {
+  display: none;
+}
+
+.reviewModeActive .content {
+  min-height: 100vh;
+  padding: 12px;
+}
+
+.reviewModeActive .tabs {
+  max-width: 1180px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.reviewPanel {
+  min-height: calc(100vh - 62px);
+}
+
+.reviewModeShell {
+  min-height: calc(100vh - 62px);
+  display: grid;
+  grid-template-rows: auto minmax(380px, 1fr) auto;
+  gap: 14px;
+  max-width: 1180px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.reviewModeTop {
+  display: grid;
+  grid-template-columns: minmax(230px, 0.65fr) minmax(420px, 1fr);
+  gap: 18px;
+  align-items: end;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: var(--panel);
 }
 
 .reviewControls {
@@ -484,27 +532,97 @@ h2 {
   width: 100%;
 }
 
+.reviewControls input[type="checkbox"] {
+  width: auto;
+}
+
 .reviewShuffle {
+  display: flex;
+  gap: 8px;
   min-height: 36px;
   align-items: center;
   margin: 0;
 }
 
-.reviewCard {
-  min-height: 250px;
+.reviewStage {
+  position: relative;
   display: grid;
-  align-content: center;
-  gap: 14px;
-  margin-top: 8px;
+  place-items: center;
+  overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 24px;
-  background: #fbfaf7;
+  background: #eeece5;
+}
+
+.swipeCue {
+  position: absolute;
+  top: 24px;
+  z-index: 0;
+  border: 2px solid currentColor;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 1.2rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  opacity: 0.18;
+  text-transform: uppercase;
+}
+
+.rejectCue {
+  left: 28px;
+  color: #a43b2d;
+}
+
+.shortlistCue {
+  right: 28px;
+  color: var(--accent-dark);
+}
+
+.reviewCard {
+  position: relative;
+  z-index: 1;
+  width: min(680px, calc(100vw - 56px));
+  min-height: min(560px, calc(100vh - 260px));
+  display: grid;
+  align-content: center;
+  gap: 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 34px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  transition: transform 160ms ease, opacity 160ms ease, border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.reviewCard.dragging {
+  cursor: grabbing;
+  transition: none;
+}
+
+.reviewCard.hintShortlist,
+.reviewCard.swipeShortlist {
+  border-color: var(--accent);
+  box-shadow: 0 18px 42px rgba(17, 103, 90, 0.18);
+}
+
+.reviewCard.hintReject,
+.reviewCard.swipeReject {
+  border-color: #a43b2d;
+  box-shadow: 0 18px 42px rgba(164, 59, 45, 0.16);
+}
+
+.reviewEmpty {
+  min-height: 280px;
+  cursor: default;
+  touch-action: auto;
 }
 
 .reviewCard h3 {
   margin: 0;
-  font-size: 2.6rem;
+  font-size: clamp(3.2rem, 8vw, 6.8rem);
   line-height: 1.05;
 }
 
@@ -545,9 +663,14 @@ h2 {
 }
 
 .reviewActions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr minmax(120px, 0.8fr) 1fr minmax(100px, 0.7fr);
   gap: 8px;
+}
+
+.reviewActions button {
+  min-height: 52px;
+  font-size: 1.02rem;
 }
 
 .candidateFilters {
@@ -695,6 +818,11 @@ th {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .reviewModeTop {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
   .actions {
     justify-content: start;
   }
@@ -747,13 +875,44 @@ th {
     grid-template-columns: 1fr;
   }
 
+  .reviewModeActive .content {
+    padding: 10px;
+  }
+
+  .reviewModeShell {
+    min-height: calc(100vh - 58px);
+    grid-template-rows: auto minmax(320px, 1fr) auto;
+    gap: 10px;
+  }
+
+  .reviewModeTop {
+    padding: 12px;
+  }
+
+  .reviewShuffle {
+    justify-content: start;
+  }
+
+  .reviewStage {
+    min-height: 360px;
+  }
+
   .reviewCard {
-    min-height: 220px;
+    width: min(100%, calc(100vw - 32px));
+    min-height: 330px;
     padding: 18px;
   }
 
   .reviewCard h3 {
-    font-size: 2rem;
+    font-size: clamp(3rem, 17vw, 4.6rem);
+  }
+
+  .reviewActions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .reviewActions button {
+    min-height: 46px;
   }
 
   .chart {

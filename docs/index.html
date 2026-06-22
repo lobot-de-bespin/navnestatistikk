@@ -442,35 +442,43 @@
         </div>
         </div>
 
-        <section id="reviewView" class="viewPanel module reviewPanel" hidden>
-          <div class="moduleHead">
-            <h2>Vurder navn</h2>
-            <p>Ett og ett navn fra en valgt kortstokk. Navn som allerede er shortlistet eller uaktuelle hoppes over.</p>
-          </div>
-          <div class="reviewControls">
-            <div>
-              <label for="reviewSource">Kortstokk</label>
-              <select id="reviewSource">
-                <option value="random">Tilfeldige nøytrale</option>
-                <option value="matches">Fra trefflisten</option>
-                <option value="candidates">Fra kandidatliste</option>
-                <option value="topn">Fra Topp/intervall</option>
-                <option value="similar">Fra lignende kurver</option>
-              </select>
+        <section id="reviewView" class="viewPanel reviewPanel" hidden>
+          <div class="reviewModeShell">
+            <div class="reviewModeTop">
+              <div class="moduleHead">
+                <h2>Vurder navn</h2>
+                <p>Sveip til venstre for uaktuell og til høyre for shortlist. Navn som allerede er vurdert hoppes over.</p>
+              </div>
+              <div class="reviewControls">
+                <div>
+                  <label for="reviewSource">Kortstokk</label>
+                  <select id="reviewSource">
+                    <option value="random">Tilfeldige nøytrale</option>
+                    <option value="matches">Fra trefflisten</option>
+                    <option value="candidates">Fra kandidatliste</option>
+                    <option value="topn">Fra Topp/intervall</option>
+                    <option value="similar">Fra lignende kurver</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="reviewMax">Maks kort</label>
+                  <input id="reviewMax" type="number" min="1" max="1000" value="100" />
+                </div>
+                <label class="check reviewShuffle"><input id="reviewShuffle" type="checkbox" checked /> bland</label>
+                <button id="buildReviewDeck" type="button" class="primary">Lag kortstokk</button>
+              </div>
             </div>
-            <div>
-              <label for="reviewMax">Maks kort</label>
-              <input id="reviewMax" type="number" min="1" max="1000" value="100" />
+            <div class="reviewStage" aria-live="polite">
+              <div class="swipeCue rejectCue">Uaktuell</div>
+              <div class="swipeCue shortlistCue">Shortlist</div>
+              <div id="reviewCard" class="reviewCard"></div>
             </div>
-            <label class="check reviewShuffle"><input id="reviewShuffle" type="checkbox" checked /> bland</label>
-            <button id="buildReviewDeck" type="button" class="primary">Lag kortstokk</button>
-          </div>
-          <div id="reviewCard" class="reviewCard"></div>
-          <div class="reviewActions">
-            <button id="reviewReject" type="button">Uaktuell</button>
-            <button id="reviewSkip" type="button">Hopp over</button>
-            <button id="reviewShortlist" type="button" class="primary">Shortlist</button>
-            <button id="reviewUndo" type="button">Angre</button>
+            <div class="reviewActions" aria-label="Vurderingshandlinger">
+              <button id="reviewReject" type="button">Uaktuell</button>
+              <button id="reviewSkip" type="button">Hopp over</button>
+              <button id="reviewShortlist" type="button" class="primary">Shortlist</button>
+              <button id="reviewUndo" type="button">Angre</button>
+            </div>
           </div>
         </section>
 

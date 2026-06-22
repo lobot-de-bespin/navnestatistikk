@@ -17,6 +17,7 @@ const state = {
     history: [],
     max: 100,
     shuffle: true,
+    swiping: false,
   },
   metric: "count",
   scale: "linear",
@@ -333,8 +334,8 @@ function wireEvents() {
   els.shortlistCandidates.addEventListener("click", () => bulkSetStatus(state.candidate.rows.map((row) => row.item), "shortlist"));
   els.rejectCandidates.addEventListener("click", () => bulkSetStatus(state.candidate.rows.map((row) => row.item), "rejected"));
   els.buildReviewDeck.addEventListener("click", buildReviewDeck);
-  els.reviewReject.addEventListener("click", () => reviewSetStatus("rejected"));
-  els.reviewShortlist.addEventListener("click", () => reviewSetStatus("shortlist"));
+  els.reviewReject.addEventListener("click", () => commitReviewSwipe("rejected", -1));
+  els.reviewShortlist.addEventListener("click", () => commitReviewSwipe("shortlist", 1));
   els.reviewSkip.addEventListener("click", reviewSkip);
   els.reviewUndo.addEventListener("click", reviewUndo);
   els.showShortlistInChart.addEventListener("click", () => {
@@ -358,6 +359,7 @@ function wireEvents() {
   window.addEventListener("resize", () => {
     if (state.data) Plotly.Plots.resize(els.chart);
   });
+  document.addEventListener("keydown", handleReviewKeyboard);
 }
 
 async function loadData() {
@@ -500,6 +502,7 @@ function renderAll() {
 
 function setActiveView(view) {
   state.activeView = view;
+  document.body.classList.toggle("reviewModeActive", view === "review");
   document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
   [els.exploreView, els.reviewView, els.shortlistView, els.rejectedView].forEach((panel) => {
     panel.hidden = panel.id !== `${view}View`;
@@ -686,10 +689,14 @@ function renderReviewCard() {
   const item = currentReviewItem();
   const remaining = Math.max(0, state.review.deck.length - state.review.index);
   if (!item) {
-    els.reviewCard.innerHTML = `<p class="emptyState">Ingen nøytrale navn i kortstokken. Juster filtrene eller lag en ny kortstokk.</p>`;
+    els.reviewCard.className = "reviewCard reviewEmpty";
+    els.reviewCard.innerHTML = `
+      <p class="emptyState">Ingen nøytrale navn i kortstokken. Juster filtrene eller lag en ny kortstokk.</p>
+    `;
     return;
   }
   const school = schoolEstimate(item, schoolScopeForGrade(state.childGrade));
+  els.reviewCard.className = "reviewCard";
   els.reviewCard.innerHTML = `
     <div class="reviewMeta">${remaining} igjen</div>
     <h3>${escapeHtml(item.name)}</h3>
@@ -700,9 +707,11 @@ function renderReviewCard() {
       <div><dt>Skole</dt><dd>${formatEstimate(school.scope)}</dd></div>
     </dl>
   `;
+  attachReviewSwipe();
 }
 
 function reviewSetStatus(status) {
+  if (state.review.swiping) return;
   const item = currentReviewItem();
   if (!item) return;
   const from = statusOf(item.id);
@@ -713,7 +722,93 @@ function reviewSetStatus(status) {
   updateMatches();
 }
 
+function commitReviewSwipe(status, direction) {
+  if (state.review.swiping) return;
+  const item = currentReviewItem();
+  if (!item) return;
+  state.review.swiping = true;
+  els.reviewCard.classList.add(status === "shortlist" ? "swipeShortlist" : "swipeReject");
+  els.reviewCard.style.transform = `translate(${direction * 120}vw, -4vh) rotate(${direction * 18}deg)`;
+  els.reviewCard.style.opacity = "0";
+  setTimeout(() => {
+    state.review.swiping = false;
+    els.reviewCard.style.transform = "";
+    els.reviewCard.style.opacity = "";
+    reviewSetStatus(status);
+  }, 180);
+}
+
+function attachReviewSwipe() {
+  const card = els.reviewCard;
+  let startX = 0;
+  let startY = 0;
+  let currentX = 0;
+  let currentY = 0;
+  let dragging = false;
+
+  card.onpointerdown = (event) => {
+    if (state.review.swiping || !currentReviewItem()) return;
+    dragging = true;
+    startX = event.clientX;
+    startY = event.clientY;
+    currentX = 0;
+    currentY = 0;
+    card.setPointerCapture(event.pointerId);
+    card.classList.add("dragging");
+  };
+
+  card.onpointermove = (event) => {
+    if (!dragging) return;
+    currentX = event.clientX - startX;
+    currentY = event.clientY - startY;
+    const rotation = Math.max(-16, Math.min(16, currentX / 14));
+    card.style.transform = `translate(${currentX}px, ${currentY}px) rotate(${rotation}deg)`;
+    card.classList.toggle("hintShortlist", currentX > 70);
+    card.classList.toggle("hintReject", currentX < -70);
+  };
+
+  card.onpointerup = (event) => {
+    if (!dragging) return;
+    dragging = false;
+    card.releasePointerCapture(event.pointerId);
+    card.classList.remove("dragging", "hintShortlist", "hintReject");
+    const shouldCommit = Math.abs(currentX) > 110 || Math.abs(currentX) > card.clientWidth * 0.28;
+    if (shouldCommit) {
+      commitReviewSwipe(currentX > 0 ? "shortlist" : "rejected", currentX > 0 ? 1 : -1);
+      return;
+    }
+    card.style.transform = "";
+  };
+
+  card.onpointercancel = () => {
+    dragging = false;
+    card.classList.remove("dragging", "hintShortlist", "hintReject");
+    card.style.transform = "";
+  };
+}
+
+function handleReviewKeyboard(event) {
+  if (state.activeView !== "review" || event.target.closest("input, select, textarea, button")) return;
+  if (event.key === "ArrowLeft") {
+    event.preventDefault();
+    commitReviewSwipe("rejected", -1);
+  }
+  if (event.key === "ArrowRight") {
+    event.preventDefault();
+    commitReviewSwipe("shortlist", 1);
+  }
+  if (event.key === "ArrowDown" || event.key === " ") {
+    event.preventDefault();
+    reviewSkip();
+  }
+  if (event.key === "Backspace") {
+    event.preventDefault();
+    reviewUndo();
+  }
+}
+
 function reviewSkip() {
+  if (state.review.swiping) return;
   const item = currentReviewItem();
   if (!item) return;
   state.review.deck.push(item.id);
@@ -722,6 +817,7 @@ function reviewSkip() {
 }
 
 function reviewUndo() {
+  if (state.review.swiping) return;
   const last = state.review.history.pop();
   if (!last) return;
   setNameStatus(last.id, last.from, false);

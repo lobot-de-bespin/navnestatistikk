@@ -345,7 +345,7 @@ function wireEvents() {
   });
   els.clearShortlist.addEventListener("click", () => {
     const items = itemsWithStatus("shortlist");
-    if (items.length && confirm(`Fjerne ${items.length} navn fra shortlist?`)) {
+    if (items.length && confirm(`Fjerne ${items.length} navn fra aktuelle?`)) {
       items.forEach((item) => setNameStatus(item.id, "neutral", false));
       saveNameStatus();
       renderAll();
@@ -523,7 +523,7 @@ function renderStatusViews() {
 
 function renderStatusTable(tbody, items, mode) {
   if (!items.length) {
-    tbody.innerHTML = `<tr><td colspan="5">${mode === "shortlist" ? "Ingen shortlistede navn" : "Ingen uaktuelle navn"}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5">${mode === "shortlist" ? "Ingen aktuelle navn" : "Ingen uaktuelle navn"}</td></tr>`;
     return;
   }
   tbody.innerHTML = "";
@@ -616,7 +616,7 @@ function statusActions(item) {
   const wrap = document.createElement("span");
   wrap.className = "rowActions";
   const current = statusOf(item.id);
-  if (current !== "shortlist") wrap.append(smallAction("+ shortlist", () => setNameStatus(item.id, "shortlist")));
+  if (current !== "shortlist") wrap.append(smallAction("+ aktuell", () => setNameStatus(item.id, "shortlist")));
   if (current !== "rejected") wrap.append(smallAction("uaktuell", () => setNameStatus(item.id, "rejected")));
   if (current !== "neutral") wrap.append(smallAction("aktuell", () => setNameStatus(item.id, "neutral")));
   return wrap;
@@ -643,7 +643,7 @@ function actionCell(item) {
 function bulkSetStatus(items, status) {
   const unique = uniqueItems(items).filter((item) => statusOf(item.id) !== status);
   if (!unique.length) return;
-  if (unique.length >= 50 && !confirm(`${status === "rejected" ? "Avvise" : "Shortliste"} ${unique.length} navn?`)) return;
+  if (unique.length >= 50 && !confirm(`${status === "rejected" ? "Avvise" : "Merke som aktuelle"} ${unique.length} navn?`)) return;
   unique.forEach((item) => setNameStatus(item.id, status, false));
   saveNameStatus();
   updateMatches();

@@ -118,7 +118,7 @@
             <button id="syncTopNYears" type="button" hidden>Samme periode som graf</button>
             <button id="selectTopN" type="button">Velg topp</button>
             <div class="topNBulkActions">
-              <button id="shortlistTopN" type="button">Shortlist utvalg</button>
+              <button id="shortlistTopN" type="button">Merk aktuelle</button>
               <button id="rejectTopN" type="button">Avvis utvalg</button>
             </div>
           </div>
@@ -135,7 +135,7 @@
           <div class="listActions">
             <button id="selectVisible" type="button">Velg synlige</button>
             <button id="clearSelected" type="button">Tøm</button>
-            <button id="shortlistVisible" type="button">Shortlist synlige</button>
+            <button id="shortlistVisible" type="button">Merk aktuelle</button>
             <button id="rejectVisible" type="button">Avvis synlige</button>
           </div>
           <div id="resultList" class="resultList" role="listbox" aria-label="Navnetreff"></div>
@@ -146,7 +146,7 @@
         <nav class="tabs" aria-label="Arbeidsflater">
           <button type="button" class="active" data-view="explore">Utforsk</button>
           <button type="button" data-view="review">Vurder</button>
-          <button type="button" data-view="shortlist">Shortlist <span id="shortlistTabCount">0</span></button>
+          <button type="button" data-view="shortlist">Aktuelle <span id="shortlistTabCount">0</span></button>
           <button type="button" data-view="rejected">Uaktuelle <span id="rejectedTabCount">0</span></button>
         </nav>
 
@@ -229,7 +229,7 @@
             </div>
             <button id="addSimilarTop" type="button">Legg topp 5 i graf</button>
             <div class="inlineActions">
-              <button id="shortlistSimilarTop" type="button">Shortlist topp 50</button>
+              <button id="shortlistSimilarTop" type="button">Merk topp 50</button>
               <button id="rejectSimilarTop" type="button">Avvis topp 50</button>
             </div>
           </div>
@@ -306,7 +306,7 @@
             </div>
             <button id="copyExploreToCandidates" type="button">Hent fra utforsking</button>
             <div class="inlineActions">
-              <button id="shortlistCandidates" type="button">Shortlist filtrerte</button>
+              <button id="shortlistCandidates" type="button">Merk filtrerte</button>
               <button id="rejectCandidates" type="button">Avvis filtrerte</button>
             </div>
           </div>
@@ -447,7 +447,7 @@
             <div class="reviewModeTop">
               <div class="moduleHead">
                 <h2>Vurder navn</h2>
-                <p>Sveip til venstre for uaktuell og til høyre for shortlist. Navn som allerede er vurdert hoppes over.</p>
+                <p>Sveip til venstre for uaktuell og til høyre for å gjøre navnet aktuelt. Navn som allerede er vurdert hoppes over.</p>
               </div>
               <div class="reviewControls">
                 <div>
@@ -470,13 +470,13 @@
             </div>
             <div class="reviewStage" aria-live="polite" aria-label="Vurderingsområde for sveip">
               <div class="swipeCue rejectCue">Uaktuell</div>
-              <div class="swipeCue shortlistCue">Shortlist</div>
+              <div class="swipeCue shortlistCue">Aktuelle</div>
               <div id="reviewCard" class="reviewCard" aria-label="Aktivt vurderingskort"></div>
             </div>
             <div class="reviewActions" aria-label="Vurderingshandlinger">
               <button id="reviewReject" type="button" aria-label="Marker som uaktuell" title="Marker som uaktuell">Uaktuell</button>
               <button id="reviewSkip" type="button" aria-label="Hopp over dette navnet" title="Hopp over dette navnet">Hopp over</button>
-              <button id="reviewShortlist" type="button" class="primary" aria-label="Legg til i shortlist" title="Legg til i shortlist">Shortlist</button>
+              <button id="reviewShortlist" type="button" class="primary" aria-label="Gjør navnet aktuelt" title="Gjør navnet aktuelt">Aktuell</button>
               <button id="reviewUndo" type="button" aria-label="Angre siste vurdering" title="Angre siste vurdering">Angre</button>
             </div>
           </div>
@@ -485,12 +485,12 @@
         <section id="shortlistView" class="viewPanel module listPanel" hidden>
           <div class="candidateHead">
             <div class="moduleHead">
-              <h2>Shortlist</h2>
-              <p>Navn som fortsatt er aktuelle. Shortlist er separat fra grafutvalget.</p>
+              <h2>Aktuelle</h2>
+              <p>Navn som fortsatt er aktuelle. Listen er separat fra grafutvalget.</p>
             </div>
             <div class="inlineActions">
               <button id="showShortlistInChart" type="button">Vis alle i graf</button>
-              <button id="clearShortlist" type="button">Tøm shortlist</button>
+              <button id="clearShortlist" type="button">Tøm aktuelle</button>
             </div>
           </div>
           <div class="tableWrap">

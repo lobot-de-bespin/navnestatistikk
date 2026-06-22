@@ -704,11 +704,23 @@ h2 {
   display: grid;
   grid-template-columns: minmax(230px, 0.65fr) minmax(420px, 1fr);
   gap: 18px;
-  align-items: end;
+  align-items: start;
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 14px;
   background: var(--panel);
+}
+
+.reviewHeading {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.reviewDeckMeta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
 }
 
 .reviewControls {
@@ -716,6 +728,21 @@ h2 {
   grid-template-columns: minmax(180px, 1fr) auto auto;
   gap: 10px;
   align-items: end;
+}
+
+.reviewProgress {
+  grid-column: 1 / -1;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #f7f5ef;
+  color: var(--accent-dark);
+  font-size: 0.85rem;
+  font-weight: 800;
 }
 
 .reviewControls select,
@@ -742,7 +769,8 @@ h2 {
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #eeece5;
+  background: radial-gradient(circle at top, #f8f5ed 0%, #eeece5 52%, #e7e2d6 100%);
+  padding: 14px;
 }
 
 .swipeCue {
@@ -771,14 +799,14 @@ h2 {
 .reviewCard {
   position: relative;
   z-index: 1;
-  width: min(680px, calc(100vw - 56px));
-  min-height: min(560px, calc(100vh - 260px));
+  width: min(720px, calc(100vw - 64px));
+  min-height: min(580px, calc(100vh - 268px));
   display: grid;
   align-content: center;
   gap: 18px;
   border: 1px solid var(--line-strong);
-  border-radius: 8px;
-  padding: 34px;
+  border-radius: 14px;
+  padding: 36px;
   background: var(--panel);
   box-shadow: var(--shadow);
   cursor: grab;
@@ -808,6 +836,25 @@ h2 {
   min-height: 280px;
   cursor: default;
   touch-action: auto;
+  align-content: center;
+  text-align: center;
+}
+
+.reviewEmptyHint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.reviewEmptyActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.reviewEmptyActions button {
+  flex: 1 1 160px;
 }
 
 .reviewCard h3 {
@@ -1014,6 +1061,10 @@ th {
     align-items: start;
   }
 
+  .reviewProgress {
+    width: fit-content;
+  }
+
   .secondaryModule > summary {
     grid-template-columns: 1fr;
   }
@@ -1104,18 +1155,23 @@ th {
     padding: 12px;
   }
 
+  .reviewHeading {
+    gap: 6px;
+  }
+
   .reviewShuffle {
     justify-content: start;
   }
 
   .reviewStage {
     min-height: 360px;
+    padding: 10px;
   }
 
   .reviewCard {
-    width: min(100%, calc(100vw - 32px));
+    width: min(100%, calc(100vw - 28px));
     min-height: 330px;
-    padding: 18px;
+    padding: 20px;
   }
 
   .reviewCard h3 {
@@ -1128,6 +1184,10 @@ th {
 
   .reviewActions button {
     min-height: 46px;
+  }
+
+  .reviewEmptyActions {
+    width: 100%;
   }
 
   .decisionBar {

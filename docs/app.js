@@ -12,6 +12,10 @@ const state = {
   lastTopNRows: [],
   review: {
     source: "random",
+    sourceLabel: "",
+    sourceNote: "",
+    sourceCount: 0,
+    autoBuild: true,
     deck: [],
     index: 0,
     history: [],
@@ -119,6 +123,8 @@ document.addEventListener("DOMContentLoaded", () => {
     "reviewSource",
     "reviewShuffle",
     "buildReviewDeck",
+    "reviewDeckMeta",
+    "reviewProgress",
     "reviewCard",
     "reviewReject",
     "reviewSkip",
@@ -527,7 +533,7 @@ function setActiveView(view) {
   [els.exploreView, els.reviewView, els.shortlistView, els.rejectedView].forEach((panel) => {
     panel.hidden = panel.id !== `${view}View`;
   });
-  if (view === "review" && !state.review.deck.length) buildReviewDeck(false);
+  if (view === "review" && !state.review.deck.length && state.review.autoBuild) buildReviewDeck(false);
   renderStatusViews();
   renderReviewCard();
 }
@@ -703,6 +709,7 @@ function lastTopNItems() {
 function buildReviewDeck(render = true) {
   state.review.source = els.reviewSource.value;
   state.review.shuffle = els.reviewShuffle.checked;
+  state.review.autoBuild = true;
   let items = [];
   if (state.review.source === "matches") items = state.matches;
   if (state.review.source === "candidates") items = state.candidate.rows.map((row) => row.item);
@@ -711,19 +718,29 @@ function buildReviewDeck(render = true) {
   if (state.review.source === "random") items = state.data.names;
   items = uniqueItems(items).filter((item) => statusOf(item.id) === "neutral");
   if (state.review.shuffle) items = shuffle(items);
+  setReviewDeck(items, reviewSourceLabel(state.review.source, items.length), reviewSourceNote(state.review.source, items.length), render);
+}
+
+function setReviewDeck(items, label, note, render = true) {
+  state.review.autoBuild = false;
   state.review.deck = items.map((item) => item.id);
   state.review.index = 0;
+  state.review.history = [];
+  state.review.sourceLabel = label;
+  state.review.sourceNote = note;
+  state.review.sourceCount = items.length;
   if (render) renderReviewCard();
 }
 
 function reviewSelectedItems() {
-  const deck = selectedItems()
-    .filter((item) => statusOf(item.id) === "neutral")
-    .map((item) => item.id);
-  if (!deck.length) return;
-  state.review.deck = deck;
-  state.review.index = 0;
-  state.review.history = [];
+  const items = selectedItems();
+  const deck = items.filter((item) => statusOf(item.id) === "neutral");
+  const reviewedCount = items.length - deck.length;
+  const note = reviewedCount
+    ? `${reviewedCount} navn var allerede vurdert og ble hoppet over.`
+    : "Laget fra navnene du valgte i Utforsk.";
+  state.review.source = "selected";
+  setReviewDeck(deck, `Valgte navn i Utforsk (${items.length})`, note);
   setActiveView("review");
 }
 
@@ -737,18 +754,42 @@ function currentReviewItem() {
 function renderReviewCard() {
   if (!els.reviewCard || !state.data) return;
   const item = currentReviewItem();
-  const remaining = Math.max(0, state.review.deck.length - state.review.index);
+  const total = state.review.deck.length;
+  const remaining = Math.max(0, total - state.review.index);
+  const currentNumber = item ? state.review.index + 1 : total;
+  if (els.reviewProgress) {
+    els.reviewProgress.textContent = total
+      ? item
+        ? `${currentNumber} av ${total} · ${remaining - 1} igjen`
+        : `${total} navn gjennomgått`
+      : "0 navn";
+  }
+  if (els.reviewDeckMeta) {
+    const parts = [state.review.sourceLabel || reviewSourceLabel(state.review.source, total)];
+    if (state.review.sourceNote) parts.push(state.review.sourceNote);
+    els.reviewDeckMeta.textContent = parts.filter(Boolean).join(" · ");
+  }
   if (!item) {
     els.reviewCard.className = "reviewCard reviewEmpty";
     els.reviewCard.innerHTML = `
-      <p class="emptyState">Ingen nøytrale navn i kortstokken. Juster filtrene eller lag en ny kortstokk.</p>
+      <p class="emptyState">Ingen nøytrale navn igjen i denne kortstokken.</p>
+      <p class="reviewEmptyHint">${escapeHtml(reviewEmptyHint())}</p>
+      <div class="reviewEmptyActions">
+        <button id="reviewEmptyExplore" type="button">Til Utforsk</button>
+        <button id="reviewEmptyRebuild" type="button" class="primary">Lag ny kortstokk</button>
+      </div>
     `;
+    const explore = els.reviewCard.querySelector("#reviewEmptyExplore");
+    const rebuild = els.reviewCard.querySelector("#reviewEmptyRebuild");
+    explore?.addEventListener("click", () => setActiveView("explore"));
+    rebuild?.addEventListener("click", () => buildReviewDeck(true));
+    updateReviewActionState(false);
     return;
   }
   const school = schoolEstimate(item, schoolScopeForGrade(state.childGrade));
   els.reviewCard.className = "reviewCard";
   els.reviewCard.innerHTML = `
-    <div class="reviewMeta">${remaining} igjen</div>
+    <div class="reviewMeta">${reviewProgressLabel(currentNumber, total, remaining)}</div>
     <h3>${escapeHtml(item.name)}</h3>
     <p>${item.sex}, toppår ${item.peakYear} med ${formatNumber(item.peakCount)} fødte.</p>
     <dl>
@@ -758,6 +799,44 @@ function renderReviewCard() {
     </dl>
   `;
   attachReviewSwipe();
+  updateReviewActionState(true);
+}
+
+function updateReviewActionState(enabled) {
+  [els.reviewReject, els.reviewSkip, els.reviewShortlist].forEach((button) => {
+    button.disabled = !enabled;
+  });
+}
+
+function reviewProgressLabel(currentNumber, total, remaining) {
+  if (!total) return "0 navn";
+  return `${currentNumber} av ${total} · ${Math.max(0, remaining - 1)} igjen`;
+}
+
+function reviewSourceLabel(source, count) {
+  const labels = {
+    random: "Tilfeldige nøytrale",
+    matches: "Fra søkeresultat",
+    candidates: "Fra filterliste",
+    topn: "Fra topp/intervall",
+    similar: "Fra lignende kurver",
+  };
+  const label = labels[source] ?? "Kortstokk";
+  return count ? `${label} (${count})` : label;
+}
+
+function reviewSourceNote(source, count) {
+  if (!count) {
+    return source === "selected" ? "Kortstokken er tom etter filtrering av vurderte navn." : "Ingen nøytrale navn matcher denne kortstokken.";
+  }
+  return source === "selected" ? "Kjørt fra navnene du valgte i Utforsk." : "Nøytrale navn fra valgt kilde.";
+}
+
+function reviewEmptyHint() {
+  if (state.review.source === "selected") {
+    return `Denne kortstokken kom fra ${state.review.sourceLabel || "navnene du valgte i Utforsk"}. Du kan gå tilbake og justere utvalget, eller bygge en ny kortstokk fra en annen kilde.`;
+  }
+  return "Gå tilbake til Utforsk for å justere utvalget, eller lag en ny kortstokk fra en annen kilde.";
 }
 
 function reviewSetStatus(status) {

@@ -482,9 +482,12 @@
         <section id="reviewView" class="viewPanel reviewPanel" hidden>
           <div class="reviewModeShell">
             <div class="reviewModeTop">
-              <div class="moduleHead">
-                <h2>Vurder navn</h2>
-                <p>Sveip til venstre for uaktuell og til høyre for å gjøre navnet aktuelt. Navn som allerede er vurdert hoppes over.</p>
+              <div class="reviewHeading">
+                <div class="moduleHead">
+                  <h2>Vurder navn</h2>
+                  <p>Sveip til venstre for uaktuell og til høyre for å gjøre navnet aktuelt. Navn som allerede er vurdert hoppes over.</p>
+                </div>
+                <p id="reviewDeckMeta" class="reviewDeckMeta"></p>
               </div>
               <div class="reviewControls">
                 <div>
@@ -499,6 +502,7 @@
                 </div>
                 <label class="check reviewShuffle"><input id="reviewShuffle" type="checkbox" checked /> bland</label>
                 <button id="buildReviewDeck" type="button" class="primary">Lag kortstokk</button>
+                <div id="reviewProgress" class="reviewProgress" aria-live="polite">0 navn</div>
               </div>
             </div>
             <div class="reviewStage" aria-live="polite" aria-label="Vurderingsområde for sveip">

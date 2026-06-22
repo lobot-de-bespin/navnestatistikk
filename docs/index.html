@@ -468,16 +468,16 @@
                 <button id="buildReviewDeck" type="button" class="primary">Lag kortstokk</button>
               </div>
             </div>
-            <div class="reviewStage" aria-live="polite">
+            <div class="reviewStage" aria-live="polite" aria-label="Vurderingsområde for sveip">
               <div class="swipeCue rejectCue">Uaktuell</div>
               <div class="swipeCue shortlistCue">Shortlist</div>
-              <div id="reviewCard" class="reviewCard"></div>
+              <div id="reviewCard" class="reviewCard" aria-label="Aktivt vurderingskort"></div>
             </div>
             <div class="reviewActions" aria-label="Vurderingshandlinger">
-              <button id="reviewReject" type="button">Uaktuell</button>
-              <button id="reviewSkip" type="button">Hopp over</button>
-              <button id="reviewShortlist" type="button" class="primary">Shortlist</button>
-              <button id="reviewUndo" type="button">Angre</button>
+              <button id="reviewReject" type="button" aria-label="Marker som uaktuell" title="Marker som uaktuell">Uaktuell</button>
+              <button id="reviewSkip" type="button" aria-label="Hopp over dette navnet" title="Hopp over dette navnet">Hopp over</button>
+              <button id="reviewShortlist" type="button" class="primary" aria-label="Legg til i shortlist" title="Legg til i shortlist">Shortlist</button>
+              <button id="reviewUndo" type="button" aria-label="Angre siste vurdering" title="Angre siste vurdering">Angre</button>
             </div>
           </div>
         </section>

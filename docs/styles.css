@@ -349,24 +349,40 @@ label {
 
 .statusStripItem {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 10px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 4px;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #fff;
-  padding: 10px 12px;
+  border-top-width: 3px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #fff 0%, #fcfbf7 100%);
+  padding: 10px 12px 11px;
   min-width: 0;
+}
+
+.statusStripItem:nth-child(1) {
+  border-top-color: #93a8d9;
+}
+
+.statusStripItem:nth-child(2) {
+  border-top-color: var(--accent);
+}
+
+.statusStripItem:nth-child(3) {
+  border-top-color: var(--warm);
 }
 
 .statusStripLabel {
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   font-weight: 700;
+  text-transform: uppercase;
 }
 
 .statusStripCount {
-  font-size: 1rem;
+  font-size: 1.2rem;
+  line-height: 1;
   font-weight: 800;
   color: var(--text);
 }
@@ -758,7 +774,7 @@ h2 {
 
 .similarControls {
   display: grid;
-  grid-template-columns: minmax(150px, 1.1fr) minmax(120px, 0.8fr) minmax(160px, 1fr) minmax(100px, 0.7fr) minmax(90px, 0.55fr) minmax(90px, 0.55fr) minmax(130px, 0.8fr) minmax(130px, 0.8fr);
+  grid-template-columns: minmax(130px, 1.1fr) minmax(100px, 0.8fr) minmax(135px, 1fr) minmax(90px, 0.7fr) minmax(78px, 0.55fr) minmax(78px, 0.55fr) minmax(105px, 0.8fr) minmax(105px, 0.8fr);
   gap: 10px;
   align-items: end;
 }
@@ -772,6 +788,7 @@ h2 {
 
 .candidateAction {
   display: flex;
+  min-width: 0;
 }
 
 .candidateAction button {
@@ -960,7 +977,15 @@ th {
   }
 
   .statusStrip {
-    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .statusStripItem {
+    padding: 8px 10px 9px;
+  }
+
+  .statusStripCount {
+    font-size: 1.05rem;
   }
 
   .reviewModeShell {

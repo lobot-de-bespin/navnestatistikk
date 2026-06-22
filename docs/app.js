@@ -104,6 +104,10 @@ document.addEventListener("DOMContentLoaded", () => {
     "statusUavklarteCount",
     "statusAktuelleCount",
     "statusUaktuelleCount",
+    "statusBackupExport",
+    "statusBackupImport",
+    "statusImportInput",
+    "statusBackupMessage",
     "exploreView",
     "reviewView",
     "shortlistView",
@@ -345,6 +349,9 @@ function wireEvents() {
     setActiveView("explore");
     renderAll();
   });
+  els.statusBackupExport.addEventListener("click", exportNameStatusBackup);
+  els.statusBackupImport.addEventListener("click", () => els.statusImportInput.click());
+  els.statusImportInput.addEventListener("change", handleNameStatusImport);
   els.clearShortlist.addEventListener("click", () => {
     const items = itemsWithStatus("shortlist");
     if (items.length && confirm(`Fjerne ${items.length} navn fra aktuelle?`)) {
@@ -602,6 +609,13 @@ function loadNameStatus() {
 
 function saveNameStatus() {
   localStorage.setItem(STATUS_STORAGE_KEY, JSON.stringify(state.nameStatus));
+}
+
+function setBackupMessage(message, kind = "info") {
+  if (!els.statusBackupMessage) return;
+  els.statusBackupMessage.textContent = message;
+  els.statusBackupMessage.classList.toggle("isError", kind === "error");
+  els.statusBackupMessage.classList.toggle("isSuccess", kind === "success");
 }
 
 function statusOf(id) {
@@ -1655,6 +1669,82 @@ function downloadCsv() {
   link.download = "navnestatistikk.csv";
   link.click();
   URL.revokeObjectURL(url);
+}
+
+function exportNameStatusBackup() {
+  const payload = {
+    schema: "navnestatistikk-name-status",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    decisions: state.nameStatus,
+  };
+  const blob = new Blob([`${JSON.stringify(payload, null, 2)}\n`], { type: "application/json;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  const stamp = new Date().toISOString().slice(0, 10);
+  link.href = url;
+  link.download = `navnestatistikk-navnevalg-${stamp}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+  setBackupMessage(`Eksportert ${formatNumber(Object.keys(state.nameStatus).length)} valg.`, "success");
+}
+
+async function handleNameStatusImport(event) {
+  const [file] = event.target.files || [];
+  event.target.value = "";
+  if (!file) return;
+  try {
+    const parsed = JSON.parse(await file.text());
+    const payload = validateNameStatusBackup(parsed);
+    if (!payload.ok) {
+      setBackupMessage(payload.error, "error");
+      return;
+    }
+    const imported = payload.decisions;
+    const importedEntries = Object.entries(imported);
+    const importedShortlist = importedEntries.filter(([, value]) => value === "shortlist").length;
+    const importedRejected = importedEntries.filter(([, value]) => value === "rejected").length;
+    const overwrites = importedEntries.filter(([id, value]) => state.nameStatus[id] && state.nameStatus[id] !== value).length;
+    const mergeSummary = `${importedShortlist} aktuelle og ${importedRejected} uaktuelle`;
+    const overwriteSummary = overwrites ? ` ${overwrites} eksisterende valg blir erstattet.` : "";
+    if (!confirm(`Importere ${mergeSummary}?${overwriteSummary}`)) {
+      setBackupMessage("Import avbrutt.", "info");
+      return;
+    }
+    state.nameStatus = { ...state.nameStatus, ...imported };
+    state.selected = new Set([...state.selected].filter((id) => statusOf(id) !== "rejected"));
+    saveNameStatus();
+    updateMatches();
+    setBackupMessage(`Importerte ${mergeSummary}.`, "success");
+  } catch (error) {
+    setBackupMessage(`Kunne ikke lese filen: ${error.message}`, "error");
+  }
+}
+
+function validateNameStatusBackup(parsed) {
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return { ok: false, error: "Ugyldig JSON-fil." };
+  }
+  if (parsed.schema !== "navnestatistikk-name-status") {
+    return { ok: false, error: "Ukjent eksportformat." };
+  }
+  if (parsed.version !== 1 || typeof parsed.exportedAt !== "string") {
+    return { ok: false, error: "Eksportfilen mangler gyldige metadata." };
+  }
+  if (!parsed.decisions || typeof parsed.decisions !== "object" || Array.isArray(parsed.decisions)) {
+    return { ok: false, error: "Eksportfilen mangler navnevalg." };
+  }
+  const decisions = {};
+  for (const [id, value] of Object.entries(parsed.decisions)) {
+    if (typeof id !== "string" || !id.trim()) {
+      return { ok: false, error: "Eksportfilen inneholder ugyldige navn." };
+    }
+    if (value !== "shortlist" && value !== "rejected") {
+      return { ok: false, error: "Eksportfilen inneholder ukjente statusverdier." };
+    }
+    decisions[id] = value;
+  }
+  return { ok: true, decisions };
 }
 
 function clampYear(year) {

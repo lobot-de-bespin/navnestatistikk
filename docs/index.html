@@ -504,6 +504,18 @@
               <button id="clearShortlist" type="button">Tøm aktuelle</button>
             </div>
           </div>
+          <section class="backupPanel" aria-label="Sikkerhetskopi av navnevalg">
+            <div>
+              <h3>Sikkerhetskopi</h3>
+              <p>Eksporter aktuelle og uaktuelle navn som JSON. Import slår sammen og overstyrer ved kollisjon.</p>
+            </div>
+            <div class="backupActions">
+              <button id="statusBackupExport" type="button">Eksporter JSON</button>
+              <button id="statusBackupImport" type="button">Importer JSON</button>
+              <input id="statusImportInput" type="file" accept="application/json,.json" hidden />
+            </div>
+            <p id="statusBackupMessage" class="backupMessage" role="status" aria-live="polite"></p>
+          </section>
           <div class="tableWrap">
             <table>
               <thead>

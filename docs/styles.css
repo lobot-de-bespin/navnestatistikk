@@ -501,6 +501,46 @@ h2 {
   padding: 14px;
 }
 
+.backupPanel {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(17, 103, 90, 0.06), rgba(17, 103, 90, 0.02));
+}
+
+.backupPanel h3 {
+  margin: 0 0 4px;
+  font-size: 0.96rem;
+}
+
+.backupPanel p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.backupActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.backupMessage {
+  min-height: 1.2em;
+  color: var(--muted);
+}
+
+.backupMessage.isError {
+  color: #9b2c2c;
+}
+
+.backupMessage.isSuccess {
+  color: var(--accent-dark);
+}
+
 .reviewModeActive .topbar {
   display: none;
 }

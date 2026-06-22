@@ -558,7 +558,7 @@ h2 {
 
 .reviewControls {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(90px, 0.35fr) auto auto;
+  grid-template-columns: minmax(180px, 1fr) auto auto;
   gap: 10px;
   align-items: end;
 }
@@ -851,7 +851,7 @@ th {
   }
 
   .reviewControls {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr) auto auto;
   }
 
   .reviewModeTop {
@@ -909,6 +909,10 @@ th {
   .reviewControls,
   .reviewCard dl {
     grid-template-columns: 1fr;
+  }
+
+  .reviewControls {
+    justify-items: start;
   }
 
   .reviewModeActive .content {

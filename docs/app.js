@@ -15,7 +15,6 @@ const state = {
     deck: [],
     index: 0,
     history: [],
-    max: 100,
     shuffle: true,
     swiping: false,
   },
@@ -110,7 +109,6 @@ document.addEventListener("DOMContentLoaded", () => {
     "shortlistView",
     "rejectedView",
     "reviewSource",
-    "reviewMax",
     "reviewShuffle",
     "buildReviewDeck",
     "reviewCard",
@@ -678,7 +676,6 @@ function lastTopNItems() {
 
 function buildReviewDeck(render = true) {
   state.review.source = els.reviewSource.value;
-  state.review.max = Math.max(1, Math.min(1000, Number(els.reviewMax.value) || 100));
   state.review.shuffle = els.reviewShuffle.checked;
   let items = [];
   if (state.review.source === "matches") items = state.matches;
@@ -688,7 +685,7 @@ function buildReviewDeck(render = true) {
   if (state.review.source === "random") items = state.data.names;
   items = uniqueItems(items).filter((item) => statusOf(item.id) === "neutral");
   if (state.review.shuffle) items = shuffle(items);
-  state.review.deck = items.slice(0, state.review.max).map((item) => item.id);
+  state.review.deck = items.map((item) => item.id);
   state.review.index = 0;
   if (render) renderReviewCard();
 }

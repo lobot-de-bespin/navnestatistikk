@@ -222,9 +222,15 @@
           <div class="sectionHead">
             <div class="moduleHead">
               <h2>Valgte navn til graf</h2>
-              <p>Fjern enkelt-navn her, eller tøm hele utvalget fra søkeresultatet.</p>
+              <p>Velg navn i søket, og bruk hurtigvalgene her for å sende dem videre som aktuelle, uaktuelle eller til vurdering.</p>
             </div>
             <span id="selectedCount">0 navn</span>
+          </div>
+          <div class="decisionBar" aria-label="Hurtigvalg for valgte navn">
+            <button id="selectedShortlist" type="button" class="primary">+ aktuell</button>
+            <button id="selectedReject" type="button">uaktuell</button>
+            <button id="selectedReview" type="button">vurder</button>
+            <button id="selectedClear" type="button">Tøm utvalg</button>
           </div>
           <div id="selectedNames" class="selectedNames" aria-label="Valgte navn"></div>
         </section>
@@ -236,160 +242,176 @@
           <div id="chart" class="chart" role="img" aria-label="Trendkurver"></div>
         </section>
 
-        <section class="module similarPanel">
-          <div class="candidateHead">
+        <details class="module secondaryModule similarPanel">
+          <summary class="secondarySummary">
             <div class="moduleHead">
               <h2>Lignende kurver</h2>
-              <p>Finn navn som har hatt en tilsvarende utvikling som et valgt referansenavn.</p>
+              <p>Finn navn som ligner på et valgt referansenavn. Utvid bare når du trenger den mer analytiske delen.</p>
             </div>
-            <button id="addSimilarTop" type="button">Legg topp 5 i graf</button>
-            <div class="inlineActions">
-              <button id="shortlistSimilarTop" type="button">Merk topp 50</button>
-              <button id="rejectSimilarTop" type="button">Avvis topp 50</button>
+            <span class="secondaryHint">Avansert</span>
+          </summary>
+          <div class="secondaryBody">
+            <div class="candidateHead">
+              <div class="moduleHead">
+                <p>Velg referanse, metode og tidsrom før du søker. Resultatene kan deretter legges i grafen eller masselukkes som aktuelle/uaktuelle.</p>
+              </div>
+              <button id="addSimilarTop" type="button">Legg topp 5 i graf</button>
+              <div class="inlineActions">
+                <button id="shortlistSimilarTop" type="button">Merk topp 50</button>
+                <button id="rejectSimilarTop" type="button">Avvis topp 50</button>
+              </div>
+            </div>
+            <div class="similarControls">
+              <div>
+                <label for="similarReference">Referansenavn</label>
+                <select id="similarReference"></select>
+              </div>
+              <div>
+                <label for="similarMethod">Metode</label>
+                <select id="similarMethod">
+                  <option value="pearson">Pearson</option>
+                  <option value="spearman">Spearman</option>
+                  <option value="euclidean">Euklidsk</option>
+                </select>
+              </div>
+              <div>
+                <label for="similarMetric">Serie</label>
+                <select id="similarMetric">
+                  <option value="shareSex">Andel samme kjønn</option>
+                  <option value="rank">Rang</option>
+                  <option value="index">Indeks</option>
+                </select>
+              </div>
+              <div>
+                <label for="similarSmooth">Glatting</label>
+                <select id="similarSmooth">
+                  <option value="1">Av</option>
+                  <option value="3" selected>3 år</option>
+                  <option value="5">5 år</option>
+                </select>
+              </div>
+              <div>
+                <label for="similarFromYear">Fra</label>
+                <input id="similarFromYear" type="number" min="1880" max="2025" value="1880" />
+              </div>
+              <div>
+                <label for="similarToYear">Til</label>
+                <input id="similarToYear" type="number" min="1880" max="2025" value="2025" />
+              </div>
+              <div class="candidateAction">
+                <button id="syncSimilarYears" type="button">Samme periode som graf</button>
+              </div>
+              <div class="candidateAction">
+                <button id="findSimilar" type="button" class="primary">Finn lignende</button>
+              </div>
+            </div>
+            <div class="sectionHead">
+              <span id="similarCount">0 navn</span>
+              <span id="similarBasis">Pearson</span>
+            </div>
+            <div class="tableWrap similarWrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Navn</th>
+                    <th>Kjønn</th>
+                    <th>Likhet</th>
+                    <th>Rå score</th>
+                    <th>Toppår</th>
+                    <th>Handling</th>
+                  </tr>
+                </thead>
+                <tbody id="similarTable"></tbody>
+              </table>
             </div>
           </div>
-          <div class="similarControls">
-            <div>
-              <label for="similarReference">Referansenavn</label>
-              <select id="similarReference"></select>
-            </div>
-            <div>
-              <label for="similarMethod">Metode</label>
-              <select id="similarMethod">
-                <option value="pearson">Pearson</option>
-                <option value="spearman">Spearman</option>
-                <option value="euclidean">Euklidsk</option>
-              </select>
-            </div>
-            <div>
-              <label for="similarMetric">Serie</label>
-              <select id="similarMetric">
-                <option value="shareSex">Andel samme kjønn</option>
-                <option value="rank">Rang</option>
-                <option value="index">Indeks</option>
-              </select>
-            </div>
-            <div>
-              <label for="similarSmooth">Glatting</label>
-              <select id="similarSmooth">
-                <option value="1">Av</option>
-                <option value="3" selected>3 år</option>
-                <option value="5">5 år</option>
-              </select>
-            </div>
-            <div>
-              <label for="similarFromYear">Fra</label>
-              <input id="similarFromYear" type="number" min="1880" max="2025" value="1880" />
-            </div>
-            <div>
-              <label for="similarToYear">Til</label>
-              <input id="similarToYear" type="number" min="1880" max="2025" value="2025" />
-            </div>
-            <div class="candidateAction">
-              <button id="syncSimilarYears" type="button">Samme periode som graf</button>
-            </div>
-            <div class="candidateAction">
-              <button id="findSimilar" type="button" class="primary">Finn lignende</button>
-            </div>
-          </div>
-          <div class="sectionHead">
-            <span id="similarCount">0 navn</span>
-            <span id="similarBasis">Pearson</span>
-          </div>
-          <div class="tableWrap similarWrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Navn</th>
-                  <th>Kjønn</th>
-                  <th>Likhet</th>
-                  <th>Rå score</th>
-                  <th>Toppår</th>
-                  <th>Handling</th>
-                </tr>
-              </thead>
-              <tbody id="similarTable"></tbody>
-            </table>
-          </div>
-        </section>
+        </details>
 
-        <section class="module candidatePanel">
-          <div class="candidateHead">
+        <details class="module secondaryModule candidatePanel">
+          <summary class="secondarySummary">
             <div class="moduleHead">
               <h2>Filterliste</h2>
-              <p>Sorter og filtrer navn før du bestemmer deg, med skolekontekst og egen sortering.</p>
+              <p>Bruk denne når du vil snevre inn, sortere og ta en beslutning. Den er bevisst mindre dominerende enn utforskingsflaten.</p>
             </div>
-            <button id="copyExploreToCandidates" type="button">Hent fra utforsking</button>
-            <div class="inlineActions">
-              <button id="shortlistCandidates" type="button">Merk filtrerte</button>
-              <button id="rejectCandidates" type="button">Avvis filtrerte</button>
+            <span class="secondaryHint">Avansert</span>
+          </summary>
+          <div class="secondaryBody">
+            <div class="candidateHead">
+              <div class="moduleHead">
+                <p>Ta med utforskningsvalget hvis det er en god start, eller bygg en ny liste med egne regler og skolekontekst.</p>
+              </div>
+              <button id="copyExploreToCandidates" type="button">Hent fra utforsking</button>
+              <div class="inlineActions">
+                <button id="shortlistCandidates" type="button">Merk filtrerte</button>
+                <button id="rejectCandidates" type="button">Avvis filtrerte</button>
+              </div>
+            </div>
+            <div class="candidateFilters">
+              <div>
+                <label for="candidateRegex">Regex</label>
+                <input id="candidateRegex" type="text" spellcheck="false" value=".*" />
+              </div>
+              <div>
+                <label for="candidateSex">Kjønn</label>
+                <select id="candidateSex">
+                  <option value="alle">Alle</option>
+                  <option value="jente">Jente</option>
+                  <option value="gutt">Gutt</option>
+                </select>
+              </div>
+              <div>
+                <label for="candidateBirthYear">Fødselsår</label>
+                <input id="candidateBirthYear" type="number" min="1880" max="2025" value="2023" />
+              </div>
+              <div>
+                <label for="candidateGrade">Trinn</label>
+                <input id="candidateGrade" type="number" min="1" max="13" value="3" />
+              </div>
+              <div>
+                <label for="candidateGradeSize">Elever per trinn</label>
+                <input id="candidateGradeSize" type="number" min="1" max="10000" value="100" />
+              </div>
+              <div>
+                <label for="candidateMaxSchool">Maks navnesøsken</label>
+                <input id="candidateMaxSchool" type="number" min="0" step="0.1" value="1" />
+              </div>
+              <div>
+                <label for="candidateSort">Sorter</label>
+                <select id="candidateSort">
+                  <option value="school">Færrest navnesøsken</option>
+                  <option value="birthYear">Flest i fødselsåret</option>
+                  <option value="trend">Sterkest trend</option>
+                  <option value="similar">Mest lik kurve</option>
+                  <option value="name">Navn A-Å</option>
+                </select>
+              </div>
+              <div class="candidateAction">
+                <button id="applyCandidateFilters" type="button" class="primary">Oppdater</button>
+              </div>
+            </div>
+            <p id="candidateError" class="error" role="alert"></p>
+            <div class="sectionHead">
+              <span id="candidateCount">0 navn</span>
+              <span id="candidateScope">Barneskole 1.-7.</span>
+            </div>
+            <div class="tableWrap candidateWrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Navn</th>
+                    <th>Kjønn</th>
+                    <th>Fødselsår</th>
+                    <th>Navnesøsken</th>
+                    <th>Toppår</th>
+                    <th>Trend</th>
+                    <th>Handling</th>
+                  </tr>
+                </thead>
+                <tbody id="candidateTable"></tbody>
+              </table>
             </div>
           </div>
-          <div class="candidateFilters">
-            <div>
-              <label for="candidateRegex">Regex</label>
-              <input id="candidateRegex" type="text" spellcheck="false" value=".*" />
-            </div>
-            <div>
-              <label for="candidateSex">Kjønn</label>
-              <select id="candidateSex">
-                <option value="alle">Alle</option>
-                <option value="jente">Jente</option>
-                <option value="gutt">Gutt</option>
-              </select>
-            </div>
-            <div>
-              <label for="candidateBirthYear">Fødselsår</label>
-              <input id="candidateBirthYear" type="number" min="1880" max="2025" value="2023" />
-            </div>
-            <div>
-              <label for="candidateGrade">Trinn</label>
-              <input id="candidateGrade" type="number" min="1" max="13" value="3" />
-            </div>
-            <div>
-              <label for="candidateGradeSize">Elever per trinn</label>
-              <input id="candidateGradeSize" type="number" min="1" max="10000" value="100" />
-            </div>
-            <div>
-              <label for="candidateMaxSchool">Maks navnesøsken</label>
-              <input id="candidateMaxSchool" type="number" min="0" step="0.1" value="1" />
-            </div>
-            <div>
-              <label for="candidateSort">Sorter</label>
-              <select id="candidateSort">
-                <option value="school">Færrest navnesøsken</option>
-                <option value="birthYear">Flest i fødselsåret</option>
-                <option value="trend">Sterkest trend</option>
-                <option value="similar">Mest lik kurve</option>
-                <option value="name">Navn A-Å</option>
-              </select>
-            </div>
-            <div class="candidateAction">
-              <button id="applyCandidateFilters" type="button" class="primary">Oppdater</button>
-            </div>
-          </div>
-          <p id="candidateError" class="error" role="alert"></p>
-          <div class="sectionHead">
-            <span id="candidateCount">0 navn</span>
-            <span id="candidateScope">Barneskole 1.-7.</span>
-          </div>
-          <div class="tableWrap candidateWrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Navn</th>
-                  <th>Kjønn</th>
-                  <th>Fødselsår</th>
-                  <th>Navnesøsken</th>
-                  <th>Toppår</th>
-                  <th>Trend</th>
-                  <th>Handling</th>
-                </tr>
-              </thead>
-              <tbody id="candidateTable"></tbody>
-            </table>
-          </div>
-        </section>
+        </details>
 
         <div class="below">
           <section class="module summary">

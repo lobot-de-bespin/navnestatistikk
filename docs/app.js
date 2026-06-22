@@ -98,6 +98,10 @@ document.addEventListener("DOMContentLoaded", () => {
     "markersToggle",
     "selectedCount",
     "selectedNames",
+    "selectedShortlist",
+    "selectedReject",
+    "selectedReview",
+    "selectedClear",
     "shortlistTabCount",
     "rejectedTabCount",
     "statusStrip",
@@ -206,6 +210,13 @@ function wireEvents() {
     renderAll();
   });
   els.clearSelected.addEventListener("click", () => {
+    state.selected.clear();
+    renderAll();
+  });
+  els.selectedShortlist.addEventListener("click", () => bulkSetStatus(selectedItems(), "shortlist"));
+  els.selectedReject.addEventListener("click", () => bulkSetStatus(selectedItems(), "rejected"));
+  els.selectedReview.addEventListener("click", reviewSelectedItems);
+  els.selectedClear.addEventListener("click", () => {
     state.selected.clear();
     renderAll();
   });
@@ -644,15 +655,16 @@ function statusActions(item) {
   const wrap = document.createElement("span");
   wrap.className = "rowActions";
   const current = statusOf(item.id);
-  if (current !== "shortlist") wrap.append(smallAction("+ aktuell", () => setNameStatus(item.id, "shortlist")));
-  if (current !== "rejected") wrap.append(smallAction("uaktuell", () => setNameStatus(item.id, "rejected")));
-  if (current !== "neutral") wrap.append(smallAction("aktuell", () => setNameStatus(item.id, "neutral")));
+  if (current !== "shortlist") wrap.append(smallAction("+ aktuell", () => setNameStatus(item.id, "shortlist"), "decisionPositive"));
+  if (current !== "rejected") wrap.append(smallAction("uaktuell", () => setNameStatus(item.id, "rejected"), "decisionReject"));
+  if (current !== "neutral") wrap.append(smallAction("aktuell", () => setNameStatus(item.id, "neutral"), "decisionReset"));
   return wrap;
 }
 
-function smallAction(text, handler) {
+function smallAction(text, handler, className = "") {
   const button = document.createElement("button");
   button.type = "button";
+  if (className) button.className = className;
   button.textContent = text;
   button.addEventListener("click", (event) => {
     event.preventDefault();
@@ -702,6 +714,17 @@ function buildReviewDeck(render = true) {
   state.review.deck = items.map((item) => item.id);
   state.review.index = 0;
   if (render) renderReviewCard();
+}
+
+function reviewSelectedItems() {
+  const deck = selectedItems()
+    .filter((item) => statusOf(item.id) === "neutral")
+    .map((item) => item.id);
+  if (!deck.length) return;
+  state.review.deck = deck;
+  state.review.index = 0;
+  state.review.history = [];
+  setActiveView("review");
 }
 
 function currentReviewItem() {
@@ -1094,6 +1117,10 @@ function writeSimilarControls() {
 function renderSelected() {
   const items = selectedItems();
   els.selectedCount.textContent = `${items.length} navn`;
+  if (els.selectedShortlist) els.selectedShortlist.disabled = !items.length;
+  if (els.selectedReject) els.selectedReject.disabled = !items.length;
+  if (els.selectedReview) els.selectedReview.disabled = !items.length;
+  if (els.selectedClear) els.selectedClear.disabled = !items.length;
   els.selectedNames.innerHTML = "";
   items.forEach((item) => {
     const pill = document.createElement("span");

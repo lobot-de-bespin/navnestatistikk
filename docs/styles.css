@@ -172,6 +172,11 @@ label {
   padding: 13px;
 }
 
+.selectedPanel {
+  padding: 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #faf8f1 100%);
+}
+
 .moduleHead {
   margin-bottom: 10px;
 }
@@ -295,7 +300,8 @@ label {
 
 .rowActions,
 .inlineActions,
-.topNBulkActions {
+.topNBulkActions,
+.decisionBar {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -307,10 +313,22 @@ label {
 
 .rowActions button,
 .inlineActions button,
-.topNBulkActions button {
+.topNBulkActions button,
+.decisionBar button {
   min-height: 28px;
   padding: 0 8px;
   font-size: 0.8rem;
+}
+
+.decisionBar {
+  margin-bottom: 12px;
+}
+
+.decisionBar button {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 0.88rem;
+  font-weight: 700;
 }
 
 .topNBulkActions {
@@ -459,16 +477,93 @@ label {
   font-weight: 700;
 }
 
+.decisionPositive,
+.decisionReject,
+.decisionReset {
+  border-width: 1px;
+}
+
+.decisionPositive {
+  border-color: rgba(17, 103, 90, 0.35);
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+
+.decisionReject {
+  border-color: rgba(155, 77, 36, 0.35);
+  background: rgba(155, 77, 36, 0.1);
+  color: #8e431d;
+}
+
+.decisionReset {
+  border-color: var(--line);
+  background: #fbfaf7;
+}
+
+.decisionPositive:hover,
+.decisionReject:hover,
+.decisionReset:hover {
+  filter: brightness(0.98);
+}
+
+.secondaryModule {
+  overflow: clip;
+}
+
+.secondaryModule > summary {
+  list-style: none;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+}
+
+.secondaryModule > summary::-webkit-details-marker {
+  display: none;
+}
+
+.secondaryModule[open] > summary {
+  border-bottom: 1px solid var(--line);
+}
+
+.secondaryBody {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+}
+
+.secondarySummary .moduleHead {
+  margin-bottom: 0;
+}
+
+.secondarySummary h2 {
+  margin-bottom: 6px;
+}
+
+.secondarySummary p {
+  max-width: 68ch;
+}
+
+.secondaryHint {
+  align-self: start;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #f2efe7;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
 .chart {
   height: 560px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
-}
-
-.selectedPanel {
-  padding: 14px;
 }
 
 .below {
@@ -511,6 +606,10 @@ h2 {
 
 .candidateHead > .inlineActions {
   justify-content: flex-end;
+}
+
+.candidateHead > button {
+  flex-shrink: 0;
 }
 
 .listPanel {
@@ -655,7 +754,6 @@ h2 {
   padding: 8px 12px;
   font-size: 1.2rem;
   font-weight: 900;
-  letter-spacing: 0.04em;
   opacity: 0.18;
   text-transform: uppercase;
 }
@@ -916,6 +1014,10 @@ th {
     align-items: start;
   }
 
+  .secondaryModule > summary {
+    grid-template-columns: 1fr;
+  }
+
   .actions {
     justify-content: start;
   }
@@ -944,6 +1046,10 @@ th {
 
   .schoolControls {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .decisionBar button {
+    width: 100%;
   }
 
   .candidateHead {
@@ -1022,6 +1128,11 @@ th {
 
   .reviewActions button {
     min-height: 46px;
+  }
+
+  .decisionBar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
   }
 
   .chart {

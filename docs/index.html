@@ -162,11 +162,18 @@
               </select>
             </div>
             <div>
-              <label for="similarMinYears">Minst år</label>
-              <input id="similarMinYears" type="number" min="3" max="146" value="10" />
+              <label for="similarFromYear">Fra</label>
+              <input id="similarFromYear" type="number" min="1880" max="2025" value="1880" />
+            </div>
+            <div>
+              <label for="similarToYear">Til</label>
+              <input id="similarToYear" type="number" min="1880" max="2025" value="2025" />
             </div>
             <div class="candidateAction">
               <button id="findSimilar" type="button" class="primary">Finn lignende</button>
+            </div>
+            <div class="candidateAction">
+              <button id="syncSimilarYears" type="button">Samme som graf</button>
             </div>
           </div>
           <div class="sectionHead">

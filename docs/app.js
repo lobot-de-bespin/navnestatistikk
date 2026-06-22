@@ -29,7 +29,8 @@ const state = {
     method: "pearson",
     metric: "shareSex",
     smooth: 3,
-    minYears: 10,
+    fromYear: 1880,
+    toYear: 2025,
     rows: [],
   },
   markers: false,
@@ -63,9 +64,11 @@ document.addEventListener("DOMContentLoaded", () => {
     "similarMethod",
     "similarMetric",
     "similarSmooth",
-    "similarMinYears",
+    "similarFromYear",
+    "similarToYear",
     "findSimilar",
     "addSimilarTop",
+    "syncSimilarYears",
     "similarCount",
     "similarBasis",
     "similarTable",
@@ -205,7 +208,7 @@ function wireEvents() {
     state.markers = els.markersToggle.checked;
     renderChart();
   });
-  [els.similarReference, els.similarMethod, els.similarMetric, els.similarSmooth, els.similarMinYears].forEach((input) => {
+  [els.similarReference, els.similarMethod, els.similarMetric, els.similarSmooth, els.similarFromYear, els.similarToYear].forEach((input) => {
     input.addEventListener("change", () => {
       readSimilarControls(true);
       renderSimilar();
@@ -214,6 +217,13 @@ function wireEvents() {
   });
   els.findSimilar.addEventListener("click", () => {
     readSimilarControls(true);
+    renderSimilar();
+    updateUrl();
+  });
+  els.syncSimilarYears.addEventListener("click", () => {
+    state.similar.fromYear = state.fromYear;
+    state.similar.toYear = state.toYear;
+    writeSimilarControls();
     renderSimilar();
     updateUrl();
   });
@@ -249,8 +259,14 @@ async function loadData() {
   els.schoolBirthYear.max = state.nameToYear;
   els.candidateBirthYear.min = state.nameFromYear;
   els.candidateBirthYear.max = state.nameToYear;
+  els.similarFromYear.min = state.nameFromYear;
+  els.similarFromYear.max = state.nameToYear;
+  els.similarToYear.min = state.nameFromYear;
+  els.similarToYear.max = state.nameToYear;
   els.fromYear.value = state.fromYear;
   els.toYear.value = state.toYear;
+  state.similar.fromYear = state.fromYear;
+  state.similar.toYear = state.toYear;
   state.topNYear = state.toYear;
   els.topNYear.value = state.topNYear;
   restoreFromUrl();
@@ -291,7 +307,9 @@ function restoreFromUrl() {
   if (params.has("similarMethod")) state.similar.method = params.get("similarMethod");
   if (params.has("similarMetric")) state.similar.metric = params.get("similarMetric");
   if (params.has("similarSmooth")) state.similar.smooth = Math.max(1, Number(params.get("similarSmooth")) || 3);
-  if (params.has("similarMinYears")) state.similar.minYears = Math.max(3, Number(params.get("similarMinYears")) || 10);
+  if (params.has("similarFrom")) state.similar.fromYear = clampNameYear(Number(params.get("similarFrom")));
+  if (params.has("similarTo")) state.similar.toYear = clampNameYear(Number(params.get("similarTo")));
+  if (state.similar.fromYear > state.similar.toYear) [state.similar.fromYear, state.similar.toYear] = [state.similar.toYear, state.similar.fromYear];
   els.fromYear.value = state.fromYear;
   els.toYear.value = state.toYear;
   els.topNYear.value = state.topNYear;
@@ -491,16 +509,22 @@ function readSimilarControls(commit = false) {
   state.similar.method = els.similarMethod.value;
   state.similar.metric = els.similarMetric.value;
   state.similar.smooth = Number(els.similarSmooth.value) || 1;
-  state.similar.minYears = parseIntegerInput(els.similarMinYears.value);
+  state.similar.fromYear = parseIntegerInput(els.similarFromYear.value);
+  state.similar.toYear = parseIntegerInput(els.similarToYear.value);
   if (!commit) return;
-  if (state.similar.minYears != null && state.similar.minYears >= 3) els.similarMinYears.value = state.similar.minYears;
+  if (state.similar.fromYear != null) state.similar.fromYear = clampNameYear(state.similar.fromYear);
+  if (state.similar.toYear != null) state.similar.toYear = clampNameYear(state.similar.toYear);
+  if (state.similar.fromYear > state.similar.toYear) [state.similar.fromYear, state.similar.toYear] = [state.similar.toYear, state.similar.fromYear];
+  els.similarFromYear.value = state.similar.fromYear;
+  els.similarToYear.value = state.similar.toYear;
 }
 
 function writeSimilarControls() {
   els.similarMethod.value = state.similar.method;
   els.similarMetric.value = state.similar.metric;
   els.similarSmooth.value = String(state.similar.smooth);
-  els.similarMinYears.value = state.similar.minYears;
+  els.similarFromYear.value = state.similar.fromYear;
+  els.similarToYear.value = state.similar.toYear;
 }
 
 function renderSelected() {
@@ -587,6 +611,10 @@ function renderChart() {
 }
 
 function visiblePoints(item) {
+  return allPoints(item).filter((p) => p.year >= state.fromYear && p.year <= state.toYear);
+}
+
+function allPoints(item) {
   return item.series
     .map(([yearIndex, count, rank, sourceShareSex]) => {
       const year = state.data.years[yearIndex];
@@ -600,8 +628,7 @@ function visiblePoints(item) {
         shareAll: total && count != null ? (count / total) * 100 : null,
         shareSex: sourceShareSex ?? (sexTotal && count != null ? (count / sexTotal) * 100 : null),
       };
-    })
-    .filter((p) => p.year >= state.fromYear && p.year <= state.toYear);
+    });
 }
 
 function metricValue(point, item, metric = state.metric) {
@@ -704,7 +731,7 @@ function similarityRow(referenceSeries, item) {
     const candidateValue = candidateSeries.get(year);
     if (refValue != null && candidateValue != null) pairs.push([refValue, candidateValue]);
   });
-  if (pairs.length < (state.similar.minYears ?? 10)) return null;
+  if (pairs.length < 3) return null;
   const left = smoothValues(pairs.map(([value]) => value), state.similar.smooth);
   const right = smoothValues(pairs.map(([, value]) => value), state.similar.smooth);
   const score = similarityScore(left, right, state.similar.method);
@@ -717,7 +744,7 @@ function similarityRow(referenceSeries, item) {
 }
 
 function comparableSeries(item, metric) {
-  const points = visiblePoints(item);
+  const points = allPoints(item).filter((point) => point.year >= state.similar.fromYear && point.year <= state.similar.toYear);
   const values = points.map((point) => [point.year, comparableValue(point, item, metric)]);
   if (metric !== "index") return new Map(values.filter(([, value]) => value != null));
   const base = values.find(([, value]) => value != null && value > 0)?.[1];
@@ -1026,7 +1053,8 @@ function updateUrl() {
   params.set("similarMethod", state.similar.method);
   params.set("similarMetric", state.similar.metric);
   params.set("similarSmooth", String(state.similar.smooth));
-  if (state.similar.minYears != null) params.set("similarMinYears", String(state.similar.minYears));
+  params.set("similarFrom", String(state.similar.fromYear));
+  params.set("similarTo", String(state.similar.toYear));
   if (state.selected.size) params.set("names", [...state.selected].join(","));
   history.replaceState(null, "", `${location.pathname}?${params.toString()}`);
 }

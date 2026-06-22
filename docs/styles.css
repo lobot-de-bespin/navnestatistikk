@@ -18,6 +18,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   background: var(--bg);
@@ -213,6 +217,23 @@ label {
 .topNGrid input,
 .topNGrid select {
   width: 100%;
+}
+
+.topNYearControl,
+.topNPeriodControls {
+  grid-column: 1 / -1;
+}
+
+.topNPeriodControls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.topNYearControl label,
+.topNPeriodControls label {
+  font-size: 0.76rem;
+  margin-bottom: 4px;
 }
 
 .topNGrid button {

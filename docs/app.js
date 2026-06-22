@@ -11,6 +11,8 @@ const state = {
   fromYear: 1880,
   toYear: 2025,
   topNYear: 2025,
+  topNFromYear: 1880,
+  topNToYear: 2025,
   schoolBirthYear: 2018,
   childGrade: 1,
   gradeSize: 100,
@@ -50,7 +52,12 @@ document.addEventListener("DOMContentLoaded", () => {
     "clearSelected",
     "topNCount",
     "topNMode",
+    "topNYearControl",
     "topNYear",
+    "topNPeriodControls",
+    "topNFromYear",
+    "topNToYear",
+    "syncTopNYears",
     "selectTopN",
     "metricSelect",
     "scaleSelect",
@@ -138,11 +145,20 @@ function wireEvents() {
   });
   els.selectTopN.addEventListener("click", selectTopN);
   els.topNMode.addEventListener("change", () => {
-    els.topNYear.disabled = els.topNMode.value === "period";
+    writeTopNControls();
+    updateUrl();
   });
-  els.topNYear.addEventListener("change", () => {
-    state.topNYear = clampNameYear(Number(els.topNYear.value));
-    els.topNYear.value = state.topNYear;
+  [els.topNYear, els.topNFromYear, els.topNToYear].forEach((input) => {
+    input.addEventListener("change", () => {
+      readTopNControls(true);
+      updateUrl();
+    });
+  });
+  els.syncTopNYears.addEventListener("click", () => {
+    state.topNFromYear = state.fromYear;
+    state.topNToYear = state.toYear;
+    writeTopNControls();
+    updateUrl();
   });
   els.metricSelect.addEventListener("change", () => {
     state.metric = els.metricSelect.value;
@@ -255,6 +271,10 @@ async function loadData() {
   els.toYear.max = state.nameToYear;
   els.topNYear.min = state.nameFromYear;
   els.topNYear.max = state.nameToYear;
+  els.topNFromYear.min = state.nameFromYear;
+  els.topNFromYear.max = state.nameToYear;
+  els.topNToYear.min = state.nameFromYear;
+  els.topNToYear.max = state.nameToYear;
   els.schoolBirthYear.min = state.nameFromYear;
   els.schoolBirthYear.max = state.nameToYear;
   els.candidateBirthYear.min = state.nameFromYear;
@@ -268,6 +288,8 @@ async function loadData() {
   state.similar.fromYear = state.fromYear;
   state.similar.toYear = state.toYear;
   state.topNYear = state.toYear;
+  state.topNFromYear = state.fromYear;
+  state.topNToYear = state.toYear;
   els.topNYear.value = state.topNYear;
   restoreFromUrl();
   els.dataStatus.textContent = `Navnedata: ${state.nameFromYear}-${state.nameToYear}, bygget ${state.data.meta.builtAt.slice(0, 10)}`;
@@ -292,7 +314,11 @@ function restoreFromUrl() {
   }
   if (params.has("from")) state.fromYear = clampNameYear(Number(params.get("from")));
   if (params.has("to")) state.toYear = clampNameYear(Number(params.get("to")));
+  if (params.has("topMode")) els.topNMode.value = params.get("topMode");
   if (params.has("topYear")) state.topNYear = clampNameYear(Number(params.get("topYear")));
+  if (params.has("topFrom")) state.topNFromYear = clampNameYear(Number(params.get("topFrom")));
+  if (params.has("topTo")) state.topNToYear = clampNameYear(Number(params.get("topTo")));
+  if (state.topNFromYear > state.topNToYear) [state.topNFromYear, state.topNToYear] = [state.topNToYear, state.topNFromYear];
   if (params.has("schoolYear")) state.schoolBirthYear = clampNameYear(Number(params.get("schoolYear")));
   if (params.has("grade")) state.childGrade = clampGrade(Number(params.get("grade")));
   if (params.has("gradeSize")) state.gradeSize = Math.max(1, Number(params.get("gradeSize")) || 100);
@@ -312,7 +338,7 @@ function restoreFromUrl() {
   if (state.similar.fromYear > state.similar.toYear) [state.similar.fromYear, state.similar.toYear] = [state.similar.toYear, state.similar.fromYear];
   els.fromYear.value = state.fromYear;
   els.toYear.value = state.toYear;
-  els.topNYear.value = state.topNYear;
+  writeTopNControls();
   els.schoolBirthYear.value = state.schoolBirthYear;
   els.childGrade.value = state.childGrade;
   els.gradeSize.value = state.gradeSize;
@@ -386,19 +412,40 @@ function selectedItems() {
 
 function selectTopN() {
   if (!state.data) return;
-  state.topNYear = clampNameYear(Number(els.topNYear.value));
-  els.topNYear.value = state.topNYear;
+  readTopNControls(true);
   const n = Number(els.topNCount.value);
   const mode = els.topNMode.value;
   const rows = state.matches
     .map((item) => {
-      const value = mode === "year" ? topNValueInYear(item, state.topNYear) : topNValueInPeriod(item, state.fromYear, state.toYear);
+      const value = mode === "year" ? topNValueInYear(item, state.topNYear) : topNValueInPeriod(item, state.topNFromYear, state.topNToYear);
       return { item, value };
     })
     .filter((row) => row.value > 0)
     .sort((a, b) => b.value - a.value || a.item.name.localeCompare(b.item.name, "no"));
   state.selected = new Set(rows.slice(0, n).map((row) => row.item.id));
   renderAll();
+}
+
+function readTopNControls(commit = false) {
+  const topNYear = parseIntegerInput(els.topNYear.value);
+  const topNFromYear = parseIntegerInput(els.topNFromYear.value);
+  const topNToYear = parseIntegerInput(els.topNToYear.value);
+  if (!commit) return;
+  if (topNYear != null) state.topNYear = clampNameYear(topNYear);
+  if (topNFromYear != null) state.topNFromYear = clampNameYear(topNFromYear);
+  if (topNToYear != null) state.topNToYear = clampNameYear(topNToYear);
+  if (state.topNFromYear > state.topNToYear) [state.topNFromYear, state.topNToYear] = [state.topNToYear, state.topNFromYear];
+  writeTopNControls();
+}
+
+function writeTopNControls() {
+  const periodMode = els.topNMode.value === "period";
+  els.topNYearControl.hidden = periodMode;
+  els.topNPeriodControls.hidden = !periodMode;
+  els.syncTopNYears.hidden = !periodMode;
+  els.topNYear.value = state.topNYear;
+  els.topNFromYear.value = state.topNFromYear;
+  els.topNToYear.value = state.topNToYear;
 }
 
 function countInYear(item, year) {
@@ -1038,7 +1085,10 @@ function updateUrl() {
   params.set("metric", state.metric);
   params.set("from", String(state.fromYear));
   params.set("to", String(state.toYear));
+  params.set("topMode", els.topNMode.value);
   params.set("topYear", String(state.topNYear));
+  params.set("topFrom", String(state.topNFromYear));
+  params.set("topTo", String(state.topNToYear));
   if (state.schoolBirthYear != null) params.set("schoolYear", String(state.schoolBirthYear));
   if (state.childGrade != null) params.set("grade", String(state.childGrade));
   if (state.gradeSize != null) params.set("gradeSize", String(state.gradeSize));

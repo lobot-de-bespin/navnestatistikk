@@ -68,7 +68,21 @@
               <option value="year">År</option>
               <option value="period">Tidsrom</option>
             </select>
-            <input id="topNYear" type="number" min="1880" max="2025" value="2025" aria-label="År for topp N" />
+            <div id="topNYearControl" class="topNYearControl">
+              <label for="topNYear">År</label>
+              <input id="topNYear" type="number" min="1880" max="2025" value="2025" />
+            </div>
+            <div id="topNPeriodControls" class="topNPeriodControls" hidden>
+              <div>
+                <label for="topNFromYear">Fra</label>
+                <input id="topNFromYear" type="number" min="1880" max="2025" value="1880" />
+              </div>
+              <div>
+                <label for="topNToYear">Til</label>
+                <input id="topNToYear" type="number" min="1880" max="2025" value="2025" />
+              </div>
+            </div>
+            <button id="syncTopNYears" type="button" hidden>Samme periode som graf</button>
             <button id="selectTopN" type="button">Velg topp</button>
           </div>
         </section>
@@ -197,10 +211,10 @@
               <input id="similarToYear" type="number" min="1880" max="2025" value="2025" />
             </div>
             <div class="candidateAction">
-              <button id="findSimilar" type="button" class="primary">Finn lignende</button>
+              <button id="syncSimilarYears" type="button">Samme periode som graf</button>
             </div>
             <div class="candidateAction">
-              <button id="syncSimilarYears" type="button">Samme som graf</button>
+              <button id="findSimilar" type="button" class="primary">Finn lignende</button>
             </div>
           </div>
           <div class="sectionHead">

@@ -6,6 +6,18 @@ const state = {
   regex: "^anna$|^ole$",
   matches: [],
   selected: new Set(),
+  nameStatus: {},
+  showRejected: false,
+  activeView: "explore",
+  lastTopNRows: [],
+  review: {
+    source: "random",
+    deck: [],
+    index: 0,
+    history: [],
+    max: 100,
+    shuffle: true,
+  },
   metric: "count",
   scale: "linear",
   chartSmooth: 1,
@@ -45,6 +57,7 @@ const state = {
 };
 
 const els = {};
+const STATUS_STORAGE_KEY = "navnestatistikk:nameStatus:v1";
 
 document.addEventListener("DOMContentLoaded", () => {
   [
@@ -56,6 +69,9 @@ document.addEventListener("DOMContentLoaded", () => {
     "resultList",
     "selectVisible",
     "clearSelected",
+    "shortlistVisible",
+    "rejectVisible",
+    "showRejectedToggle",
     "topNSelectionMode",
     "topNCount",
     "topNCountControl",
@@ -72,6 +88,8 @@ document.addEventListener("DOMContentLoaded", () => {
     "topNToYear",
     "syncTopNYears",
     "selectTopN",
+    "shortlistTopN",
+    "rejectTopN",
     "metricSelect",
     "scaleSelect",
     "chartSmooth",
@@ -80,6 +98,25 @@ document.addEventListener("DOMContentLoaded", () => {
     "markersToggle",
     "selectedCount",
     "selectedNames",
+    "shortlistTabCount",
+    "rejectedTabCount",
+    "exploreView",
+    "reviewView",
+    "shortlistView",
+    "rejectedView",
+    "reviewSource",
+    "reviewMax",
+    "reviewShuffle",
+    "buildReviewDeck",
+    "reviewCard",
+    "reviewReject",
+    "reviewSkip",
+    "reviewShortlist",
+    "reviewUndo",
+    "shortlistTable",
+    "rejectedTable",
+    "showShortlistInChart",
+    "clearShortlist",
     "chart",
     "similarReference",
     "similarMethod",
@@ -89,6 +126,8 @@ document.addEventListener("DOMContentLoaded", () => {
     "similarToYear",
     "findSimilar",
     "addSimilarTop",
+    "shortlistSimilarTop",
+    "rejectSimilarTop",
     "syncSimilarYears",
     "similarCount",
     "similarBasis",
@@ -108,6 +147,8 @@ document.addEventListener("DOMContentLoaded", () => {
     "candidateMaxSchool",
     "candidateSort",
     "applyCandidateFilters",
+    "shortlistCandidates",
+    "rejectCandidates",
     "candidateError",
     "candidateCount",
     "candidateScope",
@@ -120,11 +161,15 @@ document.addEventListener("DOMContentLoaded", () => {
     els[id] = document.getElementById(id);
   });
 
+  state.nameStatus = loadNameStatus();
   wireEvents();
   loadData();
 });
 
 function wireEvents() {
+  document.querySelectorAll("[data-view]").forEach((button) => {
+    button.addEventListener("click", () => setActiveView(button.dataset.view));
+  });
   els.applyRegex.addEventListener("click", () => {
     state.regex = els.regexInput.value.trim() || ".*";
     updateMatches();
@@ -157,7 +202,15 @@ function wireEvents() {
     state.selected.clear();
     renderAll();
   });
+  els.shortlistVisible.addEventListener("click", () => bulkSetStatus(state.matches.slice(0, 250), "shortlist"));
+  els.rejectVisible.addEventListener("click", () => bulkSetStatus(state.matches.slice(0, 250), "rejected"));
+  els.showRejectedToggle.addEventListener("change", () => {
+    state.showRejected = els.showRejectedToggle.checked;
+    updateMatches();
+  });
   els.selectTopN.addEventListener("click", selectTopN);
+  els.shortlistTopN.addEventListener("click", () => bulkSetStatus(lastTopNItems(), "shortlist"));
+  els.rejectTopN.addEventListener("click", () => bulkSetStatus(lastTopNItems(), "rejected"));
   els.topNSelectionMode.addEventListener("change", () => {
     state.topNSelectionMode = els.topNSelectionMode.value;
     writeTopNControls();
@@ -274,6 +327,28 @@ function wireEvents() {
   els.addSimilarTop.addEventListener("click", () => {
     state.similar.rows.slice(0, 5).forEach((row) => state.selected.add(row.item.id));
     renderAll();
+  });
+  els.shortlistSimilarTop.addEventListener("click", () => bulkSetStatus(state.similar.rows.slice(0, 50).map((row) => row.item), "shortlist"));
+  els.rejectSimilarTop.addEventListener("click", () => bulkSetStatus(state.similar.rows.slice(0, 50).map((row) => row.item), "rejected"));
+  els.shortlistCandidates.addEventListener("click", () => bulkSetStatus(state.candidate.rows.map((row) => row.item), "shortlist"));
+  els.rejectCandidates.addEventListener("click", () => bulkSetStatus(state.candidate.rows.map((row) => row.item), "rejected"));
+  els.buildReviewDeck.addEventListener("click", buildReviewDeck);
+  els.reviewReject.addEventListener("click", () => reviewSetStatus("rejected"));
+  els.reviewShortlist.addEventListener("click", () => reviewSetStatus("shortlist"));
+  els.reviewSkip.addEventListener("click", reviewSkip);
+  els.reviewUndo.addEventListener("click", reviewUndo);
+  els.showShortlistInChart.addEventListener("click", () => {
+    state.selected = new Set(itemsWithStatus("shortlist").map((item) => item.id));
+    setActiveView("explore");
+    renderAll();
+  });
+  els.clearShortlist.addEventListener("click", () => {
+    const items = itemsWithStatus("shortlist");
+    if (items.length && confirm(`Fjerne ${items.length} navn fra shortlist?`)) {
+      items.forEach((item) => setNameStatus(item.id, "neutral", false));
+      saveNameStatus();
+      renderAll();
+    }
   });
   els.copyLink.addEventListener("click", copyShareLink);
   els.downloadCsv.addEventListener("click", downloadCsv);
@@ -400,6 +475,7 @@ function updateMatches(autoSelect = false) {
   }
   state.matches = state.data.names
     .filter((item) => state.sex === "alle" || item.sex === state.sex)
+    .filter((item) => state.showRejected || statusOf(item.id) !== "rejected")
     .filter((item) => pattern.test(item.name) || pattern.test(item.key.replaceAll("_", " ")))
     .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name, "no"));
   if (autoSelect && state.selected.size === 0) {
@@ -417,7 +493,50 @@ function renderAll() {
   renderSchoolEstimate();
   renderCandidates();
   renderTable();
+  renderStatusViews();
+  renderReviewCard();
   updateUrl();
+}
+
+function setActiveView(view) {
+  state.activeView = view;
+  document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
+  [els.exploreView, els.reviewView, els.shortlistView, els.rejectedView].forEach((panel) => {
+    panel.hidden = panel.id !== `${view}View`;
+  });
+  if (view === "review" && !state.review.deck.length) buildReviewDeck(false);
+  renderStatusViews();
+  renderReviewCard();
+}
+
+function renderStatusViews() {
+  const shortlist = itemsWithStatus("shortlist");
+  const rejected = itemsWithStatus("rejected");
+  els.shortlistTabCount.textContent = String(shortlist.length);
+  els.rejectedTabCount.textContent = String(rejected.length);
+  renderStatusTable(els.shortlistTable, shortlist, "shortlist");
+  renderStatusTable(els.rejectedTable, rejected, "rejected");
+}
+
+function renderStatusTable(tbody, items, mode) {
+  if (!items.length) {
+    tbody.innerHTML = `<tr><td colspan="5">${mode === "shortlist" ? "Ingen shortlistede navn" : "Ingen uaktuelle navn"}</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = "";
+  const fragment = document.createDocumentFragment();
+  items.forEach((item) => {
+    const tr = document.createElement("tr");
+    tr.append(
+      cell(item.name),
+      cell(item.sex),
+      cell(String(item.peakYear)),
+      cell(formatNumber(item.peakCount)),
+      actionCell(item),
+    );
+    fragment.append(tr);
+  });
+  tbody.append(fragment);
 }
 
 function renderResults() {
@@ -425,7 +544,7 @@ function renderResults() {
   els.resultList.innerHTML = "";
   const fragment = document.createDocumentFragment();
   state.matches.slice(0, 250).forEach((item) => {
-    const label = document.createElement("label");
+    const label = document.createElement("div");
     label.className = "resultItem";
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
@@ -438,7 +557,8 @@ function renderResults() {
     name.textContent = item.name;
     const meta = document.createElement("small");
     meta.textContent = `${item.sex}, maks ${formatNumber(item.peakCount)} i ${item.peakYear}`;
-    label.append(checkbox, name, meta);
+    const actions = statusActions(item);
+    label.append(checkbox, name, meta, actions);
     fragment.append(label);
   });
   els.resultList.append(fragment);
@@ -447,6 +567,182 @@ function renderResults() {
 function selectedItems() {
   const byId = new Map(state.data.names.map((item) => [item.id, item]));
   return [...state.selected].map((id) => byId.get(id)).filter(Boolean);
+}
+
+function itemById(id) {
+  return state.data?.names.find((item) => item.id === id) ?? null;
+}
+
+function loadNameStatus() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(STATUS_STORAGE_KEY) || "{}");
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    return Object.fromEntries(Object.entries(parsed).filter(([, value]) => value === "shortlist" || value === "rejected"));
+  } catch {
+    return {};
+  }
+}
+
+function saveNameStatus() {
+  localStorage.setItem(STATUS_STORAGE_KEY, JSON.stringify(state.nameStatus));
+}
+
+function statusOf(id) {
+  return state.nameStatus[id] ?? "neutral";
+}
+
+function setNameStatus(id, status, render = true) {
+  if (status === "neutral") {
+    delete state.nameStatus[id];
+  } else {
+    state.nameStatus[id] = status;
+    if (status === "rejected") state.selected.delete(id);
+  }
+  saveNameStatus();
+  if (render) {
+    updateMatches();
+  }
+}
+
+function itemsWithStatus(status) {
+  if (!state.data) return [];
+  return state.data.names.filter((item) => statusOf(item.id) === status).sort((a, b) => a.name.localeCompare(b.name, "no") || a.sex.localeCompare(b.sex, "no"));
+}
+
+function statusActions(item) {
+  const wrap = document.createElement("span");
+  wrap.className = "rowActions";
+  const current = statusOf(item.id);
+  if (current !== "shortlist") wrap.append(smallAction("+ shortlist", () => setNameStatus(item.id, "shortlist")));
+  if (current !== "rejected") wrap.append(smallAction("uaktuell", () => setNameStatus(item.id, "rejected")));
+  if (current !== "neutral") wrap.append(smallAction("aktuell", () => setNameStatus(item.id, "neutral")));
+  return wrap;
+}
+
+function smallAction(text, handler) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = text;
+  button.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    handler();
+  });
+  return button;
+}
+
+function actionCell(item) {
+  const td = document.createElement("td");
+  td.append(statusActions(item));
+  return td;
+}
+
+function bulkSetStatus(items, status) {
+  const unique = uniqueItems(items).filter((item) => statusOf(item.id) !== status);
+  if (!unique.length) return;
+  if (unique.length >= 50 && !confirm(`${status === "rejected" ? "Avvise" : "Shortliste"} ${unique.length} navn?`)) return;
+  unique.forEach((item) => setNameStatus(item.id, status, false));
+  saveNameStatus();
+  updateMatches();
+}
+
+function uniqueItems(items) {
+  const seen = new Set();
+  return items.filter((item) => item && !seen.has(item.id) && seen.add(item.id));
+}
+
+function lastTopNItems() {
+  if (state.lastTopNRows.length) return state.lastTopNRows.map((row) => row.item);
+  selectTopN();
+  return state.lastTopNRows.map((row) => row.item);
+}
+
+function buildReviewDeck(render = true) {
+  state.review.source = els.reviewSource.value;
+  state.review.max = Math.max(1, Math.min(1000, Number(els.reviewMax.value) || 100));
+  state.review.shuffle = els.reviewShuffle.checked;
+  let items = [];
+  if (state.review.source === "matches") items = state.matches;
+  if (state.review.source === "candidates") items = state.candidate.rows.map((row) => row.item);
+  if (state.review.source === "topn") items = lastTopNItems();
+  if (state.review.source === "similar") items = state.similar.rows.map((row) => row.item);
+  if (state.review.source === "random") items = state.data.names;
+  items = uniqueItems(items).filter((item) => statusOf(item.id) === "neutral");
+  if (state.review.shuffle) items = shuffle(items);
+  state.review.deck = items.slice(0, state.review.max).map((item) => item.id);
+  state.review.index = 0;
+  if (render) renderReviewCard();
+}
+
+function currentReviewItem() {
+  while (state.review.index < state.review.deck.length && statusOf(state.review.deck[state.review.index]) !== "neutral") {
+    state.review.index += 1;
+  }
+  return itemById(state.review.deck[state.review.index]);
+}
+
+function renderReviewCard() {
+  if (!els.reviewCard || !state.data) return;
+  const item = currentReviewItem();
+  const remaining = Math.max(0, state.review.deck.length - state.review.index);
+  if (!item) {
+    els.reviewCard.innerHTML = `<p class="emptyState">Ingen nøytrale navn i kortstokken. Juster filtrene eller lag en ny kortstokk.</p>`;
+    return;
+  }
+  const school = schoolEstimate(item, schoolScopeForGrade(state.childGrade));
+  els.reviewCard.innerHTML = `
+    <div class="reviewMeta">${remaining} igjen</div>
+    <h3>${escapeHtml(item.name)}</h3>
+    <p>${item.sex}, toppår ${item.peakYear} med ${formatNumber(item.peakCount)} fødte.</p>
+    <dl>
+      <div><dt>Total</dt><dd>${formatNumber(item.total)}</dd></div>
+      <div><dt>Beste rang</dt><dd>${bestRankLabel(item)}</dd></div>
+      <div><dt>Skole</dt><dd>${formatEstimate(school.scope)}</dd></div>
+    </dl>
+  `;
+}
+
+function reviewSetStatus(status) {
+  const item = currentReviewItem();
+  if (!item) return;
+  const from = statusOf(item.id);
+  setNameStatus(item.id, status, false);
+  state.review.history.push({ id: item.id, from, to: status });
+  state.review.index += 1;
+  saveNameStatus();
+  updateMatches();
+}
+
+function reviewSkip() {
+  const item = currentReviewItem();
+  if (!item) return;
+  state.review.deck.push(item.id);
+  state.review.index += 1;
+  renderReviewCard();
+}
+
+function reviewUndo() {
+  const last = state.review.history.pop();
+  if (!last) return;
+  setNameStatus(last.id, last.from, false);
+  state.review.index = Math.max(0, state.review.index - 1);
+  if (!state.review.deck.includes(last.id)) state.review.deck.splice(state.review.index, 0, last.id);
+  saveNameStatus();
+  updateMatches();
+}
+
+function shuffle(items) {
+  const copy = [...items];
+  for (let index = copy.length - 1; index > 0; index -= 1) {
+    const other = Math.floor(Math.random() * (index + 1));
+    [copy[index], copy[other]] = [copy[other], copy[index]];
+  }
+  return copy;
+}
+
+function bestRankLabel(item) {
+  const ranks = item.series.map((point) => point[2]).filter(Boolean);
+  return ranks.length ? `#${Math.min(...ranks)}` : "–";
 }
 
 function selectTopN() {
@@ -462,6 +758,7 @@ function selectTopN() {
     .filter((row) => row.value > 0)
     .sort((a, b) => b.value - a.value || a.item.name.localeCompare(b.item.name, "no"));
   const selectedRows = state.topNSelectionMode === "range" ? topNRowsInRange(rows) : rows.slice(0, n);
+  state.lastTopNRows = selectedRows;
   state.selected = new Set(selectedRows.map((row) => row.item.id));
   renderAll();
 }
@@ -839,20 +1136,21 @@ function renderSimilar() {
   if (!reference) {
     state.similar.rows = [];
     els.similarCount.textContent = "0 treff";
-    els.similarTable.innerHTML = '<tr><td colspan="5">Velg et referansenavn</td></tr>';
+    els.similarTable.innerHTML = '<tr><td colspan="6">Velg et referansenavn</td></tr>';
     return;
   }
   const referenceSeries = comparableSeries(reference, state.similar.metric);
   const rows = state.data.names
     .filter((item) => item.id !== reference.id)
     .filter((item) => state.sex === "alle" || item.sex === state.sex)
+    .filter((item) => state.showRejected || statusOf(item.id) !== "rejected")
     .map((item) => similarityRow(referenceSeries, item))
     .filter(Boolean)
     .sort((a, b) => b.similarity - a.similarity || a.item.name.localeCompare(b.item.name, "no"));
   state.similar.rows = rows;
   els.similarCount.textContent = `${formatNumber(rows.length)} treff`;
   if (!rows.length) {
-    els.similarTable.innerHTML = '<tr><td colspan="5">Ingen lignende kurver</td></tr>';
+    els.similarTable.innerHTML = '<tr><td colspan="6">Ingen lignende kurver</td></tr>';
     return;
   }
   els.similarTable.innerHTML = "";
@@ -875,6 +1173,7 @@ function renderSimilar() {
       cell(formatDecimal(row.similarity * 100, 0)),
       cell(formatScore(row.score)),
       cell(`${row.item.peakYear} (${formatNumber(row.item.peakCount)})`),
+      actionCell(row.item),
     ].forEach((td) => tr.append(td));
     fragment.append(tr);
   });
@@ -1043,6 +1342,7 @@ function renderCandidates() {
   const maxSchoolmates = state.candidate.maxSchoolmates;
   const rows = state.data.names
     .filter((item) => state.candidate.sex === "alle" || item.sex === state.candidate.sex)
+    .filter((item) => state.showRejected || statusOf(item.id) !== "rejected")
     .filter((item) => pattern.test(item.name) || pattern.test(item.key.replaceAll("_", " ")))
     .map((item) => candidateRow(item, scope))
     .filter((row) => maxSchoolmates == null || (row.school.complete && row.schoolmates <= maxSchoolmates));
@@ -1050,7 +1350,7 @@ function renderCandidates() {
   state.candidate.rows = rows;
   els.candidateCount.textContent = `${formatNumber(rows.length)} navn`;
   if (!rows.length) {
-    els.candidateTable.innerHTML = '<tr><td colspan="6">Ingen kandidater</td></tr>';
+    els.candidateTable.innerHTML = '<tr><td colspan="7">Ingen kandidater</td></tr>';
     return;
   }
   els.candidateTable.innerHTML = "";
@@ -1074,6 +1374,7 @@ function renderCandidates() {
       cell(row.school.complete ? formatDecimal(row.schoolmates, 2) : "–"),
       cell(`${row.item.peakYear} (${formatNumber(row.item.peakCount)})`),
       cell(formatSigned(row.trend)),
+      actionCell(row.item),
     ].forEach((td) => tr.append(td));
     fragment.append(tr);
   });

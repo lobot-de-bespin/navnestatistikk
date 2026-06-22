@@ -37,6 +37,7 @@
             <button type="button" data-template=".*mar.*">inneholder mar</button>
             <button type="button" data-template=".* .*">dobbeltnavn</button>
           </div>
+          <label class="check subtleCheck"><input id="showRejectedToggle" type="checkbox" /> vis uaktuelle</label>
           <p id="regexError" class="error" role="alert"></p>
         </section>
 
@@ -116,6 +117,10 @@
             </div>
             <button id="syncTopNYears" type="button" hidden>Samme periode som graf</button>
             <button id="selectTopN" type="button">Velg topp</button>
+            <div class="topNBulkActions">
+              <button id="shortlistTopN" type="button">Shortlist utvalg</button>
+              <button id="rejectTopN" type="button">Avvis utvalg</button>
+            </div>
           </div>
         </section>
 
@@ -130,12 +135,22 @@
           <div class="listActions">
             <button id="selectVisible" type="button">Velg synlige</button>
             <button id="clearSelected" type="button">Tøm</button>
+            <button id="shortlistVisible" type="button">Shortlist synlige</button>
+            <button id="rejectVisible" type="button">Avvis synlige</button>
           </div>
           <div id="resultList" class="resultList" role="listbox" aria-label="Navnetreff"></div>
         </section>
       </aside>
 
       <section class="content">
+        <nav class="tabs" aria-label="Arbeidsflater">
+          <button type="button" class="active" data-view="explore">Utforsk</button>
+          <button type="button" data-view="review">Vurder</button>
+          <button type="button" data-view="shortlist">Shortlist <span id="shortlistTabCount">0</span></button>
+          <button type="button" data-view="rejected">Uaktuelle <span id="rejectedTabCount">0</span></button>
+        </nav>
+
+        <div id="exploreView" class="viewPanel">
         <section class="module chartControls" aria-label="Grafinnstillinger">
           <div class="moduleHead">
             <h2>Grafinnstillinger</h2>
@@ -213,6 +228,10 @@
               <p>Finn navn som har hatt en tilsvarende utvikling som et valgt referansenavn.</p>
             </div>
             <button id="addSimilarTop" type="button">Legg topp 5 i graf</button>
+            <div class="inlineActions">
+              <button id="shortlistSimilarTop" type="button">Shortlist topp 50</button>
+              <button id="rejectSimilarTop" type="button">Avvis topp 50</button>
+            </div>
           </div>
           <div class="similarControls">
             <div>
@@ -271,6 +290,7 @@
                   <th>Likhet</th>
                   <th>Rå score</th>
                   <th>Toppår</th>
+                  <th>Handling</th>
                 </tr>
               </thead>
               <tbody id="similarTable"></tbody>
@@ -285,6 +305,10 @@
               <p>Lag en egen liste over mulige navn, med skolekontekst og sortering uavhengig av grafen.</p>
             </div>
             <button id="copyExploreToCandidates" type="button">Hent fra utforsking</button>
+            <div class="inlineActions">
+              <button id="shortlistCandidates" type="button">Shortlist filtrerte</button>
+              <button id="rejectCandidates" type="button">Avvis filtrerte</button>
+            </div>
           </div>
           <div class="candidateFilters">
             <div>
@@ -344,6 +368,7 @@
                   <th>Navnesøsken</th>
                   <th>Toppår</th>
                   <th>Trend</th>
+                  <th>Handling</th>
                 </tr>
               </thead>
               <tbody id="candidateTable"></tbody>
@@ -415,6 +440,87 @@
             </div>
           </section>
         </div>
+        </div>
+
+        <section id="reviewView" class="viewPanel module reviewPanel" hidden>
+          <div class="moduleHead">
+            <h2>Vurder navn</h2>
+            <p>Ett og ett navn fra en valgt kortstokk. Navn som allerede er shortlistet eller uaktuelle hoppes over.</p>
+          </div>
+          <div class="reviewControls">
+            <div>
+              <label for="reviewSource">Kortstokk</label>
+              <select id="reviewSource">
+                <option value="random">Tilfeldige nøytrale</option>
+                <option value="matches">Fra trefflisten</option>
+                <option value="candidates">Fra kandidatliste</option>
+                <option value="topn">Fra Topp/intervall</option>
+                <option value="similar">Fra lignende kurver</option>
+              </select>
+            </div>
+            <div>
+              <label for="reviewMax">Maks kort</label>
+              <input id="reviewMax" type="number" min="1" max="1000" value="100" />
+            </div>
+            <label class="check reviewShuffle"><input id="reviewShuffle" type="checkbox" checked /> bland</label>
+            <button id="buildReviewDeck" type="button" class="primary">Lag kortstokk</button>
+          </div>
+          <div id="reviewCard" class="reviewCard"></div>
+          <div class="reviewActions">
+            <button id="reviewReject" type="button">Uaktuell</button>
+            <button id="reviewSkip" type="button">Hopp over</button>
+            <button id="reviewShortlist" type="button" class="primary">Shortlist</button>
+            <button id="reviewUndo" type="button">Angre</button>
+          </div>
+        </section>
+
+        <section id="shortlistView" class="viewPanel module listPanel" hidden>
+          <div class="candidateHead">
+            <div class="moduleHead">
+              <h2>Shortlist</h2>
+              <p>Navn som fortsatt er aktuelle. Shortlist er separat fra grafutvalget.</p>
+            </div>
+            <div class="inlineActions">
+              <button id="showShortlistInChart" type="button">Vis alle i graf</button>
+              <button id="clearShortlist" type="button">Tøm shortlist</button>
+            </div>
+          </div>
+          <div class="tableWrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Navn</th>
+                  <th>Kjønn</th>
+                  <th>Toppår</th>
+                  <th>Maks</th>
+                  <th>Handling</th>
+                </tr>
+              </thead>
+              <tbody id="shortlistTable"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="rejectedView" class="viewPanel module listPanel" hidden>
+          <div class="moduleHead">
+            <h2>Uaktuelle</h2>
+            <p>Navn som skjules fra standardutforsking. De kan hentes tilbake når som helst.</p>
+          </div>
+          <div class="tableWrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Navn</th>
+                  <th>Kjønn</th>
+                  <th>Toppår</th>
+                  <th>Maks</th>
+                  <th>Handling</th>
+                </tr>
+              </thead>
+              <tbody id="rejectedTable"></tbody>
+            </table>
+          </div>
+        </section>
       </section>
     </main>
   </body>

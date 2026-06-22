@@ -91,6 +91,12 @@ select {
   color: var(--text);
 }
 
+input[type="checkbox"] {
+  min-height: auto;
+  width: auto;
+  accent-color: var(--accent);
+}
+
 label {
   display: block;
   font-size: 0.82rem;
@@ -271,7 +277,7 @@ label {
 
 .resultItem {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(70px, 1fr) auto;
   gap: 8px;
   align-items: center;
   padding: 8px 10px;
@@ -287,8 +293,55 @@ label {
   color: var(--muted);
 }
 
+.rowActions,
+.inlineActions,
+.topNBulkActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.rowActions {
+  grid-column: 2 / -1;
+}
+
+.rowActions button,
+.inlineActions button,
+.topNBulkActions button {
+  min-height: 28px;
+  padding: 0 8px;
+  font-size: 0.8rem;
+}
+
+.topNBulkActions {
+  grid-column: 1 / -1;
+}
+
+.subtleCheck {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-weight: 500;
+}
+
 .content {
   padding: 18px;
+  min-width: 0;
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tabs button {
+  min-height: 34px;
+}
+
+.viewPanel {
   min-width: 0;
   display: grid;
   gap: 16px;
@@ -408,6 +461,93 @@ h2 {
   margin: 0;
   color: var(--muted);
   font-size: 0.88rem;
+}
+
+.candidateHead > .inlineActions {
+  justify-content: flex-end;
+}
+
+.reviewPanel,
+.listPanel {
+  padding: 14px;
+}
+
+.reviewControls {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(90px, 0.35fr) auto auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.reviewControls select,
+.reviewControls input {
+  width: 100%;
+}
+
+.reviewShuffle {
+  min-height: 36px;
+  align-items: center;
+  margin: 0;
+}
+
+.reviewCard {
+  min-height: 250px;
+  display: grid;
+  align-content: center;
+  gap: 14px;
+  margin-top: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 24px;
+  background: #fbfaf7;
+}
+
+.reviewCard h3 {
+  margin: 0;
+  font-size: 2.6rem;
+  line-height: 1.05;
+}
+
+.reviewCard p {
+  max-width: 620px;
+  margin: 0;
+  color: var(--muted);
+}
+
+.reviewCard dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(110px, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.reviewCard dl > div {
+  border: 1px solid #ece9e2;
+  border-radius: 7px;
+  padding: 10px;
+  background: #fff;
+}
+
+.reviewCard dt {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.reviewCard dd {
+  margin: 2px 0 0;
+  font-weight: 800;
+}
+
+.reviewMeta,
+.emptyState {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.reviewActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .candidateFilters {
@@ -551,6 +691,10 @@ th {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .reviewControls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .actions {
     justify-content: start;
   }
@@ -596,6 +740,20 @@ th {
 
   .similarControls {
     grid-template-columns: 1fr;
+  }
+
+  .reviewControls,
+  .reviewCard dl {
+    grid-template-columns: 1fr;
+  }
+
+  .reviewCard {
+    min-height: 220px;
+    padding: 18px;
+  }
+
+  .reviewCard h3 {
+    font-size: 2rem;
   }
 
   .chart {

@@ -101,6 +101,10 @@ document.addEventListener("DOMContentLoaded", () => {
     "selectedNames",
     "shortlistTabCount",
     "rejectedTabCount",
+    "statusStrip",
+    "statusUavklarteCount",
+    "statusAktuelleCount",
+    "statusUaktuelleCount",
     "exploreView",
     "reviewView",
     "shortlistView",
@@ -515,10 +519,22 @@ function setActiveView(view) {
 function renderStatusViews() {
   const shortlist = itemsWithStatus("shortlist");
   const rejected = itemsWithStatus("rejected");
+  const total = state.data?.names.length ?? 0;
+  const unresolved = Math.max(0, total - shortlist.length - rejected.length);
+  renderStatusStrip(unresolved, shortlist.length, rejected.length);
   els.shortlistTabCount.textContent = String(shortlist.length);
   els.rejectedTabCount.textContent = String(rejected.length);
   renderStatusTable(els.shortlistTable, shortlist, "shortlist");
   renderStatusTable(els.rejectedTable, rejected, "rejected");
+}
+
+function renderStatusStrip(unresolved, shortlistCount, rejectedCount) {
+  if (!els.statusStrip) return;
+  els.statusStrip.hidden = !state.data;
+  if (!state.data) return;
+  els.statusUavklarteCount.textContent = formatNumber(unresolved);
+  els.statusAktuelleCount.textContent = formatNumber(shortlistCount);
+  els.statusUaktuelleCount.textContent = formatNumber(rejectedCount);
 }
 
 function renderStatusTable(tbody, items, mode) {

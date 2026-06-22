@@ -150,6 +150,21 @@
           <button type="button" data-view="rejected">Uaktuelle <span id="rejectedTabCount">0</span></button>
         </nav>
 
+        <div id="statusStrip" class="statusStrip" aria-label="Statusoversikt" hidden>
+          <div class="statusStripItem">
+            <span class="statusStripLabel">Uavklarte</span>
+            <span id="statusUavklarteCount" class="statusStripCount">0</span>
+          </div>
+          <div class="statusStripItem">
+            <span class="statusStripLabel">Aktuelle</span>
+            <span id="statusAktuelleCount" class="statusStripCount">0</span>
+          </div>
+          <div class="statusStripItem">
+            <span class="statusStripLabel">Uaktuelle</span>
+            <span id="statusUaktuelleCount" class="statusStripCount">0</span>
+          </div>
+        </div>
+
         <div id="exploreView" class="viewPanel">
         <section class="module chartControls" aria-label="Grafinnstillinger">
           <div class="moduleHead">

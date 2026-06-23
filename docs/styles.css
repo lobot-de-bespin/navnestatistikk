@@ -598,6 +598,47 @@ label {
   white-space: nowrap;
 }
 
+.topNModule {
+  overflow: clip;
+}
+
+.topNModule > summary {
+  list-style: none;
+  cursor: pointer;
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+}
+
+.topNModule > summary::-webkit-details-marker {
+  display: none;
+}
+
+.topNModule > summary span {
+  color: var(--ink);
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
+.topNModule > summary small {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.topNModule[open] > summary {
+  border-bottom: 1px solid var(--line);
+}
+
+.topNModule > .moduleHead,
+.topNModule > .topNGrid {
+  margin: 14px;
+}
+
+.topNModule > .topNGrid {
+  margin-top: 0;
+}
+
 .chart {
   height: 560px;
   border: 1px solid var(--line);
@@ -1333,6 +1374,50 @@ body.mobileShell .tabs button span {
 
 body.mobileShell .finGrid {
   grid-template-columns: 1fr;
+}
+
+body.mobileShell .finColumn {
+  gap: 10px;
+}
+
+body.mobileShell #finnView .sidebarModule {
+  padding: 12px;
+}
+
+body.mobileShell #finnView .moduleHead {
+  margin-bottom: 8px;
+}
+
+body.mobileShell #finnView .moduleHead p {
+  display: none;
+}
+
+body.mobileShell #finnView .quickFilters {
+  flex-wrap: nowrap;
+  gap: 6px;
+  margin-top: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+
+body.mobileShell #finnView .quickFilters::-webkit-scrollbar {
+  display: none;
+}
+
+body.mobileShell #finnView .quickFilters button,
+body.mobileShell #finnView .listActions button,
+body.mobileShell #finnView .segmented button {
+  flex: 0 0 auto;
+  min-height: 29px;
+}
+
+body.mobileShell #finnView .subtleCheck {
+  margin-top: 8px;
+}
+
+body.mobileShell #finnView .sectionHead {
+  gap: 8px;
 }
 
 body.mobileShell #grafView {

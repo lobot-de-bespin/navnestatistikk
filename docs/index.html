@@ -89,6 +89,27 @@
               </section>
 
               <section class="module sidebarModule">
+                <div class="sectionHead">
+                  <div class="moduleHead">
+                    <label for="resultList">Søkeresultat</label>
+                    <p>Navn som matcher søk og filter. Velg ett eller flere navn fra listen; de vises som kurver i grafen.</p>
+                  </div>
+                  <span id="resultCount">0 navn</span>
+                </div>
+                <div class="listActions">
+                  <button id="selectVisible" type="button">Velg synlige</button>
+                  <button id="clearSelected" type="button">Tøm</button>
+                  <button id="shortlistVisible" type="button">Merk aktuelle</button>
+                  <button id="rejectVisible" type="button">Avvis synlige</button>
+                </div>
+                <div id="resultList" class="resultList" role="listbox" aria-label="Søkeresultat"></div>
+              </section>
+
+              <details class="module sidebarModule topNModule">
+                <summary>
+                  <span>Topp N og intervaller</span>
+                  <small>Finn navn etter popularitet, periode eller kvantil</small>
+                </summary>
                 <div class="moduleHead">
                   <label>Topp N</label>
                   <p>Velg de vanligste navnene, eller et rangintervall som topp 10 %, midtre 50 % eller nederste kvartil.</p>
@@ -157,24 +178,7 @@
                     <button id="rejectTopN" type="button">Avvis utvalg</button>
                   </div>
                 </div>
-              </section>
-
-              <section class="module sidebarModule">
-                <div class="sectionHead">
-                  <div class="moduleHead">
-                    <label for="resultList">Søkeresultat</label>
-                    <p>Navn som matcher søk og filter. Velg ett eller flere navn fra listen; de vises som kurver i grafen.</p>
-                  </div>
-                  <span id="resultCount">0 navn</span>
-                </div>
-                <div class="listActions">
-                  <button id="selectVisible" type="button">Velg synlige</button>
-                  <button id="clearSelected" type="button">Tøm</button>
-                  <button id="shortlistVisible" type="button">Merk aktuelle</button>
-                  <button id="rejectVisible" type="button">Avvis synlige</button>
-                </div>
-                <div id="resultList" class="resultList" role="listbox" aria-label="Søkeresultat"></div>
-              </section>
+              </details>
             </aside>
           </div>
         </section>

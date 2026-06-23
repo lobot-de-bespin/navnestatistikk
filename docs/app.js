@@ -62,7 +62,7 @@ const state = {
 
 const els = {};
 const STATUS_STORAGE_KEY = "navnestatistikk:nameStatus:v1";
-const SW_VERSION = "2026-06-23.3";
+const SW_VERSION = "2026-06-23.4";
 const MOBILE_SHELL_QUERY = window.matchMedia?.("(max-width: 780px)");
 const STANDALONE_QUERY = window.matchMedia?.("(display-mode: standalone)");
 
@@ -178,12 +178,17 @@ document.addEventListener("DOMContentLoaded", () => {
     "copyLink",
     "downloadCsv",
     "downloadPng",
+    "helpDialog",
+    "helpDialogTitle",
+    "helpDialogBody",
+    "helpDialogClose",
   ].forEach((id) => {
     els[id] = document.getElementById(id);
   });
 
   state.nameStatus = loadNameStatus();
   setupPwaShell();
+  setupInfoButtons();
   wireEvents();
   loadData();
 });
@@ -216,6 +221,53 @@ function updateShellMode() {
   const compact = Boolean(standalone || MOBILE_SHELL_QUERY?.matches);
   document.body.classList.toggle("standaloneApp", standalone);
   document.body.classList.toggle("mobileShell", compact);
+}
+
+function setupInfoButtons() {
+  if (!els.helpDialog || !els.helpDialogTitle || !els.helpDialogBody) return;
+  document.querySelectorAll(".moduleHead").forEach((head, index) => {
+    const text = head.querySelector(":scope > p");
+    const title = head.querySelector(":scope > h2, :scope > label");
+    if (!text || !title) return;
+
+    const row = document.createElement("div");
+    row.className = "moduleTitleRow";
+    head.insertBefore(row, title);
+    row.append(title);
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "infoButton";
+    button.textContent = "i";
+    button.setAttribute("aria-label", `Vis info om ${title.textContent.trim().toLowerCase()}`);
+    button.setAttribute("aria-haspopup", "dialog");
+    button.addEventListener("click", () => openHelpDialog(title.textContent.trim(), text.textContent.trim()));
+    row.append(button);
+  });
+
+  els.helpDialogClose?.addEventListener("click", closeHelpDialog);
+  els.helpDialog.addEventListener("click", (event) => {
+    if (event.target === els.helpDialog) closeHelpDialog();
+  });
+}
+
+function openHelpDialog(title, body) {
+  els.helpDialogTitle.textContent = title || "Info";
+  els.helpDialogBody.textContent = body;
+  if (typeof els.helpDialog.showModal === "function") {
+    els.helpDialog.showModal();
+  } else {
+    els.helpDialog.setAttribute("open", "");
+  }
+}
+
+function closeHelpDialog() {
+  if (!els.helpDialog) return;
+  if (typeof els.helpDialog.close === "function") {
+    els.helpDialog.close();
+  } else {
+    els.helpDialog.removeAttribute("open");
+  }
 }
 
 function wireEvents() {

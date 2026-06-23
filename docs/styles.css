@@ -184,9 +184,23 @@ label {
   margin-bottom: 10px;
 }
 
+.moduleTitleRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
 .moduleHead h2,
 .moduleHead label {
   margin-bottom: 3px;
+}
+
+.moduleTitleRow h2,
+.moduleTitleRow label {
+  min-width: 0;
+  margin-bottom: 0;
 }
 
 .moduleHead p {
@@ -194,6 +208,74 @@ label {
   color: var(--muted);
   font-size: 0.82rem;
   line-height: 1.35;
+}
+
+.infoButton {
+  display: none;
+  flex: 0 0 auto;
+  width: 26px;
+  min-width: 26px;
+  min-height: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 50%;
+  border-color: rgba(17, 103, 90, 0.26);
+  background: rgba(17, 103, 90, 0.08);
+  color: var(--accent-dark);
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.helpDialog {
+  width: min(420px, calc(100vw - 32px));
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--text);
+}
+
+.helpDialog::backdrop {
+  background: rgba(20, 24, 28, 0.28);
+  backdrop-filter: blur(8px);
+}
+
+.helpDialogPanel {
+  overflow: hidden;
+  border: 1px solid rgba(199, 194, 182, 0.9);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 24px 70px rgba(20, 24, 28, 0.22);
+}
+
+.helpDialogHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.helpDialogHead h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.helpDialogHead button {
+  min-height: 30px;
+  border: 0;
+  background: transparent;
+  color: var(--accent-dark);
+  font-weight: 800;
+}
+
+.helpDialog p {
+  margin: 0;
+  padding: 14px;
+  color: var(--muted);
+  font-size: 0.96rem;
 }
 
 .searchRow {
@@ -1292,7 +1374,7 @@ th {
 }
 
 body.mobileShell {
-  --shell-bottom-space: 0px;
+  --shell-bottom-space: 78px;
 }
 
 body.mobileShell .topbar {
@@ -1347,29 +1429,39 @@ body.mobileShell .sidebar {
 }
 
 body.mobileShell .tabs {
-  position: sticky;
-  top: calc(58px + env(safe-area-inset-top));
-  z-index: 35;
+  position: fixed;
+  right: max(10px, env(safe-area-inset-right));
+  bottom: max(10px, env(safe-area-inset-bottom));
+  left: max(10px, env(safe-area-inset-left));
+  z-index: 60;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 6px;
-  padding: 8px;
+  padding: 7px;
   border: 1px solid rgba(199, 194, 182, 0.92);
-  border-radius: 18px;
-  background: rgba(251, 250, 247, 0.94);
-  backdrop-filter: saturate(1.2) blur(14px);
-  box-shadow: 0 10px 28px rgba(25, 28, 31, 0.12);
+  border-radius: 22px;
+  background: rgba(251, 250, 247, 0.92);
+  backdrop-filter: saturate(1.2) blur(18px);
+  box-shadow: 0 14px 38px rgba(25, 28, 31, 0.2);
 }
 
 body.mobileShell .tabs button {
-  min-height: 46px;
-  padding: 0 8px;
-  font-size: 0.8rem;
+  min-height: 48px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
+  font-size: 0.76rem;
   line-height: 1.1;
 }
 
+body.mobileShell .tabs button.active {
+  background: var(--accent);
+  color: #fff;
+}
+
 body.mobileShell .tabs button span {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
 }
 
 body.mobileShell .finGrid {
@@ -1388,8 +1480,13 @@ body.mobileShell #finnView .moduleHead {
   margin-bottom: 8px;
 }
 
-body.mobileShell #finnView .moduleHead p {
+body.mobileShell .moduleHead p {
   display: none;
+}
+
+body.mobileShell .infoButton {
+  display: grid;
+  place-items: center;
 }
 
 body.mobileShell #finnView .quickFilters {
@@ -1506,7 +1603,7 @@ body.mobileShell .reviewCard dl {
   grid-template-columns: 1fr;
 }
 
-body.mobileShell .reviewModeActive .content {
+body.mobileShell.reviewModeActive .content {
   padding: 10px 10px calc(10px + var(--shell-bottom-space));
 }
 
@@ -1515,13 +1612,13 @@ body.mobileShell.reviewModeActive .topbar {
 }
 
 body.mobileShell.reviewModeActive .tabs {
-  top: 10px;
+  bottom: max(10px, env(safe-area-inset-bottom));
 }
 
 body.mobileShell .reviewModeShell {
-  min-height: calc(100dvh - 66px);
+  min-height: calc(100dvh - 66px - var(--shell-bottom-space));
 }
 
 body.mobileShell.reviewModeActive .reviewModeShell {
-  min-height: calc(100dvh - 82px);
+  min-height: calc(100dvh - var(--shell-bottom-space) - 20px);
 }

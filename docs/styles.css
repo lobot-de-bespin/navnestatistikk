@@ -12,6 +12,13 @@
   --warm: #9b4d24;
   --shadow: 0 10px 28px rgba(25, 28, 31, 0.08);
   --shadow-soft: 0 4px 16px rgba(25, 28, 31, 0.05);
+  --shell-bottom-space: 0px;
+}
+
+html {
+  min-height: 100%;
+  background: var(--bg);
+  -webkit-text-size-adjust: 100%;
 }
 
 * {
@@ -24,10 +31,17 @@
 
 body {
   margin: 0;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
   background: var(--bg);
   color: var(--text);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   line-height: 1.45;
+}
+
+body.standaloneApp {
+  background: var(--bg);
 }
 
 button,
@@ -44,6 +58,7 @@ button {
   cursor: pointer;
   min-height: 36px;
   padding: 0 12px;
+  touch-action: manipulation;
 }
 
 button:hover {
@@ -110,9 +125,14 @@ label {
   justify-content: space-between;
   gap: 24px;
   align-items: end;
-  padding: 24px 28px 18px;
+  padding:
+    calc(24px + env(safe-area-inset-top))
+    max(28px, env(safe-area-inset-right))
+    18px
+    max(28px, env(safe-area-inset-left));
   border-bottom: 1px solid var(--line);
-  background: #fbfaf7;
+  background: linear-gradient(180deg, rgba(251, 250, 247, 0.98), rgba(251, 250, 247, 0.94));
+  backdrop-filter: saturate(1.1) blur(10px);
 }
 
 .topbar h1 {
@@ -142,10 +162,12 @@ label {
 .layout {
   display: grid;
   grid-template-columns: minmax(270px, 330px) minmax(0, 1fr);
-  min-height: calc(100vh - 91px);
+  grid-template-areas: "sidebar content";
+  min-height: calc(100dvh - 91px);
 }
 
 .sidebar {
+  grid-area: sidebar;
   position: sticky;
   top: 0;
   align-self: start;
@@ -153,7 +175,12 @@ label {
   overflow: auto;
   border-right: 1px solid var(--line);
   background: #eeece5;
-  padding: 18px;
+  padding:
+    18px
+    max(18px, env(safe-area-inset-right))
+    calc(18px + env(safe-area-inset-bottom))
+    max(18px, env(safe-area-inset-left));
+  -webkit-overflow-scrolling: touch;
 }
 
 .sidebar section + section {
@@ -278,6 +305,7 @@ label {
   background: #fff;
   max-height: 48vh;
   overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .resultItem {
@@ -342,7 +370,12 @@ label {
 }
 
 .content {
-  padding: 18px;
+  grid-area: content;
+  padding:
+    18px
+    max(18px, env(safe-area-inset-right))
+    calc(18px + env(safe-area-inset-bottom) + var(--shell-bottom-space))
+    max(18px, env(safe-area-inset-left));
   min-width: 0;
   display: grid;
   gap: 16px;
@@ -662,7 +695,7 @@ h2 {
 
 .reviewModeActive .layout {
   grid-template-columns: 1fr;
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .reviewModeActive .sidebar {
@@ -670,8 +703,8 @@ h2 {
 }
 
 .reviewModeActive .content {
-  min-height: 100vh;
-  padding: 12px;
+  min-height: 100dvh;
+  padding: 12px 12px calc(12px + var(--shell-bottom-space));
 }
 
 .reviewModeActive .tabs {
@@ -687,11 +720,11 @@ h2 {
 }
 
 .reviewPanel {
-  min-height: calc(100vh - 62px);
+  min-height: calc(100dvh - 62px);
 }
 
 .reviewModeShell {
-  min-height: calc(100vh - 62px);
+  min-height: calc(100dvh - 62px);
   display: grid;
   grid-template-rows: auto minmax(380px, 1fr) auto;
   gap: 14px;
@@ -859,8 +892,9 @@ h2 {
 
 .reviewCard h3 {
   margin: 0;
-  font-size: clamp(3.2rem, 8vw, 6.8rem);
-  line-height: 1.05;
+  font-size: clamp(2.6rem, 8vw, 6.2rem);
+  line-height: 0.98;
+  overflow-wrap: anywhere;
 }
 
 .reviewCard p {
@@ -979,6 +1013,7 @@ h2 {
   overflow: auto;
   border: 1px solid #ece9e2;
   border-radius: 7px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .tableWrap.compact {
@@ -1077,7 +1112,11 @@ th {
 @media (max-width: 620px) {
   .topbar {
     display: block;
-    padding: 18px;
+    padding:
+      calc(18px + env(safe-area-inset-top))
+      max(18px, env(safe-area-inset-right))
+      18px
+      max(18px, env(safe-area-inset-left));
   }
 
   .source {
@@ -1088,7 +1127,11 @@ th {
 
   .content,
   .sidebar {
-    padding: 14px;
+    padding:
+      14px
+      max(14px, env(safe-area-inset-right))
+      calc(14px + env(safe-area-inset-bottom))
+      max(14px, env(safe-area-inset-left));
   }
 
   .toolbar {
@@ -1146,7 +1189,7 @@ th {
   }
 
   .reviewModeShell {
-    min-height: calc(100vh - 58px);
+    min-height: calc(100dvh - 58px);
     grid-template-rows: auto minmax(320px, 1fr) auto;
     gap: 10px;
   }
@@ -1175,7 +1218,7 @@ th {
   }
 
   .reviewCard h3 {
-    font-size: clamp(3rem, 17vw, 4.6rem);
+    font-size: clamp(2.7rem, 14vw, 4.2rem);
   }
 
   .reviewActions {
@@ -1198,4 +1241,140 @@ th {
   .chart {
     height: 440px;
   }
+}
+
+body.mobileShell {
+  --shell-bottom-space: 0px;
+}
+
+body.mobileShell .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: grid;
+  gap: 8px;
+  align-items: start;
+  padding:
+    calc(14px + env(safe-area-inset-top))
+    max(14px, env(safe-area-inset-right))
+    12px
+    max(14px, env(safe-area-inset-left));
+}
+
+body.mobileShell .topbar h1 {
+  font-size: clamp(1.12rem, 5vw, 1.45rem);
+}
+
+body.mobileShell .topbar p {
+  display: none;
+}
+
+body.mobileShell .source {
+  margin-top: 0;
+  justify-content: space-between;
+  font-size: 0.78rem;
+}
+
+body.mobileShell .layout {
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "content"
+    "sidebar";
+  min-height: calc(100dvh - 66px);
+}
+
+body.mobileShell .content,
+body.mobileShell .sidebar {
+  padding:
+    14px
+    max(14px, env(safe-area-inset-right))
+    calc(14px + env(safe-area-inset-bottom) + var(--shell-bottom-space))
+    max(14px, env(safe-area-inset-left));
+}
+
+body.mobileShell .sidebar {
+  position: static;
+  top: auto;
+  max-height: none;
+  overflow: visible;
+  border-right: 0;
+  border-top: 1px solid var(--line);
+}
+
+body.mobileShell .tabs {
+  position: sticky;
+  top: calc(58px + env(safe-area-inset-top));
+  z-index: 35;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid rgba(199, 194, 182, 0.92);
+  border-radius: 18px;
+  background: rgba(251, 250, 247, 0.94);
+  backdrop-filter: saturate(1.2) blur(14px);
+  box-shadow: 0 10px 28px rgba(25, 28, 31, 0.12);
+}
+
+body.mobileShell .tabs button {
+  min-height: 46px;
+  padding: 0 8px;
+  font-size: 0.8rem;
+  line-height: 1.1;
+}
+
+body.mobileShell .tabs button span {
+  display: block;
+  font-size: 0.72rem;
+}
+
+body.mobileShell .statusStrip {
+  gap: 6px;
+}
+
+body.mobileShell .statusStripItem {
+  padding: 8px 10px 9px;
+}
+
+body.mobileShell .statusStripCount {
+  font-size: 1.05rem;
+}
+
+body.mobileShell .chart {
+  height: min(78vh, 500px);
+}
+
+body.mobileShell .chart .modebar {
+  display: none !important;
+}
+
+body.mobileShell .toolbar {
+  grid-template-columns: 1fr;
+}
+
+body.mobileShell .candidateFilters,
+body.mobileShell .similarControls,
+body.mobileShell .reviewControls,
+body.mobileShell .reviewCard dl {
+  grid-template-columns: 1fr;
+}
+
+body.mobileShell .reviewModeActive .content {
+  padding: 10px 10px calc(10px + var(--shell-bottom-space));
+}
+
+body.mobileShell.reviewModeActive .topbar {
+  display: none;
+}
+
+body.mobileShell.reviewModeActive .tabs {
+  top: 10px;
+}
+
+body.mobileShell .reviewModeShell {
+  min-height: calc(100dvh - 66px);
+}
+
+body.mobileShell.reviewModeActive .reviewModeShell {
+  min-height: calc(100dvh - 82px);
 }

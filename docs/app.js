@@ -62,6 +62,9 @@ const state = {
 
 const els = {};
 const STATUS_STORAGE_KEY = "navnestatistikk:nameStatus:v1";
+const SW_VERSION = "2026-06-23.2";
+const MOBILE_SHELL_QUERY = window.matchMedia?.("(max-width: 780px)");
+const STANDALONE_QUERY = window.matchMedia?.("(display-mode: standalone)");
 
 document.addEventListener("DOMContentLoaded", () => {
   [
@@ -179,9 +182,40 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   state.nameStatus = loadNameStatus();
+  setupPwaShell();
   wireEvents();
   loadData();
 });
+
+function setupPwaShell() {
+  const standalone = Boolean(STANDALONE_QUERY?.matches || window.navigator.standalone);
+  document.body.classList.toggle("standaloneApp", Boolean(standalone));
+  updateShellMode();
+  if (MOBILE_SHELL_QUERY) {
+    if (MOBILE_SHELL_QUERY.addEventListener) {
+      MOBILE_SHELL_QUERY.addEventListener("change", updateShellMode);
+    } else if (MOBILE_SHELL_QUERY.addListener) {
+      MOBILE_SHELL_QUERY.addListener(updateShellMode);
+    }
+  }
+  if (STANDALONE_QUERY) {
+    if (STANDALONE_QUERY.addEventListener) {
+      STANDALONE_QUERY.addEventListener("change", updateShellMode);
+    } else if (STANDALONE_QUERY.addListener) {
+      STANDALONE_QUERY.addListener(updateShellMode);
+    }
+  }
+  if ("serviceWorker" in navigator && window.isSecureContext) {
+    navigator.serviceWorker.register(`sw.js?v=${encodeURIComponent(SW_VERSION)}`, { scope: "./" }).catch(() => {});
+  }
+}
+
+function updateShellMode() {
+  const standalone = Boolean(STANDALONE_QUERY?.matches || window.navigator.standalone);
+  const compact = Boolean(standalone || MOBILE_SHELL_QUERY?.matches);
+  document.body.classList.toggle("standaloneApp", standalone);
+  document.body.classList.toggle("mobileShell", compact);
+}
 
 function wireEvents() {
   document.querySelectorAll("[data-view]").forEach((button) => {
@@ -383,6 +417,7 @@ function wireEvents() {
     Plotly.downloadImage(els.chart, { format: "png", filename: "navnestatistikk", height: 900, width: 1400 });
   });
   window.addEventListener("resize", () => {
+    updateShellMode();
     if (state.data) Plotly.Plots.resize(els.chart);
   });
   document.addEventListener("keydown", handleReviewKeyboard);

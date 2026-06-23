@@ -62,7 +62,7 @@ const state = {
 
 const els = {};
 const STATUS_STORAGE_KEY = "navnestatistikk:nameStatus:v1";
-const SW_VERSION = "2026-06-23.4";
+const SW_VERSION = "2026-06-23.5";
 const MOBILE_SHELL_QUERY = window.matchMedia?.("(max-width: 780px)");
 const STANDALONE_QUERY = window.matchMedia?.("(display-mode: standalone)");
 
@@ -116,6 +116,7 @@ document.addEventListener("DOMContentLoaded", () => {
     "statusAktuelleCount",
     "statusUaktuelleCount",
     "statusBackupExport",
+    "statusCsvExport",
     "statusBackupImport",
     "statusImportInput",
     "statusBackupMessage",
@@ -238,9 +239,9 @@ function setupInfoButtons() {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "infoButton";
-    button.textContent = "i";
     button.setAttribute("aria-label", `Vis info om ${title.textContent.trim().toLowerCase()}`);
     button.setAttribute("aria-haspopup", "dialog");
+    button.append(createBootstrapInfoIcon());
     button.addEventListener("click", () => openHelpDialog(title.textContent.trim(), text.textContent.trim()));
     row.append(button);
   });
@@ -249,6 +250,23 @@ function setupInfoButtons() {
   els.helpDialog.addEventListener("click", (event) => {
     if (event.target === els.helpDialog) closeHelpDialog();
   });
+}
+
+function createBootstrapInfoIcon() {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 16 16");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  svg.classList.add("bootstrapIcon");
+  [
+    "M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16",
+    "m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0",
+  ].forEach((shape) => {
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", shape);
+    svg.append(path);
+  });
+  return svg;
 }
 
 function openHelpDialog(title, body) {
@@ -454,6 +472,7 @@ function wireEvents() {
     renderAll();
   });
   els.statusBackupExport.addEventListener("click", exportNameStatusBackup);
+  els.statusCsvExport.addEventListener("click", exportNameStatusCsv);
   els.statusBackupImport.addEventListener("click", () => els.statusImportInput.click());
   els.statusImportInput.addEventListener("change", handleNameStatusImport);
   els.clearShortlist.addEventListener("click", () => {
@@ -1889,6 +1908,30 @@ function exportNameStatusBackup() {
   link.click();
   URL.revokeObjectURL(url);
   setBackupMessage(`Eksportert ${formatNumber(Object.keys(state.nameStatus).length)} valg.`, "success");
+}
+
+function exportNameStatusCsv() {
+  const byId = new Map(state.data.names.map((item) => [item.id, item]));
+  const rows = [["status", "name", "sex", "peak_year", "peak_count", "total"]];
+  const statusOrder = { shortlist: 0, rejected: 1 };
+  Object.entries(state.nameStatus)
+    .filter(([, status]) => status === "shortlist" || status === "rejected")
+    .sort(([idA, statusA], [idB, statusB]) => statusOrder[statusA] - statusOrder[statusB] || byId.get(idA)?.name.localeCompare(byId.get(idB)?.name ?? "", "no"))
+    .forEach(([id, status]) => {
+      const item = byId.get(id);
+      if (!item) return;
+      rows.push([status === "shortlist" ? "aktuell" : "uaktuell", item.name, item.sex, item.peakYear, item.peakCount, item.total]);
+    });
+  const csv = rows.map((row) => row.map(csvCell).join(",")).join("\n");
+  const blob = new Blob([`${csv}\n`], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  const stamp = new Date().toISOString().slice(0, 10);
+  link.href = url;
+  link.download = `navnestatistikk-navnevalg-${stamp}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+  setBackupMessage(`Eksportert ${formatNumber(rows.length - 1)} valg som CSV.`, "success");
 }
 
 async function handleNameStatusImport(event) {

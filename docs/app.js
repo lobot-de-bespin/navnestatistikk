@@ -62,7 +62,7 @@ const state = {
 
 const els = {};
 const STATUS_STORAGE_KEY = "navnestatistikk:nameStatus:v1";
-const SW_VERSION = "2026-06-23.5";
+const SW_VERSION = "2026-06-23.6";
 const MOBILE_SHELL_QUERY = window.matchMedia?.("(max-width: 780px)");
 const STANDALONE_QUERY = window.matchMedia?.("(display-mode: standalone)");
 
@@ -705,6 +705,8 @@ function renderResults() {
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.checked = state.selected.has(item.id);
+    checkbox.setAttribute("aria-label", `Velg ${item.name} til Utforsk`);
+    checkbox.title = "Velg til Utforsk";
     checkbox.addEventListener("change", () => {
       checkbox.checked ? state.selected.add(item.id) : state.selected.delete(item.id);
       renderAll();
@@ -713,8 +715,11 @@ function renderResults() {
     name.textContent = item.name;
     const meta = document.createElement("small");
     meta.textContent = `${item.sex}, maks ${formatNumber(item.peakCount)} i ${item.peakYear}`;
+    const selection = document.createElement("small");
+    selection.className = "selectionState";
+    selection.textContent = checkbox.checked ? "Valgt til Utforsk" : "Ikke i utvalg";
     const actions = statusActions(item);
-    label.append(checkbox, name, meta, actions);
+    label.append(checkbox, name, meta, selection, actions);
     fragment.append(label);
   });
   els.resultList.append(fragment);
@@ -776,9 +781,9 @@ function statusActions(item) {
   const wrap = document.createElement("span");
   wrap.className = "rowActions";
   const current = statusOf(item.id);
-  if (current !== "shortlist") wrap.append(smallAction("+ aktuell", () => setNameStatus(item.id, "shortlist"), "decisionPositive"));
-  if (current !== "rejected") wrap.append(smallAction("uaktuell", () => setNameStatus(item.id, "rejected"), "decisionReject"));
-  if (current !== "neutral") wrap.append(smallAction("aktuell", () => setNameStatus(item.id, "neutral"), "decisionReset"));
+  if (current !== "shortlist") wrap.append(smallAction("Aktuell", () => setNameStatus(item.id, "shortlist"), "decisionPositive"));
+  if (current !== "rejected") wrap.append(smallAction("Uaktuell", () => setNameStatus(item.id, "rejected"), "decisionReject"));
+  if (current !== "neutral") wrap.append(smallAction("Uavklart", () => setNameStatus(item.id, "neutral"), "decisionReset"));
   return wrap;
 }
 
@@ -887,11 +892,11 @@ function renderReviewCard() {
   if (!item) {
     els.reviewCard.className = "reviewCard reviewEmpty";
     els.reviewCard.innerHTML = `
-      <p class="emptyState">Ingen nøytrale navn igjen i denne kortstokken.</p>
+      <p class="emptyState">Ingen nøytrale navn igjen i denne vurderingslisten.</p>
       <p class="reviewEmptyHint">${escapeHtml(reviewEmptyHint())}</p>
       <div class="reviewEmptyActions">
         <button id="reviewEmptyExplore" type="button">Til Finn</button>
-        <button id="reviewEmptyRebuild" type="button" class="primary">Lag ny kortstokk</button>
+        <button id="reviewEmptyRebuild" type="button" class="primary">Lag ny liste</button>
       </div>
     `;
     const explore = els.reviewCard.querySelector("#reviewEmptyExplore");
@@ -910,7 +915,7 @@ function renderReviewCard() {
     <dl>
       <div><dt>Total</dt><dd>${formatNumber(item.total)}</dd></div>
       <div><dt>Beste rang</dt><dd>${bestRankLabel(item)}</dd></div>
-      <div><dt>Skole</dt><dd>${formatEstimate(school.scope)}</dd></div>
+      <div><dt>I skoleløpet</dt><dd>${formatEstimate(school.scope)}</dd></div>
     </dl>
   `;
   attachReviewSwipe();
@@ -936,22 +941,22 @@ function reviewSourceLabel(source, count) {
     topn: "Fra topp/intervall",
     similar: "Fra lignende kurver",
   };
-  const label = labels[source] ?? "Kortstokk";
+  const label = labels[source] ?? "Vurderingsliste";
   return count ? `${label} (${count})` : label;
 }
 
 function reviewSourceNote(source, count) {
   if (!count) {
-    return source === "selected" ? "Kortstokken er tom etter filtrering av vurderte navn." : "Ingen nøytrale navn matcher denne kortstokken.";
+    return source === "selected" ? "Vurderingslisten er tom etter filtrering av vurderte navn." : "Ingen nøytrale navn matcher denne kilden.";
   }
   return source === "selected" ? "Kjørt fra navnene du valgte i Finn." : "Nøytrale navn fra valgt kilde.";
 }
 
 function reviewEmptyHint() {
   if (state.review.source === "selected") {
-    return `Denne kortstokken kom fra ${state.review.sourceLabel || "navnene du valgte i Finn"}. Du kan gå tilbake og justere utvalget, eller bygge en ny kortstokk fra en annen kilde.`;
+    return `Denne vurderingslisten kom fra ${state.review.sourceLabel || "navnene du valgte i Finn"}. Du kan gå tilbake og justere utvalget, eller bygge en ny liste fra en annen kilde.`;
   }
-  return "Gå tilbake til Finn for å justere utvalget, eller lag en ny kortstokk fra en annen kilde.";
+  return "Gå tilbake til Finn for å justere utvalget, eller lag en ny vurderingsliste fra en annen kilde.";
 }
 
 function reviewSetStatus(status) {
@@ -1322,7 +1327,7 @@ function renderSelected() {
     pill.textContent = `${item.name} (${item.sex})`;
     const reference = document.createElement("button");
     reference.type = "button";
-    reference.textContent = "ref";
+    reference.textContent = "Referanse";
     reference.setAttribute("aria-label", `Bruk ${item.name} som referanse`);
     reference.addEventListener("click", () => {
       state.similar.referenceId = item.id;
@@ -1348,7 +1353,7 @@ function renderSimilarReferenceOptions(items) {
   if (!items.length) {
     const option = document.createElement("option");
     option.value = "";
-    option.textContent = "Velg navn til graf først";
+    option.textContent = "Velg navn i Utforsk først";
     els.similarReference.append(option);
     state.similar.referenceId = "";
     return;

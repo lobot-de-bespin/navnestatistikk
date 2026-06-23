@@ -21,7 +21,7 @@
     <header class="topbar">
       <div>
         <h1>Norsk navnestatistikk</h1>
-        <p>Finn navn, bygg graf og flytt dem videre til vurdering eller beslutning.</p>
+        <p>Finn navn, utforsk tallene og flytt dem videre til vurdering eller beslutning.</p>
       </div>
       <div class="source">
         <span id="dataStatus">Laster data</span>
@@ -33,7 +33,7 @@
       <section class="content">
         <nav class="tabs" aria-label="Arbeidsflater">
           <button type="button" class="active" data-view="finn">Finn</button>
-          <button type="button" data-view="graf">Graf</button>
+          <button type="button" data-view="graf">Utforsk</button>
           <button type="button" data-view="vurder">Vurder</button>
           <button type="button" data-view="aktuelle">Aktuelle <span id="shortlistTabCount">0</span></button>
           <button type="button" data-view="uaktuelle">Uaktuelle <span id="rejectedTabCount">0</span></button>
@@ -60,7 +60,7 @@
               <section class="module sidebarModule">
                 <div class="moduleHead">
                   <label for="regexInput">Søk etter navn</label>
-                  <p>Bruk vanlig tekst eller regex for å finne navn før du velger dem til grafen.</p>
+                  <p>Bruk vanlig tekst eller regex for å finne navn før du sender dem til Utforsk eller vurdering.</p>
                 </div>
                 <div class="searchRow">
                   <input id="regexInput" type="text" spellcheck="false" value="^anna$|^ole$" />
@@ -92,7 +92,7 @@
                 <div class="sectionHead">
                   <div class="moduleHead">
                     <label for="resultList">Søkeresultat</label>
-                    <p>Navn som matcher søk og filter. Velg ett eller flere navn fra listen; de vises som kurver i grafen.</p>
+                    <p>Navn som matcher søk og filter. Haken velger navn til Utforsk; den gjør dem ikke aktuelle.</p>
                   </div>
                   <span id="resultCount">0 navn</span>
                 </div>
@@ -171,7 +171,7 @@
                       <input id="topNToYear" type="number" min="1880" max="2025" value="2025" />
                     </div>
                   </div>
-                  <button id="syncTopNYears" type="button" hidden>Samme periode som graf</button>
+                  <button id="syncTopNYears" type="button" hidden>Samme periode som kurver</button>
                   <button id="selectTopN" type="button">Velg topp</button>
                   <div class="topNBulkActions">
                     <button id="shortlistTopN" type="button">Merk aktuelle</button>
@@ -184,9 +184,9 @@
         </section>
 
         <section id="grafView" class="viewPanel" hidden>
-          <section class="module chartControls" aria-label="Grafinnstillinger">
+          <section class="module chartControls" aria-label="Utforskingsinnstillinger">
             <div class="moduleHead">
-              <h2>Grafinnstillinger</h2>
+              <h2>Utforskingsvalg</h2>
               <p>Velg metrikk, skala og tidsrom for kurvene. Nedlastingene bruker samme utvalg.</p>
             </div>
             <div class="toolbar">
@@ -239,15 +239,15 @@
           <section class="module selectedPanel">
             <div class="sectionHead">
               <div class="moduleHead">
-                <h2>Valgte navn til graf</h2>
-                <p>Velg navn i Finn, og bruk hurtigvalgene her for å sende dem videre som aktuelle, uaktuelle eller til vurdering.</p>
+                <h2>Valgte navn</h2>
+                <p>Dette er arbeidsutvalget fra Finn. Bruk hurtigvalgene her for å sende navn videre som aktuelle, uaktuelle eller til vurdering.</p>
               </div>
               <span id="selectedCount">0 navn</span>
             </div>
             <div class="decisionBar" aria-label="Hurtigvalg for valgte navn">
-              <button id="selectedShortlist" type="button" class="primary">+ aktuell</button>
-              <button id="selectedReject" type="button">uaktuell</button>
-              <button id="selectedReview" type="button">vurder</button>
+              <button id="selectedShortlist" type="button" class="primary">Aktuell</button>
+              <button id="selectedReject" type="button">Uaktuell</button>
+              <button id="selectedReview" type="button">Vurder</button>
               <button id="selectedClear" type="button">Tøm utvalg</button>
             </div>
             <div id="selectedNames" class="selectedNames" aria-label="Valgte navn"></div>
@@ -255,7 +255,7 @@
 
           <section class="module chartModule">
             <div class="moduleHead">
-              <h2>Trendgraf</h2>
+              <h2>Navnekurver</h2>
               <p>Historiske kurver for de valgte navnene. Data før 1945 bruker prosent når antall mangler.</p>
             </div>
             <div id="chart" class="chart" role="img" aria-label="Trendkurver"></div>
@@ -272,9 +272,9 @@
             <div class="secondaryBody">
               <div class="candidateHead">
                 <div class="moduleHead">
-                  <p>Velg referanse, metode og tidsrom før du søker. Resultatene kan deretter legges i grafen eller masselukkes som aktuelle/uaktuelle.</p>
+                  <p>Velg referanse, metode og tidsrom før du søker. Resultatene kan deretter legges i utvalget eller masselukkes som aktuelle/uaktuelle.</p>
                 </div>
-                <button id="addSimilarTop" type="button">Legg topp 5 i graf</button>
+                <button id="addSimilarTop" type="button">Legg topp 5 i utvalg</button>
                 <div class="inlineActions">
                   <button id="shortlistSimilarTop" type="button">Merk topp 50</button>
                   <button id="rejectSimilarTop" type="button">Avvis topp 50</button>
@@ -318,7 +318,7 @@
                   <input id="similarToYear" type="number" min="1880" max="2025" value="2025" />
                 </div>
                 <div class="candidateAction">
-                  <button id="syncSimilarYears" type="button">Samme periode som graf</button>
+                  <button id="syncSimilarYears" type="button">Samme periode som kurver</button>
                 </div>
                 <div class="candidateAction">
                   <button id="findSimilar" type="button" class="primary">Finn lignende</button>
@@ -397,7 +397,7 @@
                 <div>
                   <label for="candidateSort">Sorter</label>
                   <select id="candidateSort">
-                    <option value="school">Færrest navnesøsken</option>
+                    <option value="school">Færrest i skoleløpet</option>
                     <option value="birthYear">Flest i fødselsåret</option>
                     <option value="trend">Sterkest trend</option>
                     <option value="similar">Mest lik kurve</option>
@@ -436,7 +436,7 @@
             <section class="module summary">
               <div class="moduleHead">
                 <h2>Oppsummering</h2>
-                <p>Nøkkeltall for navnene som ligger i grafen akkurat nå.</p>
+                <p>Nøkkeltall for navnene som ligger i utvalget akkurat nå.</p>
               </div>
               <div id="summaryGrid" class="summaryGrid"></div>
             </section>
@@ -510,7 +510,7 @@
               </div>
               <div class="reviewControls">
                 <div>
-                  <label for="reviewSource">Kortstokk</label>
+                  <label for="reviewSource">Kilde</label>
                   <select id="reviewSource">
                     <option value="random">Tilfeldige nøytrale</option>
                     <option value="matches">Fra søkeresultat</option>
@@ -520,13 +520,13 @@
                   </select>
                 </div>
                 <label class="check reviewShuffle"><input id="reviewShuffle" type="checkbox" checked /> bland</label>
-                <button id="buildReviewDeck" type="button" class="primary">Lag kortstokk</button>
+                <button id="buildReviewDeck" type="button" class="primary">Lag liste</button>
                 <div id="reviewProgress" class="reviewProgress" aria-live="polite">0 navn</div>
               </div>
             </div>
             <div class="reviewStage" aria-live="polite" aria-label="Vurderingsområde for sveip">
               <div class="swipeCue rejectCue">Uaktuell</div>
-              <div class="swipeCue shortlistCue">Aktuelle</div>
+              <div class="swipeCue shortlistCue">Aktuell</div>
               <div id="reviewCard" class="reviewCard" aria-label="Aktivt vurderingskort"></div>
             </div>
             <div class="reviewActions" aria-label="Vurderingshandlinger">
@@ -542,10 +542,10 @@
           <div class="candidateHead">
             <div class="moduleHead">
               <h2>Aktuelle</h2>
-              <p>Navn som fortsatt er aktuelle. Listen er separat fra grafutvalget.</p>
+              <p>Navn som fortsatt er aktuelle. Listen er separat fra utvalget i Utforsk.</p>
             </div>
             <div class="inlineActions">
-              <button id="showShortlistInChart" type="button">Vis alle i graf</button>
+              <button id="showShortlistInChart" type="button">Vis i Utforsk</button>
               <button id="clearShortlist" type="button">Tøm aktuelle</button>
             </div>
           </div>

@@ -214,21 +214,21 @@ label {
   display: none;
   place-items: center;
   flex: 0 0 auto;
-  width: 26px;
-  min-width: 26px;
-  min-height: 26px;
-  height: 26px;
+  width: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  height: 32px;
   padding: 0;
-  border-radius: 50%;
-  border-color: rgba(17, 103, 90, 0.26);
-  background: rgba(17, 103, 90, 0.08);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--accent-dark);
 }
 
 .bootstrapIcon {
   display: block;
-  width: 15px;
-  height: 15px;
+  width: 21px;
+  height: 21px;
   fill: currentColor;
 }
 
@@ -387,6 +387,13 @@ label {
 
 .resultItem small {
   color: var(--muted);
+}
+
+.selectionState {
+  grid-column: 2 / -1;
+  color: var(--accent-dark);
+  font-size: 0.72rem;
+  font-weight: 600;
 }
 
 .rowActions,
@@ -1568,7 +1575,7 @@ body.mobileShell .statusStripCount {
 }
 
 body.mobileShell .chart {
-  height: min(78vh, 500px);
+  height: min(58vh, 410px);
 }
 
 body.mobileShell .chart .modebar {
@@ -1606,6 +1613,29 @@ body.mobileShell .similarControls,
 body.mobileShell .reviewControls,
 body.mobileShell .reviewCard dl {
   grid-template-columns: 1fr;
+}
+
+body.mobileShell.reviewModeActive .reviewModeTop {
+  gap: 10px;
+  padding: 10px;
+}
+
+body.mobileShell.reviewModeActive .reviewDeckMeta {
+  font-size: 0.82rem;
+}
+
+body.mobileShell.reviewModeActive .reviewControls {
+  gap: 8px;
+}
+
+body.mobileShell.reviewModeActive .reviewStage {
+  min-height: 320px;
+}
+
+body.mobileShell.reviewModeActive .reviewCard {
+  min-height: 300px;
+  gap: 14px;
+  padding: 18px;
 }
 
 body.mobileShell.reviewModeActive .content {

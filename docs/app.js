@@ -8,7 +8,7 @@ const state = {
   selected: new Set(),
   nameStatus: {},
   showRejected: false,
-  activeView: "explore",
+  activeView: "finn",
   lastTopNRows: [],
   review: {
     source: "random",
@@ -62,7 +62,7 @@ const state = {
 
 const els = {};
 const STATUS_STORAGE_KEY = "navnestatistikk:nameStatus:v1";
-const SW_VERSION = "2026-06-23.2";
+const SW_VERSION = "2026-06-23.3";
 const MOBILE_SHELL_QUERY = window.matchMedia?.("(max-width: 780px)");
 const STANDALONE_QUERY = window.matchMedia?.("(display-mode: standalone)");
 
@@ -119,10 +119,11 @@ document.addEventListener("DOMContentLoaded", () => {
     "statusBackupImport",
     "statusImportInput",
     "statusBackupMessage",
-    "exploreView",
-    "reviewView",
-    "shortlistView",
-    "rejectedView",
+    "finnView",
+    "grafView",
+    "vurderView",
+    "aktuelleView",
+    "uaktuelleView",
     "reviewSource",
     "reviewShuffle",
     "buildReviewDeck",
@@ -397,7 +398,7 @@ function wireEvents() {
   els.reviewUndo.addEventListener("click", reviewUndo);
   els.showShortlistInChart.addEventListener("click", () => {
     state.selected = new Set(itemsWithStatus("shortlist").map((item) => item.id));
-    setActiveView("explore");
+    setActiveView("graf");
     renderAll();
   });
   els.statusBackupExport.addEventListener("click", exportNameStatusBackup);
@@ -460,6 +461,7 @@ async function loadData() {
   restoreFromUrl();
   els.dataStatus.textContent = `Navnedata: ${state.nameFromYear}-${state.nameToYear}, bygget ${state.data.meta.builtAt.slice(0, 10)}`;
   updateMatches(true);
+  setActiveView(state.activeView);
 }
 
 function restoreFromUrl() {
@@ -563,14 +565,21 @@ function renderAll() {
 
 function setActiveView(view) {
   state.activeView = view;
-  document.body.classList.toggle("reviewModeActive", view === "review");
+  document.body.classList.toggle("reviewModeActive", view === "vurder");
   document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
-  [els.exploreView, els.reviewView, els.shortlistView, els.rejectedView].forEach((panel) => {
+  [els.finnView, els.grafView, els.vurderView, els.aktuelleView, els.uaktuelleView].forEach((panel) => {
+    if (!panel) return;
     panel.hidden = panel.id !== `${view}View`;
   });
-  if (view === "review" && !state.review.deck.length && state.review.autoBuild) buildReviewDeck(false);
+  if (view === "vurder" && !state.review.deck.length && state.review.autoBuild) buildReviewDeck(false);
   renderStatusViews();
   renderReviewCard();
+  if (view === "graf" && state.data) {
+    requestAnimationFrame(() => {
+      renderChart();
+      if (window.Plotly && els.chart) Plotly.Plots.resize(els.chart);
+    });
+  }
 }
 
 function renderStatusViews() {
@@ -773,10 +782,10 @@ function reviewSelectedItems() {
   const reviewedCount = items.length - deck.length;
   const note = reviewedCount
     ? `${reviewedCount} navn var allerede vurdert og ble hoppet over.`
-    : "Laget fra navnene du valgte i Utforsk.";
+    : "Laget fra navnene du valgte i Finn.";
   state.review.source = "selected";
-  setReviewDeck(deck, `Valgte navn i Utforsk (${items.length})`, note);
-  setActiveView("review");
+  setReviewDeck(deck, `Valgte navn i Finn (${items.length})`, note);
+  setActiveView("vurder");
 }
 
 function currentReviewItem() {
@@ -810,13 +819,13 @@ function renderReviewCard() {
       <p class="emptyState">Ingen nøytrale navn igjen i denne kortstokken.</p>
       <p class="reviewEmptyHint">${escapeHtml(reviewEmptyHint())}</p>
       <div class="reviewEmptyActions">
-        <button id="reviewEmptyExplore" type="button">Til Utforsk</button>
+        <button id="reviewEmptyExplore" type="button">Til Finn</button>
         <button id="reviewEmptyRebuild" type="button" class="primary">Lag ny kortstokk</button>
       </div>
     `;
     const explore = els.reviewCard.querySelector("#reviewEmptyExplore");
     const rebuild = els.reviewCard.querySelector("#reviewEmptyRebuild");
-    explore?.addEventListener("click", () => setActiveView("explore"));
+    explore?.addEventListener("click", () => setActiveView("finn"));
     rebuild?.addEventListener("click", () => buildReviewDeck(true));
     updateReviewActionState(false);
     return;
@@ -864,14 +873,14 @@ function reviewSourceNote(source, count) {
   if (!count) {
     return source === "selected" ? "Kortstokken er tom etter filtrering av vurderte navn." : "Ingen nøytrale navn matcher denne kortstokken.";
   }
-  return source === "selected" ? "Kjørt fra navnene du valgte i Utforsk." : "Nøytrale navn fra valgt kilde.";
+  return source === "selected" ? "Kjørt fra navnene du valgte i Finn." : "Nøytrale navn fra valgt kilde.";
 }
 
 function reviewEmptyHint() {
   if (state.review.source === "selected") {
-    return `Denne kortstokken kom fra ${state.review.sourceLabel || "navnene du valgte i Utforsk"}. Du kan gå tilbake og justere utvalget, eller bygge en ny kortstokk fra en annen kilde.`;
+    return `Denne kortstokken kom fra ${state.review.sourceLabel || "navnene du valgte i Finn"}. Du kan gå tilbake og justere utvalget, eller bygge en ny kortstokk fra en annen kilde.`;
   }
-  return "Gå tilbake til Utforsk for å justere utvalget, eller lag en ny kortstokk fra en annen kilde.";
+  return "Gå tilbake til Finn for å justere utvalget, eller lag en ny kortstokk fra en annen kilde.";
 }
 
 function reviewSetStatus(status) {
@@ -952,7 +961,7 @@ function attachReviewSwipe() {
 }
 
 function handleReviewKeyboard(event) {
-  if (state.activeView !== "review" || event.target.closest("input, select, textarea, button")) return;
+  if (state.activeView !== "vurder" || event.target.closest("input, select, textarea, button")) return;
   if (event.key === "ArrowLeft") {
     event.preventDefault();
     commitReviewSwipe("rejected", -1);

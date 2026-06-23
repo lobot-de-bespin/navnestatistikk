@@ -21,7 +21,7 @@
     <header class="topbar">
       <div>
         <h1>Norsk navnestatistikk</h1>
-        <p>Utforsk fornavn i SSBs navnestatistikk fra 1880 til 2025.</p>
+        <p>Finn navn, bygg graf og flytt dem videre til vurdering eller beslutning.</p>
       </div>
       <div class="source">
         <span id="dataStatus">Laster data</span>
@@ -30,133 +30,13 @@
     </header>
 
     <main class="layout">
-      <aside class="sidebar" aria-label="Filtre">
-        <section class="module sidebarModule">
-          <div class="moduleHead">
-            <label for="regexInput">Søk etter navn</label>
-            <p>Bruk vanlig tekst eller regex for å finne navn før du velger dem til grafen.</p>
-          </div>
-          <div class="searchRow">
-            <input id="regexInput" type="text" spellcheck="false" value="^anna$|^ole$" />
-            <button id="applyRegex" type="button">Søk</button>
-          </div>
-          <div class="quickFilters" aria-label="Raske regex-filtre">
-            <button type="button" data-template="^ann">starter ann</button>
-            <button type="button" data-template="a$">slutter a</button>
-            <button type="button" data-template=".*mar.*">inneholder mar</button>
-            <button type="button" data-template=".* .*">dobbeltnavn</button>
-          </div>
-          <label class="check subtleCheck"><input id="showRejectedToggle" type="checkbox" /> vis uaktuelle</label>
-          <p id="regexError" class="error" role="alert"></p>
-        </section>
-
-        <section class="module sidebarModule">
-          <div class="moduleHead">
-            <label>Kjønn</label>
-            <p>Avgrens både søkeresultatet og toppnavn til jente-, gutte- eller alle navn.</p>
-          </div>
-          <div class="segmented" role="group" aria-label="Kjønn">
-            <button type="button" class="active" data-sex="alle">Alle</button>
-            <button type="button" data-sex="jente">Jente</button>
-            <button type="button" data-sex="gutt">Gutt</button>
-          </div>
-        </section>
-
-        <section class="module sidebarModule">
-          <div class="moduleHead">
-            <label>Topp N</label>
-            <p>Velg de vanligste navnene, eller et rangintervall som topp 10 %, midtre 50 % eller nederste kvartil.</p>
-          </div>
-          <div class="topNGrid">
-            <select id="topNSelectionMode" aria-label="Utvalgstype">
-              <option value="top" selected>Topp N</option>
-              <option value="range">Intervall</option>
-            </select>
-            <select id="topNMode" aria-label="Grunnlag">
-              <option value="year">År</option>
-              <option value="period">Tidsrom</option>
-            </select>
-            <div id="topNCountControl" class="topNFullControl">
-              <label for="topNCount">Antall navn</label>
-              <select id="topNCount">
-                <option value="5">5</option>
-                <option value="10" selected>10</option>
-                <option value="15">15</option>
-                <option value="20">20</option>
-              </select>
-            </div>
-            <div id="topNRangeControls" class="topNRangeControls" hidden>
-              <div class="topNFullControl">
-                <label for="topNRangePreset">Intervall</label>
-                <select id="topNRangePreset">
-                  <option value="top10">Topp 10 %</option>
-                  <option value="top25">Øvre kvartil</option>
-                  <option value="middle50">Midtre 50 %</option>
-                  <option value="bottom25">Nederste kvartil</option>
-                  <option value="bottom10">Nederste 10 %</option>
-                  <option value="custom">Egendefinert</option>
-                </select>
-              </div>
-              <div>
-                <label for="topNRangeFrom">Fra %</label>
-                <input id="topNRangeFrom" type="number" min="0" max="100" step="1" value="0" />
-              </div>
-              <div>
-                <label for="topNRangeTo">Til %</label>
-                <input id="topNRangeTo" type="number" min="0" max="100" step="1" value="10" />
-              </div>
-              <div>
-                <label for="topNRangeLimit">Maks navn</label>
-                <input id="topNRangeLimit" type="number" min="1" max="250" step="1" value="50" />
-              </div>
-            </div>
-            <div id="topNYearControl" class="topNYearControl">
-              <label for="topNYear">År</label>
-              <input id="topNYear" type="number" min="1880" max="2025" value="2025" />
-            </div>
-            <div id="topNPeriodControls" class="topNPeriodControls" hidden>
-              <div>
-                <label for="topNFromYear">Fra</label>
-                <input id="topNFromYear" type="number" min="1880" max="2025" value="1880" />
-              </div>
-              <div>
-                <label for="topNToYear">Til</label>
-                <input id="topNToYear" type="number" min="1880" max="2025" value="2025" />
-              </div>
-            </div>
-            <button id="syncTopNYears" type="button" hidden>Samme periode som graf</button>
-            <button id="selectTopN" type="button">Velg topp</button>
-            <div class="topNBulkActions">
-              <button id="shortlistTopN" type="button">Merk aktuelle</button>
-              <button id="rejectTopN" type="button">Avvis utvalg</button>
-            </div>
-          </div>
-        </section>
-
-        <section class="module sidebarModule">
-          <div class="sectionHead">
-            <div class="moduleHead">
-              <label for="resultList">Søkeresultat</label>
-              <p>Navn som matcher søk og filter. Velg ett eller flere navn fra listen; de vises som kurver i grafen.</p>
-            </div>
-            <span id="resultCount">0 navn</span>
-          </div>
-          <div class="listActions">
-            <button id="selectVisible" type="button">Velg synlige</button>
-            <button id="clearSelected" type="button">Tøm</button>
-            <button id="shortlistVisible" type="button">Merk aktuelle</button>
-            <button id="rejectVisible" type="button">Avvis synlige</button>
-          </div>
-          <div id="resultList" class="resultList" role="listbox" aria-label="Søkeresultat"></div>
-        </section>
-      </aside>
-
       <section class="content">
         <nav class="tabs" aria-label="Arbeidsflater">
-          <button type="button" class="active" data-view="explore">Utforsk</button>
-          <button type="button" data-view="review">Vurder</button>
-          <button type="button" data-view="shortlist">Aktuelle <span id="shortlistTabCount">0</span></button>
-          <button type="button" data-view="rejected">Uaktuelle <span id="rejectedTabCount">0</span></button>
+          <button type="button" class="active" data-view="finn">Finn</button>
+          <button type="button" data-view="graf">Graf</button>
+          <button type="button" data-view="vurder">Vurder</button>
+          <button type="button" data-view="aktuelle">Aktuelle <span id="shortlistTabCount">0</span></button>
+          <button type="button" data-view="uaktuelle">Uaktuelle <span id="rejectedTabCount">0</span></button>
         </nav>
 
         <div id="statusStrip" class="statusStrip" aria-label="Statusoversikt" hidden>
@@ -174,321 +54,447 @@
           </div>
         </div>
 
-        <div id="exploreView" class="viewPanel">
-        <section class="module chartControls" aria-label="Grafinnstillinger">
-          <div class="moduleHead">
-            <h2>Grafinnstillinger</h2>
-            <p>Velg metrikk, skala og tidsrom for kurvene. Nedlastingene bruker samme utvalg.</p>
-          </div>
-          <div class="toolbar">
-            <div class="control">
-              <label for="metricSelect">Metrikk</label>
-              <select id="metricSelect">
-                <option value="count">Antall fødte</option>
-                <option value="shareAll">Andel av alle levendefødte</option>
-                <option value="shareSex">Andel av levendefødte samme kjønn</option>
-                <option value="rank">Rang innen kjønn</option>
-                <option value="index">Indeks fra første valgte år</option>
-              </select>
-            </div>
-            <div class="control">
-              <label for="scaleSelect">Skala</label>
-              <select id="scaleSelect">
-                <option value="linear">Lineær</option>
-                <option value="log">Logaritmisk</option>
-              </select>
-            </div>
-            <div class="control years">
-              <label>Tidsrom</label>
-              <div>
-                <input id="fromYear" type="number" min="1880" max="2025" value="1880" />
-                <span>til</span>
-                <input id="toYear" type="number" min="1880" max="2025" value="2025" />
-              </div>
-            </div>
-            <div class="control">
-              <label for="chartSmooth">Glatting</label>
-              <select id="chartSmooth">
-                <option value="1" selected>Av</option>
-                <option value="3">3 år</option>
-                <option value="5">5 år</option>
-                <option value="7">7 år</option>
-              </select>
-            </div>
-            <div class="control toggles">
-              <label>Visning</label>
-              <label class="check"><input id="markersToggle" type="checkbox" /> punkter</label>
-            </div>
-            <div class="actions">
-              <button id="copyLink" type="button">Kopier lenke</button>
-              <button id="downloadCsv" type="button">CSV</button>
-              <button id="downloadPng" type="button">PNG</button>
-            </div>
+        <section id="finnView" class="viewPanel" hidden>
+          <div class="functionGrid finGrid">
+            <aside class="functionColumn finColumn" aria-label="Finn navn">
+              <section class="module sidebarModule">
+                <div class="moduleHead">
+                  <label for="regexInput">Søk etter navn</label>
+                  <p>Bruk vanlig tekst eller regex for å finne navn før du velger dem til grafen.</p>
+                </div>
+                <div class="searchRow">
+                  <input id="regexInput" type="text" spellcheck="false" value="^anna$|^ole$" />
+                  <button id="applyRegex" type="button">Søk</button>
+                </div>
+                <div class="quickFilters" aria-label="Raske regex-filtre">
+                  <button type="button" data-template="^ann">starter ann</button>
+                  <button type="button" data-template="a$">slutter a</button>
+                  <button type="button" data-template=".*mar.*">inneholder mar</button>
+                  <button type="button" data-template=".* .*">dobbeltnavn</button>
+                </div>
+                <label class="check subtleCheck"><input id="showRejectedToggle" type="checkbox" /> vis uaktuelle</label>
+                <p id="regexError" class="error" role="alert"></p>
+              </section>
+
+              <section class="module sidebarModule">
+                <div class="moduleHead">
+                  <label>Kjønn</label>
+                  <p>Avgrens både søkeresultatet og toppnavn til jente-, gutte- eller alle navn.</p>
+                </div>
+                <div class="segmented" role="group" aria-label="Kjønn">
+                  <button type="button" class="active" data-sex="alle">Alle</button>
+                  <button type="button" data-sex="jente">Jente</button>
+                  <button type="button" data-sex="gutt">Gutt</button>
+                </div>
+              </section>
+
+              <section class="module sidebarModule">
+                <div class="moduleHead">
+                  <label>Topp N</label>
+                  <p>Velg de vanligste navnene, eller et rangintervall som topp 10 %, midtre 50 % eller nederste kvartil.</p>
+                </div>
+                <div class="topNGrid">
+                  <select id="topNSelectionMode" aria-label="Utvalgstype">
+                    <option value="top" selected>Topp N</option>
+                    <option value="range">Intervall</option>
+                  </select>
+                  <select id="topNMode" aria-label="Grunnlag">
+                    <option value="year">År</option>
+                    <option value="period">Tidsrom</option>
+                  </select>
+                  <div id="topNCountControl" class="topNFullControl">
+                    <label for="topNCount">Antall navn</label>
+                    <select id="topNCount">
+                      <option value="5">5</option>
+                      <option value="10" selected>10</option>
+                      <option value="15">15</option>
+                      <option value="20">20</option>
+                    </select>
+                  </div>
+                  <div id="topNRangeControls" class="topNRangeControls" hidden>
+                    <div class="topNFullControl">
+                      <label for="topNRangePreset">Intervall</label>
+                      <select id="topNRangePreset">
+                        <option value="top10">Topp 10 %</option>
+                        <option value="top25">Øvre kvartil</option>
+                        <option value="middle50">Midtre 50 %</option>
+                        <option value="bottom25">Nederste kvartil</option>
+                        <option value="bottom10">Nederste 10 %</option>
+                        <option value="custom">Egendefinert</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label for="topNRangeFrom">Fra %</label>
+                      <input id="topNRangeFrom" type="number" min="0" max="100" step="1" value="0" />
+                    </div>
+                    <div>
+                      <label for="topNRangeTo">Til %</label>
+                      <input id="topNRangeTo" type="number" min="0" max="100" step="1" value="10" />
+                    </div>
+                    <div>
+                      <label for="topNRangeLimit">Maks navn</label>
+                      <input id="topNRangeLimit" type="number" min="1" max="250" step="1" value="50" />
+                    </div>
+                  </div>
+                  <div id="topNYearControl" class="topNYearControl">
+                    <label for="topNYear">År</label>
+                    <input id="topNYear" type="number" min="1880" max="2025" value="2025" />
+                  </div>
+                  <div id="topNPeriodControls" class="topNPeriodControls" hidden>
+                    <div>
+                      <label for="topNFromYear">Fra</label>
+                      <input id="topNFromYear" type="number" min="1880" max="2025" value="1880" />
+                    </div>
+                    <div>
+                      <label for="topNToYear">Til</label>
+                      <input id="topNToYear" type="number" min="1880" max="2025" value="2025" />
+                    </div>
+                  </div>
+                  <button id="syncTopNYears" type="button" hidden>Samme periode som graf</button>
+                  <button id="selectTopN" type="button">Velg topp</button>
+                  <div class="topNBulkActions">
+                    <button id="shortlistTopN" type="button">Merk aktuelle</button>
+                    <button id="rejectTopN" type="button">Avvis utvalg</button>
+                  </div>
+                </div>
+              </section>
+
+              <section class="module sidebarModule">
+                <div class="sectionHead">
+                  <div class="moduleHead">
+                    <label for="resultList">Søkeresultat</label>
+                    <p>Navn som matcher søk og filter. Velg ett eller flere navn fra listen; de vises som kurver i grafen.</p>
+                  </div>
+                  <span id="resultCount">0 navn</span>
+                </div>
+                <div class="listActions">
+                  <button id="selectVisible" type="button">Velg synlige</button>
+                  <button id="clearSelected" type="button">Tøm</button>
+                  <button id="shortlistVisible" type="button">Merk aktuelle</button>
+                  <button id="rejectVisible" type="button">Avvis synlige</button>
+                </div>
+                <div id="resultList" class="resultList" role="listbox" aria-label="Søkeresultat"></div>
+              </section>
+            </aside>
           </div>
         </section>
 
-        <section class="module selectedPanel">
-          <div class="sectionHead">
+        <section id="grafView" class="viewPanel" hidden>
+          <section class="module chartControls" aria-label="Grafinnstillinger">
             <div class="moduleHead">
-              <h2>Valgte navn til graf</h2>
-              <p>Velg navn i søket, og bruk hurtigvalgene her for å sende dem videre som aktuelle, uaktuelle eller til vurdering.</p>
+              <h2>Grafinnstillinger</h2>
+              <p>Velg metrikk, skala og tidsrom for kurvene. Nedlastingene bruker samme utvalg.</p>
             </div>
-            <span id="selectedCount">0 navn</span>
-          </div>
-          <div class="decisionBar" aria-label="Hurtigvalg for valgte navn">
-            <button id="selectedShortlist" type="button" class="primary">+ aktuell</button>
-            <button id="selectedReject" type="button">uaktuell</button>
-            <button id="selectedReview" type="button">vurder</button>
-            <button id="selectedClear" type="button">Tøm utvalg</button>
-          </div>
-          <div id="selectedNames" class="selectedNames" aria-label="Valgte navn"></div>
-        </section>
-        <section class="module chartModule">
-          <div class="moduleHead">
-            <h2>Trendgraf</h2>
-            <p>Historiske kurver for de valgte navnene. Data før 1945 bruker prosent når antall mangler.</p>
-          </div>
-          <div id="chart" class="chart" role="img" aria-label="Trendkurver"></div>
-        </section>
-
-        <details class="module secondaryModule similarPanel">
-          <summary class="secondarySummary">
-            <div class="moduleHead">
-              <h2>Lignende kurver</h2>
-              <p>Finn navn som ligner på et valgt referansenavn. Utvid bare når du trenger den mer analytiske delen.</p>
-            </div>
-            <span class="secondaryHint">Avansert</span>
-          </summary>
-          <div class="secondaryBody">
-            <div class="candidateHead">
-              <div class="moduleHead">
-                <p>Velg referanse, metode og tidsrom før du søker. Resultatene kan deretter legges i grafen eller masselukkes som aktuelle/uaktuelle.</p>
-              </div>
-              <button id="addSimilarTop" type="button">Legg topp 5 i graf</button>
-              <div class="inlineActions">
-                <button id="shortlistSimilarTop" type="button">Merk topp 50</button>
-                <button id="rejectSimilarTop" type="button">Avvis topp 50</button>
-              </div>
-            </div>
-            <div class="similarControls">
-              <div>
-                <label for="similarReference">Referansenavn</label>
-                <select id="similarReference"></select>
-              </div>
-              <div>
-                <label for="similarMethod">Metode</label>
-                <select id="similarMethod">
-                  <option value="pearson">Pearson</option>
-                  <option value="spearman">Spearman</option>
-                  <option value="euclidean">Euklidsk</option>
+            <div class="toolbar">
+              <div class="control">
+                <label for="metricSelect">Metrikk</label>
+                <select id="metricSelect">
+                  <option value="count">Antall fødte</option>
+                  <option value="shareAll">Andel av alle levendefødte</option>
+                  <option value="shareSex">Andel av levendefødte samme kjønn</option>
+                  <option value="rank">Rang innen kjønn</option>
+                  <option value="index">Indeks fra første valgte år</option>
                 </select>
               </div>
-              <div>
-                <label for="similarMetric">Serie</label>
-                <select id="similarMetric">
-                  <option value="shareSex">Andel samme kjønn</option>
-                  <option value="rank">Rang</option>
-                  <option value="index">Indeks</option>
+              <div class="control">
+                <label for="scaleSelect">Skala</label>
+                <select id="scaleSelect">
+                  <option value="linear">Lineær</option>
+                  <option value="log">Logaritmisk</option>
                 </select>
               </div>
-              <div>
-                <label for="similarSmooth">Glatting</label>
-                <select id="similarSmooth">
-                  <option value="1">Av</option>
-                  <option value="3" selected>3 år</option>
+              <div class="control years">
+                <label>Tidsrom</label>
+                <div>
+                  <input id="fromYear" type="number" min="1880" max="2025" value="1880" />
+                  <span>til</span>
+                  <input id="toYear" type="number" min="1880" max="2025" value="2025" />
+                </div>
+              </div>
+              <div class="control">
+                <label for="chartSmooth">Glatting</label>
+                <select id="chartSmooth">
+                  <option value="1" selected>Av</option>
+                  <option value="3">3 år</option>
                   <option value="5">5 år</option>
+                  <option value="7">7 år</option>
                 </select>
               </div>
-              <div>
-                <label for="similarFromYear">Fra</label>
-                <input id="similarFromYear" type="number" min="1880" max="2025" value="1880" />
+              <div class="control toggles">
+                <label>Visning</label>
+                <label class="check"><input id="markersToggle" type="checkbox" /> punkter</label>
               </div>
-              <div>
-                <label for="similarToYear">Til</label>
-                <input id="similarToYear" type="number" min="1880" max="2025" value="2025" />
-              </div>
-              <div class="candidateAction">
-                <button id="syncSimilarYears" type="button">Samme periode som graf</button>
-              </div>
-              <div class="candidateAction">
-                <button id="findSimilar" type="button" class="primary">Finn lignende</button>
+              <div class="actions">
+                <button id="copyLink" type="button">Kopier lenke</button>
+                <button id="downloadCsv" type="button">CSV</button>
+                <button id="downloadPng" type="button">PNG</button>
               </div>
             </div>
-            <div class="sectionHead">
-              <span id="similarCount">0 navn</span>
-              <span id="similarBasis">Pearson</span>
-            </div>
-            <div class="tableWrap similarWrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Navn</th>
-                    <th>Kjønn</th>
-                    <th>Likhet</th>
-                    <th>Rå score</th>
-                    <th>Toppår</th>
-                    <th>Handling</th>
-                  </tr>
-                </thead>
-                <tbody id="similarTable"></tbody>
-              </table>
-            </div>
-          </div>
-        </details>
+          </section>
 
-        <details class="module secondaryModule candidatePanel">
-          <summary class="secondarySummary">
-            <div class="moduleHead">
-              <h2>Filterliste</h2>
-              <p>Bruk denne når du vil snevre inn, sortere og ta en beslutning. Den er bevisst mindre dominerende enn utforskingsflaten.</p>
-            </div>
-            <span class="secondaryHint">Avansert</span>
-          </summary>
-          <div class="secondaryBody">
-            <div class="candidateHead">
+          <section class="module selectedPanel">
+            <div class="sectionHead">
               <div class="moduleHead">
-                <p>Ta med utforskningsvalget hvis det er en god start, eller bygg en ny liste med egne regler og skolekontekst.</p>
+                <h2>Valgte navn til graf</h2>
+                <p>Velg navn i Finn, og bruk hurtigvalgene her for å sende dem videre som aktuelle, uaktuelle eller til vurdering.</p>
               </div>
-              <button id="copyExploreToCandidates" type="button">Hent fra utforsking</button>
-              <div class="inlineActions">
-                <button id="shortlistCandidates" type="button">Merk filtrerte</button>
-                <button id="rejectCandidates" type="button">Avvis filtrerte</button>
+              <span id="selectedCount">0 navn</span>
+            </div>
+            <div class="decisionBar" aria-label="Hurtigvalg for valgte navn">
+              <button id="selectedShortlist" type="button" class="primary">+ aktuell</button>
+              <button id="selectedReject" type="button">uaktuell</button>
+              <button id="selectedReview" type="button">vurder</button>
+              <button id="selectedClear" type="button">Tøm utvalg</button>
+            </div>
+            <div id="selectedNames" class="selectedNames" aria-label="Valgte navn"></div>
+          </section>
+
+          <section class="module chartModule">
+            <div class="moduleHead">
+              <h2>Trendgraf</h2>
+              <p>Historiske kurver for de valgte navnene. Data før 1945 bruker prosent når antall mangler.</p>
+            </div>
+            <div id="chart" class="chart" role="img" aria-label="Trendkurver"></div>
+          </section>
+
+          <details class="module secondaryModule similarPanel">
+            <summary class="secondarySummary">
+              <div class="moduleHead">
+                <h2>Lignende kurver</h2>
+                <p>Finn navn som ligner på et valgt referansenavn. Utvid bare når du trenger den mer analytiske delen.</p>
+              </div>
+              <span class="secondaryHint">Avansert</span>
+            </summary>
+            <div class="secondaryBody">
+              <div class="candidateHead">
+                <div class="moduleHead">
+                  <p>Velg referanse, metode og tidsrom før du søker. Resultatene kan deretter legges i grafen eller masselukkes som aktuelle/uaktuelle.</p>
+                </div>
+                <button id="addSimilarTop" type="button">Legg topp 5 i graf</button>
+                <div class="inlineActions">
+                  <button id="shortlistSimilarTop" type="button">Merk topp 50</button>
+                  <button id="rejectSimilarTop" type="button">Avvis topp 50</button>
+                </div>
+              </div>
+              <div class="similarControls">
+                <div>
+                  <label for="similarReference">Referansenavn</label>
+                  <select id="similarReference"></select>
+                </div>
+                <div>
+                  <label for="similarMethod">Metode</label>
+                  <select id="similarMethod">
+                    <option value="pearson">Pearson</option>
+                    <option value="spearman">Spearman</option>
+                    <option value="euclidean">Euklidsk</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="similarMetric">Serie</label>
+                  <select id="similarMetric">
+                    <option value="shareSex">Andel samme kjønn</option>
+                    <option value="rank">Rang</option>
+                    <option value="index">Indeks</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="similarSmooth">Glatting</label>
+                  <select id="similarSmooth">
+                    <option value="1">Av</option>
+                    <option value="3" selected>3 år</option>
+                    <option value="5">5 år</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="similarFromYear">Fra</label>
+                  <input id="similarFromYear" type="number" min="1880" max="2025" value="1880" />
+                </div>
+                <div>
+                  <label for="similarToYear">Til</label>
+                  <input id="similarToYear" type="number" min="1880" max="2025" value="2025" />
+                </div>
+                <div class="candidateAction">
+                  <button id="syncSimilarYears" type="button">Samme periode som graf</button>
+                </div>
+                <div class="candidateAction">
+                  <button id="findSimilar" type="button" class="primary">Finn lignende</button>
+                </div>
+              </div>
+              <div class="sectionHead">
+                <span id="similarCount">0 navn</span>
+                <span id="similarBasis">Pearson</span>
+              </div>
+              <div class="tableWrap similarWrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Navn</th>
+                      <th>Kjønn</th>
+                      <th>Likhet</th>
+                      <th>Rå score</th>
+                      <th>Toppår</th>
+                      <th>Handling</th>
+                    </tr>
+                  </thead>
+                  <tbody id="similarTable"></tbody>
+                </table>
               </div>
             </div>
-            <div class="candidateFilters">
-              <div>
-                <label for="candidateRegex">Regex</label>
-                <input id="candidateRegex" type="text" spellcheck="false" value=".*" />
+          </details>
+
+          <details class="module secondaryModule candidatePanel">
+            <summary class="secondarySummary">
+              <div class="moduleHead">
+                <h2>Filterliste</h2>
+                <p>Bruk denne når du vil snevre inn, sortere og ta en beslutning. Den er bevisst mindre dominerende enn Finn-flaten.</p>
               </div>
-              <div>
-                <label for="candidateSex">Kjønn</label>
-                <select id="candidateSex">
-                  <option value="alle">Alle</option>
-                  <option value="jente">Jente</option>
-                  <option value="gutt">Gutt</option>
-                </select>
+              <span class="secondaryHint">Avansert</span>
+            </summary>
+            <div class="secondaryBody">
+              <div class="candidateHead">
+                <div class="moduleHead">
+                  <p>Ta med valget fra Finn hvis det er en god start, eller bygg en ny liste med egne regler og skolekontekst.</p>
+                </div>
+                <button id="copyExploreToCandidates" type="button">Hent fra Finn</button>
+                <div class="inlineActions">
+                  <button id="shortlistCandidates" type="button">Merk filtrerte</button>
+                  <button id="rejectCandidates" type="button">Avvis filtrerte</button>
+                </div>
               </div>
-              <div>
-                <label for="candidateBirthYear">Fødselsår</label>
-                <input id="candidateBirthYear" type="number" min="1880" max="2025" value="2023" />
+              <div class="candidateFilters">
+                <div>
+                  <label for="candidateRegex">Regex</label>
+                  <input id="candidateRegex" type="text" spellcheck="false" value=".*" />
+                </div>
+                <div>
+                  <label for="candidateSex">Kjønn</label>
+                  <select id="candidateSex">
+                    <option value="alle">Alle</option>
+                    <option value="jente">Jente</option>
+                    <option value="gutt">Gutt</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="candidateBirthYear">Fødselsår</label>
+                  <input id="candidateBirthYear" type="number" min="1880" max="2025" value="2023" />
+                </div>
+                <div>
+                  <label for="candidateGrade">Trinn</label>
+                  <input id="candidateGrade" type="number" min="1" max="13" value="3" />
+                </div>
+                <div>
+                  <label for="candidateGradeSize">Elever per trinn</label>
+                  <input id="candidateGradeSize" type="number" min="1" max="10000" value="100" />
+                </div>
+                <div>
+                  <label for="candidateMaxSchool">Maks navnesøsken</label>
+                  <input id="candidateMaxSchool" type="number" min="0" step="0.1" value="1" />
+                </div>
+                <div>
+                  <label for="candidateSort">Sorter</label>
+                  <select id="candidateSort">
+                    <option value="school">Færrest navnesøsken</option>
+                    <option value="birthYear">Flest i fødselsåret</option>
+                    <option value="trend">Sterkest trend</option>
+                    <option value="similar">Mest lik kurve</option>
+                    <option value="name">Navn A-Å</option>
+                  </select>
+                </div>
+                <div class="candidateAction">
+                  <button id="applyCandidateFilters" type="button" class="primary">Oppdater</button>
+                </div>
               </div>
-              <div>
-                <label for="candidateGrade">Trinn</label>
-                <input id="candidateGrade" type="number" min="1" max="13" value="3" />
+              <p id="candidateError" class="error" role="alert"></p>
+              <div class="sectionHead">
+                <span id="candidateCount">0 navn</span>
+                <span id="candidateScope">Barneskole 1.-7.</span>
               </div>
-              <div>
-                <label for="candidateGradeSize">Elever per trinn</label>
-                <input id="candidateGradeSize" type="number" min="1" max="10000" value="100" />
-              </div>
-              <div>
-                <label for="candidateMaxSchool">Maks navnesøsken</label>
-                <input id="candidateMaxSchool" type="number" min="0" step="0.1" value="1" />
-              </div>
-              <div>
-                <label for="candidateSort">Sorter</label>
-                <select id="candidateSort">
-                  <option value="school">Færrest navnesøsken</option>
-                  <option value="birthYear">Flest i fødselsåret</option>
-                  <option value="trend">Sterkest trend</option>
-                  <option value="similar">Mest lik kurve</option>
-                  <option value="name">Navn A-Å</option>
-                </select>
-              </div>
-              <div class="candidateAction">
-                <button id="applyCandidateFilters" type="button" class="primary">Oppdater</button>
+              <div class="tableWrap candidateWrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Navn</th>
+                      <th>Kjønn</th>
+                      <th>Fødselsår</th>
+                      <th>Navnesøsken</th>
+                      <th>Toppår</th>
+                      <th>Trend</th>
+                      <th>Handling</th>
+                    </tr>
+                  </thead>
+                  <tbody id="candidateTable"></tbody>
+                </table>
               </div>
             </div>
-            <p id="candidateError" class="error" role="alert"></p>
-            <div class="sectionHead">
-              <span id="candidateCount">0 navn</span>
-              <span id="candidateScope">Barneskole 1.-7.</span>
-            </div>
-            <div class="tableWrap candidateWrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Navn</th>
-                    <th>Kjønn</th>
-                    <th>Fødselsår</th>
-                    <th>Navnesøsken</th>
-                    <th>Toppår</th>
-                    <th>Trend</th>
-                    <th>Handling</th>
-                  </tr>
-                </thead>
-                <tbody id="candidateTable"></tbody>
-              </table>
-            </div>
+          </details>
+
+          <div class="below">
+            <section class="module summary">
+              <div class="moduleHead">
+                <h2>Oppsummering</h2>
+                <p>Nøkkeltall for navnene som ligger i grafen akkurat nå.</p>
+              </div>
+              <div id="summaryGrid" class="summaryGrid"></div>
+            </section>
+            <section class="module schoolPanel">
+              <div class="moduleHead">
+                <h2>Skoletrinn</h2>
+                <p>Estimer hvor mange med samme navn barnet kan møte på eget trinn og relevant skoleløp.</p>
+              </div>
+              <div class="schoolControls">
+                <div>
+                  <label for="schoolBirthYear">Barnets fødselsår</label>
+                  <input id="schoolBirthYear" type="number" min="1880" max="2025" value="2018" />
+                </div>
+                <div>
+                  <label for="childGrade">Barnets trinn</label>
+                  <input id="childGrade" type="number" min="1" max="13" value="1" />
+                </div>
+                <div>
+                  <label for="gradeSize">Elever per trinn</label>
+                  <input id="gradeSize" type="number" min="1" max="10000" value="100" />
+                </div>
+              </div>
+              <div class="tableWrap compact">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Navn</th>
+                      <th>Eget trinn</th>
+                      <th id="schoolScopeHeader">Relevant skole</th>
+                    </tr>
+                  </thead>
+                  <tbody id="schoolTable"></tbody>
+                </table>
+              </div>
+            </section>
+            <section class="module tablePanel">
+              <div class="moduleHead">
+                <h2>Data</h2>
+                <p>Detaljert tabell for valgte navn, nyttig for kontroll og sammenligning.</p>
+              </div>
+              <div class="tableWrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Navn</th>
+                      <th>Kjønn</th>
+                      <th>Total</th>
+                      <th>Toppår</th>
+                      <th>Maks</th>
+                      <th>Første</th>
+                      <th>Siste</th>
+                      <th>Beste rang</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dataTable"></tbody>
+                </table>
+              </div>
+            </section>
           </div>
-        </details>
+        </section>
 
-        <div class="below">
-          <section class="module summary">
-            <div class="moduleHead">
-              <h2>Oppsummering</h2>
-              <p>Nøkkeltall for navnene som ligger i grafen akkurat nå.</p>
-            </div>
-            <div id="summaryGrid" class="summaryGrid"></div>
-          </section>
-          <section class="module schoolPanel">
-            <div class="moduleHead">
-              <h2>Skoletrinn</h2>
-              <p>Estimer hvor mange med samme navn barnet kan møte på eget trinn og relevant skoleløp.</p>
-            </div>
-            <div class="schoolControls">
-              <div>
-                <label for="schoolBirthYear">Barnets fødselsår</label>
-                <input id="schoolBirthYear" type="number" min="1880" max="2025" value="2018" />
-              </div>
-              <div>
-                <label for="childGrade">Barnets trinn</label>
-                <input id="childGrade" type="number" min="1" max="13" value="1" />
-              </div>
-              <div>
-                <label for="gradeSize">Elever per trinn</label>
-                <input id="gradeSize" type="number" min="1" max="10000" value="100" />
-              </div>
-            </div>
-            <div class="tableWrap compact">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Navn</th>
-                    <th>Eget trinn</th>
-                    <th id="schoolScopeHeader">Relevant skole</th>
-                  </tr>
-                </thead>
-                <tbody id="schoolTable"></tbody>
-              </table>
-            </div>
-          </section>
-          <section class="module tablePanel">
-            <div class="moduleHead">
-              <h2>Data</h2>
-              <p>Detaljert tabell for valgte navn, nyttig for kontroll og sammenligning.</p>
-            </div>
-            <div class="tableWrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Navn</th>
-                    <th>Kjønn</th>
-                    <th>Total</th>
-                    <th>Toppår</th>
-                    <th>Maks</th>
-                    <th>Første</th>
-                    <th>Siste</th>
-                    <th>Beste rang</th>
-                  </tr>
-                </thead>
-                <tbody id="dataTable"></tbody>
-              </table>
-            </div>
-          </section>
-        </div>
-        </div>
-
-        <section id="reviewView" class="viewPanel reviewPanel" hidden>
+        <section id="vurderView" class="viewPanel reviewPanel" hidden>
           <div class="reviewModeShell">
             <div class="reviewModeTop">
               <div class="reviewHeading">
@@ -528,7 +534,7 @@
           </div>
         </section>
 
-        <section id="shortlistView" class="viewPanel module listPanel" hidden>
+        <section id="aktuelleView" class="viewPanel module listPanel" hidden>
           <div class="candidateHead">
             <div class="moduleHead">
               <h2>Aktuelle</h2>
@@ -567,7 +573,7 @@
           </div>
         </section>
 
-        <section id="rejectedView" class="viewPanel module listPanel" hidden>
+        <section id="uaktuelleView" class="viewPanel module listPanel" hidden>
           <div class="moduleHead">
             <h2>Uaktuelle</h2>
             <p>Navn som skjules fra standardutforsking. De kan hentes tilbake når som helst.</p>

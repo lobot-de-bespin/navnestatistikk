@@ -160,31 +160,7 @@ label {
 }
 
 .layout {
-  display: grid;
-  grid-template-columns: minmax(270px, 330px) minmax(0, 1fr);
-  grid-template-areas: "sidebar content";
   min-height: calc(100dvh - 91px);
-}
-
-.sidebar {
-  grid-area: sidebar;
-  position: sticky;
-  top: 0;
-  align-self: start;
-  max-height: 100vh;
-  overflow: auto;
-  border-right: 1px solid var(--line);
-  background: #eeece5;
-  padding:
-    18px
-    max(18px, env(safe-area-inset-right))
-    calc(18px + env(safe-area-inset-bottom))
-    max(18px, env(safe-area-inset-left));
-  -webkit-overflow-scrolling: touch;
-}
-
-.sidebar section + section {
-  margin-top: 12px;
 }
 
 .module {
@@ -370,7 +346,6 @@ label {
 }
 
 .content {
-  grid-area: content;
   padding:
     18px
     max(18px, env(safe-area-inset-right))
@@ -383,13 +358,51 @@ label {
 }
 
 .tabs {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
 }
 
 .tabs button {
   min-height: 34px;
+  padding: 0 10px;
+}
+
+.tabs button span {
+  display: block;
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+.viewPanel {
+  min-width: 0;
+  display: grid;
+  gap: 16px;
+}
+
+.functionGrid {
+  min-width: 0;
+  display: grid;
+  gap: 16px;
+}
+
+.finGrid {
+  grid-template-columns: minmax(0, 760px);
+  justify-content: start;
+}
+
+.finColumn {
+  display: grid;
+  gap: 12px;
+}
+
+.grafView,
+.vurderView,
+.aktuelleView,
+.uaktuelleView {
+  min-width: 0;
 }
 
 .statusStrip {
@@ -436,12 +449,6 @@ label {
   line-height: 1;
   font-weight: 800;
   color: var(--text);
-}
-
-.viewPanel {
-  min-width: 0;
-  display: grid;
-  gap: 16px;
 }
 
 .toolbar {
@@ -1276,10 +1283,7 @@ body.mobileShell .source {
 }
 
 body.mobileShell .layout {
-  grid-template-columns: 1fr;
-  grid-template-areas:
-    "content"
-    "sidebar";
+  display: block;
   min-height: calc(100dvh - 66px);
 }
 
@@ -1306,7 +1310,7 @@ body.mobileShell .tabs {
   top: calc(58px + env(safe-area-inset-top));
   z-index: 35;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 6px;
   padding: 8px;
   border: 1px solid rgba(199, 194, 182, 0.92);
@@ -1324,8 +1328,44 @@ body.mobileShell .tabs button {
 }
 
 body.mobileShell .tabs button span {
-  display: block;
   font-size: 0.72rem;
+}
+
+body.mobileShell .finGrid {
+  grid-template-columns: 1fr;
+}
+
+body.mobileShell #grafView {
+  display: grid;
+  gap: 16px;
+}
+
+body.mobileShell #grafView[hidden] {
+  display: none;
+}
+
+body.mobileShell #grafView > .selectedPanel {
+  order: 1;
+}
+
+body.mobileShell #grafView > .chartModule {
+  order: 2;
+}
+
+body.mobileShell #grafView > .chartControls {
+  order: 3;
+}
+
+body.mobileShell #grafView > .similarPanel {
+  order: 4;
+}
+
+body.mobileShell #grafView > .candidatePanel {
+  order: 5;
+}
+
+body.mobileShell #grafView > .below {
+  order: 6;
 }
 
 body.mobileShell .statusStrip {
@@ -1348,8 +1388,30 @@ body.mobileShell .chart .modebar {
   display: none !important;
 }
 
+body.mobileShell .selectedPanel {
+  padding: 12px;
+}
+
+body.mobileShell .selectedNames {
+  max-height: 5.4rem;
+  overflow: auto;
+}
+
+body.mobileShell .chartControls {
+  padding: 12px;
+}
+
+body.mobileShell .chartControls .moduleHead {
+  margin-bottom: 8px;
+}
+
 body.mobileShell .toolbar {
   grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+body.mobileShell .toolbar .actions {
+  justify-content: start;
 }
 
 body.mobileShell .candidateFilters,

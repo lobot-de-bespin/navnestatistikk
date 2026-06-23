@@ -1,7 +1,7 @@
 {
   "name": "Norsk navnestatistikk",
   "short_name": "Navnestatistikk",
-  "description": "Utforsk norske fornavn i SSBs navnestatistikk fra 1880 til 2025.",
+  "description": "Finn, graf og vurder norske fornavn i SSBs navnestatistikk fra 1880 til 2025.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -265,7 +265,7 @@
             <summary class="secondarySummary">
               <div class="moduleHead">
                 <h2>Lignende kurver</h2>
-                <p>Finn navn som ligner på et valgt referansenavn. Utvid bare når du trenger den mer analytiske delen.</p>
+                <p>Finn navn som ligner på et valgt referansenavn. Form bruker Pearson-korrelasjon for å sammenligne kurveform. Skalert avstand bruker euklidsk avstand etter normalisering. Uskalert avstand bruker gjennomsnittlig absolutt avstand mellom kurvene.</p>
               </div>
               <span class="secondaryHint">Avansert</span>
             </summary>
@@ -288,8 +288,7 @@
                 <div>
                   <label for="similarMethod">Metode</label>
                   <select id="similarMethod">
-                    <option value="pearson">Pearson</option>
-                    <option value="spearman">Spearman</option>
+                    <option value="pearson">Form</option>
                     <option value="euclidean">Skalert avstand</option>
                     <option value="unscaled">Uskalert avstand</option>
                   </select>
@@ -327,7 +326,7 @@
               </div>
               <div class="sectionHead">
                 <span id="similarCount">0 navn</span>
-                <span id="similarBasis">Pearson</span>
+                <span id="similarBasis">Form</span>
               </div>
               <div class="tableWrap similarWrap">
                 <table>

@@ -62,13 +62,13 @@ const state = {
 
 const els = {};
 const STATUS_STORAGE_KEY = "navnestatistikk:nameStatus:v1";
-const SW_VERSION = "2026-06-24.1";
+const SW_VERSION = "2026-06-24.2";
 const SIMILAR_METHOD_LABELS = {
-  pearson: "Pearson",
-  spearman: "Spearman",
+  pearson: "Form",
   euclidean: "Skalert avstand",
   unscaled: "Uskalert avstand",
 };
+const SIMILAR_METHODS = new Set(Object.keys(SIMILAR_METHOD_LABELS));
 const MOBILE_SHELL_QUERY = window.matchMedia?.("(max-width: 780px)");
 const STANDALONE_QUERY = window.matchMedia?.("(display-mode: standalone)");
 
@@ -586,7 +586,7 @@ function restoreFromUrl() {
   if (params.has("candidateMax")) state.candidate.maxSchoolmates = Math.max(0, Number(params.get("candidateMax")) || 0);
   if (params.has("candidateSort")) state.candidate.sort = params.get("candidateSort");
   if (params.has("similarReference")) state.similar.referenceId = params.get("similarReference");
-  if (params.has("similarMethod")) state.similar.method = params.get("similarMethod");
+  if (params.has("similarMethod")) state.similar.method = normalizeSimilarMethod(params.get("similarMethod"));
   if (params.has("similarMetric")) state.similar.metric = params.get("similarMetric");
   if (params.has("similarSmooth")) state.similar.smooth = Math.max(1, Number(params.get("similarSmooth")) || 3);
   if (params.has("similarFrom")) state.similar.fromYear = clampNameYear(Number(params.get("similarFrom")));
@@ -1298,7 +1298,7 @@ function copyExploreToCandidates() {
 
 function readSimilarControls(commit = false) {
   state.similar.referenceId = els.similarReference.value || state.similar.referenceId;
-  state.similar.method = els.similarMethod.value;
+  state.similar.method = normalizeSimilarMethod(els.similarMethod.value);
   state.similar.metric = els.similarMetric.value;
   state.similar.smooth = Number(els.similarSmooth.value) || 1;
   state.similar.fromYear = parseIntegerInput(els.similarFromYear.value);
@@ -1570,7 +1570,6 @@ function comparableValue(point, item, metric) {
 }
 
 function similarityScore(left, right, method) {
-  if (method === "spearman") return pearson(rankValues(left), rankValues(right));
   if (method === "euclidean") return euclidean(zScores(left), zScores(right));
   if (method === "unscaled") return meanAbsoluteDistance(left, right);
   return pearson(zScores(left), zScores(right));
@@ -1616,19 +1615,6 @@ function zScores(values) {
   return sd ? values.map((value) => (value - avg) / sd) : values.map(() => 0);
 }
 
-function rankValues(values) {
-  const sorted = values.map((value, index) => ({ value, index })).sort((a, b) => a.value - b.value);
-  const ranks = Array(values.length);
-  for (let i = 0; i < sorted.length; i += 1) {
-    let j = i;
-    while (j + 1 < sorted.length && sorted[j + 1].value === sorted[i].value) j += 1;
-    const rank = (i + j + 2) / 2;
-    for (let k = i; k <= j; k += 1) ranks[sorted[k].index] = rank;
-    i = j;
-  }
-  return ranks;
-}
-
 function smoothValues(values, width) {
   const size = Math.max(1, Math.round(width || 1));
   if (size <= 1) return values;
@@ -1642,6 +1628,10 @@ function smoothValues(values, width) {
 
 function mean(values) {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function normalizeSimilarMethod(method) {
+  return SIMILAR_METHODS.has(method) ? method : "pearson";
 }
 
 function renderSummary() {

@@ -62,7 +62,13 @@ const state = {
 
 const els = {};
 const STATUS_STORAGE_KEY = "navnestatistikk:nameStatus:v1";
-const SW_VERSION = "2026-06-23.6";
+const SW_VERSION = "2026-06-24.1";
+const SIMILAR_METHOD_LABELS = {
+  pearson: "Pearson",
+  spearman: "Spearman",
+  euclidean: "Skalert avstand",
+  unscaled: "Uskalert avstand",
+};
 const MOBILE_SHELL_QUERY = window.matchMedia?.("(max-width: 780px)");
 const STANDALONE_QUERY = window.matchMedia?.("(display-mode: standalone)");
 
@@ -1480,7 +1486,7 @@ function renderSimilar() {
   if (!state.data) return;
   readSimilarControls(false);
   const reference = selectedItems().find((item) => item.id === state.similar.referenceId);
-  const methodLabel = { pearson: "Pearson", spearman: "Spearman", euclidean: "Euklidsk" }[state.similar.method] ?? "Pearson";
+  const methodLabel = SIMILAR_METHOD_LABELS[state.similar.method] ?? SIMILAR_METHOD_LABELS.pearson;
   els.similarBasis.textContent = methodLabel;
   if (!reference) {
     state.similar.rows = [];
@@ -1566,11 +1572,12 @@ function comparableValue(point, item, metric) {
 function similarityScore(left, right, method) {
   if (method === "spearman") return pearson(rankValues(left), rankValues(right));
   if (method === "euclidean") return euclidean(zScores(left), zScores(right));
+  if (method === "unscaled") return meanAbsoluteDistance(left, right);
   return pearson(zScores(left), zScores(right));
 }
 
 function normalizedSimilarity(score, method) {
-  if (method === "euclidean") return 1 / (1 + score);
+  if (method === "euclidean" || method === "unscaled") return 1 / (1 + score);
   return Math.max(0, Math.min(1, (score + 1) / 2));
 }
 
@@ -1595,6 +1602,11 @@ function pearson(left, right) {
 function euclidean(left, right) {
   if (left.length !== right.length || left.length < 3) return null;
   return Math.sqrt(left.reduce((sum, value, index) => sum + (value - right[index]) ** 2, 0));
+}
+
+function meanAbsoluteDistance(left, right) {
+  if (left.length !== right.length || left.length < 3) return null;
+  return mean(left.map((value, index) => Math.abs(value - right[index])));
 }
 
 function zScores(values) {

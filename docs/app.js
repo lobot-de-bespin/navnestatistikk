@@ -62,7 +62,7 @@ const state = {
 
 const els = {};
 const STATUS_STORAGE_KEY = "navnestatistikk:nameStatus:v1";
-const SW_VERSION = "2026-07-22.8";
+const SW_VERSION = "2026-07-22.9";
 const SIMILAR_METHOD_LABELS = {
   pearson: "Form",
   euclidean: "Skalert avstand",

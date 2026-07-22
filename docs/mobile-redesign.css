@@ -1737,6 +1737,45 @@ label {
 }
 
 @media (max-width: 780px) {
+  body.mobileShell .appMascot,
+  body.mobileShell .screenMascot {
+    background-image: url("./assets/illustrations/mobile-mascot-sprite-v1.png") !important;
+    background-repeat: no-repeat !important;
+    background-size: 200% 200% !important;
+    background-color: #fffaf2 !important;
+    border: 1px solid rgba(226, 214, 199, 0.58);
+    box-shadow: 0 12px 26px rgba(16, 35, 63, 0.08);
+  }
+
+  body.mobileShell .screenMascot {
+    width: 64px;
+    height: 64px;
+    border-radius: 24px;
+  }
+
+  body.mobileShell .cloudMascot,
+  body.mobileShell .homeHero .appMascot {
+    background-position: 0 0 !important;
+  }
+
+  body.mobileShell .exploreMascot {
+    background-position: 100% 0 !important;
+  }
+
+  body.mobileShell .chartMascot {
+    background-position: 0 100% !important;
+  }
+
+  body.mobileShell .heartMascot {
+    background-position: 100% 100% !important;
+  }
+
+  body.mobileShell .homeHero .appMascot {
+    width: 108px;
+    height: 108px;
+    border-radius: 30px;
+  }
+
   body.mobileShell .tabIcon {
     width: 22px;
     height: 22px;

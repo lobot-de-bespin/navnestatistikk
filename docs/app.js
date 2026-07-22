@@ -3,7 +3,7 @@ const state = {
   nameFromYear: 1945,
   nameToYear: 2025,
   sex: "alle",
-  regex: "^anna$|^ole$",
+  regex: ".*",
   matches: [],
   selected: new Set(),
   nameStatus: {},
@@ -62,7 +62,7 @@ const state = {
 
 const els = {};
 const STATUS_STORAGE_KEY = "navnestatistikk:nameStatus:v1";
-const SW_VERSION = "2026-07-22.1";
+const SW_VERSION = "2026-07-22.7";
 const SIMILAR_METHOD_LABELS = {
   pearson: "Form",
   euclidean: "Skalert avstand",
@@ -133,6 +133,7 @@ document.addEventListener("DOMContentLoaded", () => {
     "homeSelectedCount",
     "homeShortlistCount",
     "homeRejectedCount",
+    "mobileNameCount",
     "finnView",
     "grafView",
     "vurderView",
@@ -190,8 +191,13 @@ document.addEventListener("DOMContentLoaded", () => {
     "candidateTable",
     "dataTable",
     "copyLink",
+    "mobileCopyLink",
     "downloadCsv",
     "downloadPng",
+    "mobileReviewUndo",
+    "mineSelectedSegmentCount",
+    "shortlistSegmentCount",
+    "rejectedSegmentCount",
     "helpDialog",
     "helpDialogTitle",
     "helpDialogBody",
@@ -304,6 +310,12 @@ function closeHelpDialog() {
 function wireEvents() {
   document.querySelectorAll("[data-view]").forEach((button) => {
     button.addEventListener("click", () => setActiveView(button.dataset.view));
+  });
+  document.querySelectorAll("[data-focus]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const target = document.getElementById(button.dataset.focus);
+      target?.focus();
+    });
   });
   els.applyRegex.addEventListener("click", () => {
     state.regex = els.regexInput.value.trim() || ".*";
@@ -479,6 +491,7 @@ function wireEvents() {
   els.reviewShortlist.addEventListener("click", () => commitReviewSwipe("shortlist", 1));
   els.reviewSkip.addEventListener("click", reviewSkip);
   els.reviewUndo.addEventListener("click", reviewUndo);
+  els.mobileReviewUndo?.addEventListener("click", reviewUndo);
   els.showShortlistInChart.addEventListener("click", () => {
     state.selected = new Set(itemsWithStatus("shortlist").map((item) => item.id));
     setActiveView("graf");
@@ -497,6 +510,7 @@ function wireEvents() {
     }
   });
   els.copyLink.addEventListener("click", copyShareLink);
+  els.mobileCopyLink?.addEventListener("click", copyShareLink);
   els.downloadCsv.addEventListener("click", downloadCsv);
   els.downloadPng.addEventListener("click", () => {
     Plotly.downloadImage(els.chart, { format: "png", filename: "navnestatistikk", height: 900, width: 1400 });
@@ -676,8 +690,12 @@ function renderHome() {
   if (els.homeShortlistCount) els.homeShortlistCount.textContent = String(shortlist.length);
   if (els.homeRejectedCount) els.homeRejectedCount.textContent = String(rejected.length);
   if (els.mineSelectedCount) els.mineSelectedCount.textContent = String(selected.length);
+  if (els.mineSelectedSegmentCount) els.mineSelectedSegmentCount.textContent = String(selected.length);
+  if (els.shortlistSegmentCount) els.shortlistSegmentCount.textContent = String(shortlist.length);
+  if (els.rejectedSegmentCount) els.rejectedSegmentCount.textContent = String(rejected.length);
   renderMiniNameList(els.mineSelectedList, selected, "Ingen navn i arbeidsutvalget");
   if (els.homePopularYear) els.homePopularYear.textContent = String(state.nameToYear);
+  if (els.mobileNameCount) els.mobileNameCount.textContent = formatNumber(state.data.names.length);
   renderPopularList(els.homePopularGirls, "jente");
   renderPopularList(els.homePopularBoys, "gutt");
 }
@@ -777,7 +795,7 @@ function renderResults() {
   els.resultList.innerHTML = "";
   const fragment = document.createDocumentFragment();
   state.matches.slice(0, 250).forEach((item) => {
-    const label = document.createElement("div");
+    const label = document.createElement("article");
     label.className = "resultItem nameCard";
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
@@ -788,13 +806,24 @@ function renderResults() {
       checkbox.checked ? state.selected.add(item.id) : state.selected.delete(item.id);
       renderAll();
     });
-    const name = document.createElement("span");
-    name.textContent = item.name;
-    const meta = document.createElement("small");
     const latestCount = countInYear(item, state.nameToYear);
     const latestPoint = pointInYear(item, state.nameToYear);
-    const rank = latestPoint?.[2] ? `, rang ${latestPoint[2]} i ${state.nameToYear}` : "";
-    meta.textContent = `${item.sex}, ${latestCount ? formatNumber(latestCount) : "ingen"} i ${state.nameToYear}${rank}`;
+    const rank = latestPoint?.[2] ? latestPoint[2] : null;
+    const rankBadge = document.createElement("span");
+    rankBadge.className = "rankBadge";
+    rankBadge.textContent = rank ? String(rank) : "–";
+    const nameBlock = document.createElement("div");
+    nameBlock.className = "resultNameBlock";
+    nameBlock.innerHTML = `
+      <strong>${escapeHtml(item.name)} <span class="sexMark ${item.sex}">${item.sex === "jente" ? "♀" : "♂"}</span></strong>
+      <small>${topTenLabel(item)} · toppår ${item.peakYear}</small>
+    `;
+    const stats = document.createElement("div");
+    stats.className = "resultStats";
+    stats.innerHTML = `
+      <span><small>Antall (${state.nameToYear})</small><strong>${latestCount ? formatNumber(latestCount) : "–"}</strong></span>
+      <span><small>Rang (${state.nameToYear})</small><strong>${rank ? formatNumber(rank) : "–"}</strong></span>
+    `;
     const selection = document.createElement("small");
     selection.className = "selectionState";
     selection.textContent = checkbox.checked ? "I arbeidsutvalg" : "Ikke lagt til";
@@ -802,10 +831,28 @@ function renderResults() {
     trend.className = "sparklineWrap";
     trend.innerHTML = sparklineSvg(item);
     const actions = statusActions(item);
-    label.append(checkbox, name, meta, trend, selection, actions);
+    const addButton = document.createElement("button");
+    addButton.type = "button";
+    addButton.className = checkbox.checked ? "addNameButton active" : "addNameButton";
+    addButton.textContent = checkbox.checked ? "Lagt til" : "+ Legg til";
+    addButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      checkbox.checked = !checkbox.checked;
+      checkbox.dispatchEvent(new Event("change"));
+    });
+    label.append(rankBadge, checkbox, nameBlock, trend, stats, addButton, selection, actions);
     fragment.append(label);
   });
   els.resultList.append(fragment);
+}
+
+function topTenLabel(item) {
+  const topTenYears = allPoints(item).filter((point) => point.rank && point.rank <= 10).length;
+  if (topTenYears) return `Topp 10 siste ${Math.min(10, topTenYears)} år`;
+  const latestPoint = pointInYear(item, state.nameToYear);
+  if (latestPoint?.[2]) return `Rang ${latestPoint[2]} i ${state.nameToYear}`;
+  return item.sex;
 }
 
 function sparklineSvg(item) {
@@ -1017,19 +1064,50 @@ function renderReviewCard() {
     return;
   }
   const school = schoolEstimate(item, schoolScopeForGrade(state.childGrade));
+  const latestCount = countInYear(item, state.nameToYear);
+  const latestPoint = pointInYear(item, state.nameToYear);
+  const latestRank = latestPoint?.[2] ?? null;
   els.reviewCard.className = "reviewCard";
   els.reviewCard.innerHTML = `
     <div class="reviewMeta">${reviewProgressLabel(currentNumber, total, remaining)}</div>
-    <h3>${escapeHtml(item.name)}</h3>
-    <p>${item.sex}, toppår ${item.peakYear} med ${formatNumber(item.peakCount)} fødte.</p>
+    <button type="button" class="reviewHeart" aria-label="Legg i arbeidsutvalg">♡</button>
+    <h3>${escapeHtml(item.name)} <span class="sexMark ${item.sex}">${item.sex === "jente" ? "♀" : "♂"}</span></h3>
+    <p class="trendPill">↗ ${trendCopy(item)}</p>
+    <div class="reviewSpark">${sparklineSvg(item)}</div>
     <dl>
-      <div><dt>Total</dt><dd>${formatNumber(item.total)}</dd></div>
-      <div><dt>Beste rang</dt><dd>${bestRankLabel(item)}</dd></div>
-      <div><dt>I skoleløpet</dt><dd>${formatEstimate(school.scope)}</dd></div>
+      <div><dt>Antall</dt><dd>${latestCount ? formatNumber(latestCount) : "–"}<small>${item.sex === "jente" ? "jenter" : "gutter"} i ${state.nameToYear}</small></dd></div>
+      <div><dt>Rang</dt><dd>${latestRank ? formatNumber(latestRank) : bestRankLabel(item)}<small>i ${state.nameToYear}</small></dd></div>
+      <div><dt>Andel</dt><dd>${formatLatestShare(item)}<small>av ${item.sex === "jente" ? "jenter" : "gutter"}</small></dd></div>
+      <div><dt>Toppår</dt><dd>${item.peakYear}<small>${formatNumber(item.peakCount)} fødte</small></dd></div>
     </dl>
+    <div class="schoolContext"><strong>Skolekontekst</strong><span>${formatEstimate(school.scope)}</span><small>Estimat i relevant skoleløp</small></div>
+    <button type="button" class="reviewDetails">Se detaljer og statistikk ›</button>
   `;
+  els.reviewCard.querySelector(".reviewHeart")?.addEventListener("click", () => {
+    state.selected.add(item.id);
+    renderAll();
+  });
+  els.reviewCard.querySelector(".reviewDetails")?.addEventListener("click", () => {
+    state.selected.add(item.id);
+    setActiveView("graf");
+    renderAll();
+  });
   attachReviewSwipe();
   updateReviewActionState(true);
+}
+
+function trendCopy(item) {
+  const latest = countInYear(item, state.nameToYear);
+  const prior = hasNameDataYear(state.nameToYear - 10) ? countInYear(item, state.nameToYear - 10) : null;
+  if (prior != null && latest > prior) return "Popularitet på vei opp";
+  if (prior != null && latest < prior) return "Roligere utvikling siste år";
+  return "Historisk utvikling tilgjengelig";
+}
+
+function formatLatestShare(item) {
+  const point = allPoints(item).find((row) => row.year === state.nameToYear);
+  if (!point?.shareSex) return "–";
+  return `${formatDecimal(point.shareSex, 2)} %`;
 }
 
 function updateReviewActionState(enabled) {

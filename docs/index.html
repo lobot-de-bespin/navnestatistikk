@@ -55,6 +55,14 @@
         </div>
 
         <section id="hjemView" class="viewPanel homeView" hidden>
+          <div class="mobileScreenHead homeScreenHead" aria-hidden="true">
+            <div class="screenMascot cloudMascot"></div>
+            <div>
+              <h2>Navnestatistikk</h2>
+              <p>Finn det perfekte navnet med data og innsikt</p>
+            </div>
+            <button type="button" data-view="finn" aria-label="Søk">⌕</button>
+          </div>
           <section class="module homeHero">
             <div class="appMascot" aria-hidden="true"></div>
             <div>
@@ -122,6 +130,22 @@
         </section>
 
         <section id="finnView" class="viewPanel" hidden>
+          <div class="mobileScreenHead exploreScreenHead" aria-hidden="true">
+            <div class="screenMascot cloudMascot"></div>
+            <div>
+              <h2>Utforsk</h2>
+              <p>Søk, filtrer og oppdag navn</p>
+            </div>
+            <button type="button" data-focus="regexInput" aria-label="Søk">⌕</button>
+          </div>
+          <section class="mobileInfoBanner" aria-hidden="true">
+            <span>✦</span>
+            <div>
+              <strong><span id="mobileNameCount">0</span> fornavn</strong>
+              <small>Basert på lokale SSB-data</small>
+            </div>
+            <span class="bannerBear">ʕ•ᴥ•ʔ</span>
+          </section>
           <div class="functionGrid finGrid">
             <aside class="functionColumn finColumn" aria-label="Finn navn">
               <section class="module sidebarModule">
@@ -130,7 +154,7 @@
                   <p>Bruk vanlig tekst eller regex for å finne navn før du sender dem til Utforsk eller vurdering.</p>
                 </div>
                 <div class="searchRow">
-                  <input id="regexInput" type="text" spellcheck="false" value="^anna$|^ole$" />
+                  <input id="regexInput" type="text" spellcheck="false" placeholder="Søk etter navn, f.eks. Emma" />
                   <button id="applyRegex" type="button">Søk</button>
                 </div>
                 <div class="quickFilters" aria-label="Raske regex-filtre">
@@ -251,6 +275,14 @@
         </section>
 
         <section id="grafView" class="viewPanel" hidden>
+          <div class="mobileScreenHead compareScreenHead" aria-hidden="true">
+            <div class="screenMascot chartMascot"></div>
+            <div>
+              <h2>Sammenlign</h2>
+              <p>Se flere navn opp mot hverandre</p>
+            </div>
+            <button id="mobileCopyLink" type="button" aria-label="Kopier lenke">↗</button>
+          </div>
           <section class="module chartControls" aria-label="Utforskingsinnstillinger">
             <div class="moduleHead">
               <h2>Utforskingsvalg</h2>
@@ -566,6 +598,14 @@
         </section>
 
         <section id="vurderView" class="viewPanel reviewPanel" hidden>
+          <div class="mobileScreenHead reviewScreenHead" aria-hidden="true">
+            <div class="screenMascot heartMascot"></div>
+            <div>
+              <h2>Vurder</h2>
+              <p>Ett navn om gangen</p>
+            </div>
+            <button id="mobileReviewUndo" type="button" aria-label="Angre">↶</button>
+          </div>
           <div class="reviewModeShell">
             <div class="reviewModeTop">
               <div class="reviewHeading">
@@ -614,6 +654,11 @@
                 <button id="showShortlistInChart" type="button">Sammenlign aktuelle</button>
                 <button id="clearShortlist" type="button">Tøm aktuelle</button>
               </div>
+            </div>
+            <div class="mineSegmented" aria-label="Mine navn oversikt">
+              <button type="button" class="active">Arbeidsutvalg <span id="mineSelectedSegmentCount">0</span></button>
+              <button type="button">Aktuelle <span id="shortlistSegmentCount">0</span></button>
+              <button type="button">Uaktuelle <span id="rejectedSegmentCount">0</span></button>
             </div>
             <section class="backupPanel" aria-label="Sikkerhetskopi av navnevalg">
               <div>

@@ -2,7 +2,7 @@ const STATUS_STORAGE_KEY = "navnestatistikk:nameStatus:v1";
 const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
-const SW_VERSION = "2026-07-22.16";
+const SW_VERSION = "2026-07-22.17";
 
 const state = {
   data: null,
@@ -109,6 +109,7 @@ function bindChrome() {
   $("#reviewSkip")?.addEventListener("click", skipCurrent);
   $("#reviewUndo")?.addEventListener("click", undoDecision);
   $("#reviewBack")?.addEventListener("click", undoDecision);
+  $("#reviewMenu")?.addEventListener("click", () => openNameList("work"));
   $("#openBackup")?.addEventListener("click", openBackup);
   $("#openHistory")?.addEventListener("click", openHistory);
   $$("[data-open-list]").forEach((button) => {
@@ -324,6 +325,9 @@ function applyNameStatus(id, status) {
   if (!item) return false;
   if (status === "neutral") {
     delete state.status[id];
+    state.selected.add(id);
+    state.history = state.history.filter((entry) => entry.id !== id);
+    saveWorkSelection();
   } else {
     state.status[id] = status;
     if (status === "shortlist") state.selected.add(id);
@@ -338,6 +342,15 @@ function applyNameStatus(id, status) {
 
 function setNameStatus(id, status) {
   if (!applyNameStatus(id, status)) return;
+  const item = state.itemsById.get(id);
+  if (item) {
+    const messages = {
+      neutral: `${item.name} flyttet til arbeidsutvalg`,
+      shortlist: `${item.name} markert som aktuell`,
+      rejected: `${item.name} markert som uaktuell`,
+    };
+    toast(messages[status] || `${item.name} oppdatert`);
+  }
   resetReviewDeck();
   renderAll();
   updateUrl();
@@ -568,6 +581,8 @@ function openCompareTable() {
 function renderReview() {
   ensureReviewDeck();
   const item = currentReviewItem();
+  $("#reviewBack").hidden = !state.review.undo.length;
+  $("#reviewUndo").hidden = !state.review.undo.length;
   $("#reviewCounter").textContent = state.review.deck.length ? `${Math.min(state.review.index + 1, state.review.deck.length)} av ${state.review.deck.length}` : "0 av 0";
   const card = $("#reviewCard");
   if (!item) {
@@ -673,6 +688,7 @@ function openNameList(kind) {
   const title = kind === "work" ? "Arbeidsutvalg" : kind === "shortlist" ? "Aktuelle" : "Uaktuelle";
   const rows = kind === "work" ? [...state.selected].map((id) => state.itemsById.get(id)).filter(Boolean) : itemsWithStatus(kind);
   openSubscreen(title, `
+    <p class="subLead">${kind === "work" ? "Navn som ikke er endelig vurdert ennå." : kind === "shortlist" ? "Navn som er markert som aktuelle." : "Navn som er valgt bort."}</p>
     <div class="sectionRow"><h3>${formatNumber(rows.length)} navn</h3><button id="listPrimaryAction" type="button">${kind === "work" ? "Sammenlign" : "Del liste"}</button></div>
     <div id="mineListRows" class="nameRows"></div>
   `);
@@ -698,10 +714,10 @@ function listManageRow(item, kind) {
     event.stopPropagation();
     openSubscreen(item.name, `
       <div class="listMenu">
-        <button data-add="${item.id}" type="button"><span class="miniIcon blue"><svg><use href="#icon-list"></use></svg></span><span><strong>Legg i arbeidsutvalg</strong><small>Sammenlign eller vurder senere</small></span><em>›</em></button>
-        <button data-status="${item.id}" data-next="shortlist" type="button"><span class="miniIcon green"><svg><use href="#icon-heart"></use></svg></span><span><strong>Marker aktuell</strong><small>Flytt til favoritter</small></span><em>›</em></button>
-        <button data-status="${item.id}" data-next="rejected" type="button"><span class="miniIcon red"><svg><use href="#icon-x"></use></svg></span><span><strong>Marker uaktuell</strong><small>Skjul fra vanlige forslag</small></span><em>›</em></button>
-        <button data-remove="${item.id}" type="button"><span class="miniIcon"><svg><use href="#icon-x"></use></svg></span><span><strong>Fjern fra arbeidsutvalg</strong><small>Påvirker ikke vurderingen</small></span><em>›</em></button>
+        <button data-status="${item.id}" data-next="neutral" data-close-after="true" type="button"><span class="miniIcon blue"><svg><use href="#icon-list"></use></svg></span><span><strong>Sett som ikke vurdert</strong><small>Flytt til arbeidsutvalg uten aktuell/uaktuell-status</small></span><em>›</em></button>
+        <button data-status="${item.id}" data-next="shortlist" data-close-after="true" type="button"><span class="miniIcon green"><svg><use href="#icon-heart"></use></svg></span><span><strong>Marker aktuell</strong><small>Flytt til favoritter</small></span><em>›</em></button>
+        <button data-status="${item.id}" data-next="rejected" data-close-after="true" type="button"><span class="miniIcon red"><svg><use href="#icon-x"></use></svg></span><span><strong>Marker uaktuell</strong><small>Skjul fra vanlige forslag</small></span><em>›</em></button>
+        <button data-remove="${item.id}" data-close-after="true" type="button"><span class="miniIcon"><svg><use href="#icon-x"></use></svg></span><span><strong>Fjern fra arbeidsutvalg</strong><small>Påvirker ikke vurderingen</small></span><em>›</em></button>
       </div>
     `);
     bindSubscreenButtons();
@@ -733,7 +749,8 @@ function openSubscreen(title, html, action) {
   $("#subscreen").classList.add("open");
   $("#subscreen").setAttribute("aria-hidden", "false");
   $("#subAction").onclick = action || null;
-  if (!action) $("#subAction").textContent = "";
+  $("#subAction").hidden = !action;
+  if (!action) $("#subAction").replaceChildren();
   bindSubscreenButtons();
 }
 
@@ -745,8 +762,14 @@ function closeSubscreen(render = true) {
 
 function bindSubscreenButtons(root = document) {
   $$("[data-add]", root).forEach((button) => button.addEventListener("click", () => addToWork(state.itemsById.get(button.dataset.add))));
-  $$("[data-status]", root).forEach((button) => button.addEventListener("click", () => setNameStatus(button.dataset.status, button.dataset.next)));
-  $$("[data-remove]", root).forEach((button) => button.addEventListener("click", () => removeFromWork(button.dataset.remove)));
+  $$("[data-status]", root).forEach((button) => button.addEventListener("click", () => {
+    setNameStatus(button.dataset.status, button.dataset.next);
+    if (button.dataset.closeAfter === "true") closeSubscreen();
+  }));
+  $$("[data-remove]", root).forEach((button) => button.addEventListener("click", () => {
+    removeFromWork(button.dataset.remove);
+    if (button.dataset.closeAfter === "true") closeSubscreen();
+  }));
   $$("[data-similar]", root).forEach((button) => button.addEventListener("click", () => openSimilar(state.itemsById.get(button.dataset.similar))));
 }
 

@@ -178,17 +178,6 @@ svg {
   box-shadow: var(--shadow);
 }
 
-.phoneTop {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  min-height: 18px;
-  padding: 0 4px;
-  color: #1f2937;
-  font-size: 0.66rem;
-  font-weight: 760;
-}
-
 .navTitle {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -897,6 +886,14 @@ input[type="range"] {
 .subContent {
   display: grid;
   gap: 14px;
+}
+
+.subLead {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 650;
+  line-height: 1.32;
 }
 
 .detailHero {

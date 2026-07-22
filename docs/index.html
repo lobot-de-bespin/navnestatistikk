@@ -389,8 +389,8 @@
               <div class="control">
                 <label for="chartSmooth">Glatting</label>
                 <select id="chartSmooth">
-                  <option value="1" selected>Av</option>
-                  <option value="3">3 år</option>
+                  <option value="1">Av</option>
+                  <option value="3" selected>3 år</option>
                   <option value="5">5 år</option>
                   <option value="7">7 år</option>
                 </select>
@@ -430,6 +430,13 @@
               <p>Historiske kurver for de valgte navnene. Data før 1945 bruker prosent når antall mangler.</p>
             </div>
             <div id="chart" class="chart" role="img" aria-label="Trendkurver"></div>
+          </section>
+
+          <section class="module compareInsight">
+            <div class="moduleHead">
+              <h2>Kort vurdering</h2>
+              <p id="compareInsightText">Velg minst to navn for å få en enkel sammenligning.</p>
+            </div>
           </section>
 
           <details class="module secondaryModule similarPanel">
@@ -716,7 +723,12 @@
             </div>
           </div>
 
-          <section class="module listPanel mineNavnPanel">
+          <details class="module listPanel mineNavnPanel">
+            <summary class="mineSummary">
+              <span>Mine navn</span>
+              <small><span id="mineSummarySelected">0</span> i arbeid · <span id="mineSummaryShortlist">0</span> aktuelle</small>
+            </summary>
+            <div class="mineNavnBody">
             <div class="candidateHead">
               <div class="moduleHead">
                 <h2>Mine navn</h2>
@@ -785,7 +797,8 @@
                 </div>
               </section>
             </div>
-          </section>
+            </div>
+          </details>
         </section>
       </section>
     </main>

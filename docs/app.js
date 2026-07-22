@@ -24,7 +24,7 @@ const state = {
   },
   metric: "count",
   scale: "linear",
-  chartSmooth: 1,
+  chartSmooth: 3,
   fromYear: 1880,
   toYear: 2025,
   topNSelectionMode: "top",
@@ -62,7 +62,7 @@ const state = {
 
 const els = {};
 const STATUS_STORAGE_KEY = "navnestatistikk:nameStatus:v1";
-const SW_VERSION = "2026-07-22.10";
+const SW_VERSION = "2026-07-22.11";
 const SIMILAR_METHOD_LABELS = {
   pearson: "Form",
   euclidean: "Skalert avstand",
@@ -115,6 +115,7 @@ document.addEventListener("DOMContentLoaded", () => {
     "selectedReject",
     "selectedReview",
     "selectedClear",
+    "compareInsightText",
     "shortlistTabCount",
     "rejectedTabCount",
     "statusStrip",
@@ -148,6 +149,8 @@ document.addEventListener("DOMContentLoaded", () => {
     "discoverReferenceName",
     "discoverCards",
     "mineSelectedCount",
+    "mineSummarySelected",
+    "mineSummaryShortlist",
     "mineSelectedList",
     "reviewSource",
     "reviewShuffle",
@@ -662,6 +665,7 @@ function renderAll() {
   renderDiscover();
   renderSelected();
   renderChart();
+  renderCompareInsight();
   renderSimilar();
   renderHome();
   renderSummary();
@@ -702,6 +706,8 @@ function renderHome() {
   if (els.homeShortlistCount) els.homeShortlistCount.textContent = String(shortlist.length);
   if (els.homeRejectedCount) els.homeRejectedCount.textContent = String(rejected.length);
   if (els.mineSelectedCount) els.mineSelectedCount.textContent = String(selected.length);
+  if (els.mineSummarySelected) els.mineSummarySelected.textContent = String(selected.length);
+  if (els.mineSummaryShortlist) els.mineSummaryShortlist.textContent = String(shortlist.length);
   if (els.mineSelectedSegmentCount) els.mineSelectedSegmentCount.textContent = String(selected.length);
   if (els.shortlistSegmentCount) els.shortlistSegmentCount.textContent = String(shortlist.length);
   if (els.rejectedSegmentCount) els.rejectedSegmentCount.textContent = String(rejected.length);
@@ -1723,6 +1729,32 @@ function renderChart() {
   };
   const config = { responsive: true, displaylogo: false };
   Plotly.react(els.chart, traces, layout, config);
+}
+
+function renderCompareInsight() {
+  if (!els.compareInsightText || !state.data) return;
+  const items = selectedItems();
+  if (items.length < 2) {
+    els.compareInsightText.textContent = items.length
+      ? "Legg til ett navn til for å se forskjellen tydeligere."
+      : "Velg minst to navn fra Utforsk eller Oppdag for å få en enkel sammenligning.";
+    return;
+  }
+  const latestRows = items
+    .map((item) => ({ item, count: countInYear(item, state.nameToYear), rank: pointInYear(item, state.nameToYear)?.[2] ?? null }))
+    .sort((a, b) => b.count - a.count || a.item.name.localeCompare(b.item.name, "no"));
+  const peakRows = [...items].sort((a, b) => b.peakCount - a.peakCount || a.name.localeCompare(b.name, "no"));
+  const newest = latestRows[0];
+  const peak = peakRows[0];
+  const latestCopy = newest.count
+    ? `${newest.item.name} er mest brukt i ${state.nameToYear} med ${formatNumber(newest.count)} fødte`
+    : "Ingen av navnene har registrerte fødte i siste dataår";
+  const rankCopy = newest.rank ? ` og rang ${formatNumber(newest.rank)}` : "";
+  const peakCopy =
+    newest.item.id === peak.id
+      ? `Det er også navnet med sterkest toppår: ${peak.peakYear} med ${formatNumber(peak.peakCount)} fødte.`
+      : `${peak.name} har det sterkeste toppåret: ${peak.peakYear} med ${formatNumber(peak.peakCount)} fødte.`;
+  els.compareInsightText.textContent = `${latestCopy}${rankCopy}. ${peakCopy}`;
 }
 
 function visiblePoints(item) {

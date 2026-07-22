@@ -143,6 +143,7 @@ label {
 .candidatePanel,
 .similarPanel,
 .chartModule,
+.compareInsight,
 .listPanel {
   padding: 16px;
 }
@@ -402,6 +403,65 @@ label {
 .discoverActions button:first-child {
   background: #edf4ff;
   color: #174f84;
+}
+
+.compareInsight {
+  background: linear-gradient(135deg, #f7fbff 0%, #fffdf8 100%);
+}
+
+.compareInsight .moduleHead p {
+  display: block;
+  margin-top: 6px;
+  color: #48566f;
+  font-size: 0.94rem;
+  line-height: 1.45;
+}
+
+.mineSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 54px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.mineSummary::-webkit-details-marker {
+  display: none;
+}
+
+.mineSummary span {
+  color: #10223f;
+  font-weight: 850;
+}
+
+.mineSummary small {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 720;
+}
+
+.mineSummary::after {
+  content: "";
+  flex: 0 0 auto;
+  width: 11px;
+  height: 11px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  color: #6b7280;
+  transform: rotate(45deg);
+  transition: transform 140ms ease;
+}
+
+.mineNavnPanel[open] .mineSummary::after {
+  transform: rotate(225deg);
+}
+
+.mineNavnBody {
+  display: grid;
+  gap: 14px;
+  padding-top: 12px;
 }
 
 .popularRow,
@@ -1976,8 +2036,24 @@ label {
     order: 1;
   }
 
+  body.mobileShell #grafView .compareInsight {
+    order: 2;
+  }
+
   body.mobileShell #grafView .chartControls {
-    order: 3;
+    order: 4;
+  }
+
+  body.mobileShell #grafView .similarPanel {
+    order: 5;
+  }
+
+  body.mobileShell #grafView .candidatePanel {
+    order: 6;
+  }
+
+  body.mobileShell #grafView .below {
+    order: 7;
   }
 
   body.mobileShell #grafView .selectedPanel .moduleHead p {
@@ -2043,5 +2119,151 @@ label {
   body.mobileShell.reviewModeActive .mineNavnPanel {
     border-style: dashed;
     background: rgba(255, 253, 248, 0.76);
+  }
+}
+
+@media (max-width: 780px) {
+  body.mobileShell #finnView {
+    gap: 14px;
+  }
+
+  body.mobileShell #finnView .mobileInfoBanner {
+    min-height: 74px;
+    margin-bottom: 0;
+  }
+
+  body.mobileShell #finnView .functionGrid {
+    gap: 14px;
+  }
+
+  body.mobileShell #finnView .sidebarModule:first-child {
+    padding-top: 10px;
+  }
+
+  body.mobileShell #finnView .quickFilters {
+    display: none;
+  }
+
+  body.mobileShell #finnView .subtleCheck {
+    margin-top: 6px;
+  }
+
+  body.mobileShell .discoverModule {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  body.mobileShell .discoverModule .sectionHead {
+    padding: 0 2px;
+  }
+
+  body.mobileShell .discoverReference {
+    min-height: 54px;
+    border-radius: 18px;
+  }
+
+  body.mobileShell .discoverCards {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(286px, 86%);
+    overflow-x: auto;
+    padding: 2px 2px 10px;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+
+  body.mobileShell .discoverCards::-webkit-scrollbar {
+    display: none;
+  }
+
+  body.mobileShell .discoverCard {
+    scroll-snap-align: start;
+    min-height: 174px;
+    border-radius: 24px;
+  }
+
+  body.mobileShell .discoverCard strong {
+    font-size: 1.35rem;
+  }
+
+  body.mobileShell .discoverCard .sparkline {
+    height: 54px;
+  }
+
+  body.mobileShell #grafView .chartModule {
+    padding: 16px 16px 10px;
+  }
+
+  body.mobileShell #grafView .chartModule .moduleHead p {
+    display: none;
+  }
+
+  body.mobileShell #grafView .compareInsight {
+    padding: 16px;
+  }
+
+  body.mobileShell #grafView .compareInsight h2 {
+    font-size: 1.05rem;
+  }
+
+  body.mobileShell #grafView .compareInsight .moduleHead p {
+    display: block !important;
+    margin-top: 8px;
+    color: #48566f;
+    font-size: 0.94rem;
+    line-height: 1.45;
+  }
+
+  body.mobileShell #grafView .chartControls {
+    padding: 14px;
+  }
+
+  body.mobileShell #grafView .chartControls .toolbar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  body.mobileShell #grafView .chartControls .control.years,
+  body.mobileShell #grafView .chartControls .actions {
+    grid-column: 1 / -1;
+  }
+
+  body.mobileShell #grafView .chartControls .control:nth-child(2),
+  body.mobileShell #grafView .chartControls .control.toggles {
+    display: none;
+  }
+
+  body.mobileShell #grafView .chartControls .moduleHead h2 {
+    font-size: 1rem;
+  }
+
+  body.mobileShell #grafView .chartControls .moduleHead p {
+    display: none;
+  }
+
+  body.mobileShell #grafView .selectedPanel {
+    order: 3;
+  }
+
+  body.mobileShell.reviewModeActive .mineNavnPanel {
+    margin-top: 210px;
+    padding: 0 16px;
+    border-style: solid;
+    background: rgba(255, 253, 248, 0.9);
+  }
+
+  body.mobileShell.reviewModeActive .mineNavnPanel:not([open]) {
+    margin-bottom: 64px;
+  }
+
+  body.mobileShell.reviewModeActive .mineNavnBody {
+    padding-bottom: 12px;
+  }
+
+  body.mobileShell.reviewModeActive .reviewDetails {
+    display: none;
   }
 }

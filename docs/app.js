@@ -2,7 +2,7 @@ const STATUS_STORAGE_KEY = "navnestatistikk:nameStatus:v1";
 const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
-const SW_VERSION = "2026-07-22.15";
+const SW_VERSION = "2026-07-22.16";
 
 const state = {
   data: null,
@@ -218,7 +218,7 @@ function renderExplore() {
   const list = $("#popularList");
   if (!list) return;
   const hasQuery = state.query.length > 0;
-  const rows = hasQuery ? searchRows(state.query).slice(0, 10) : popularRows(state.popularSex, 5);
+  const rows = hasQuery ? searchRows(state.query).slice(0, 10) : popularRows(state.popularSex, 4);
   $("#exploreListTitle").textContent = hasQuery ? "Søkeresultater" : "Populære navn";
   $("#popularSexToggle").hidden = hasQuery;
   $("#openCandidateList").textContent = hasQuery ? "Filtrer" : "Se alle";

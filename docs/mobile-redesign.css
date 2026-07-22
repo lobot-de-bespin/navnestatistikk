@@ -30,7 +30,10 @@ html {
   background: var(--bg);
   color: var(--ink);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 16px;
   letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 body {
@@ -46,6 +49,7 @@ button,
 input,
 select {
   font: inherit;
+  -webkit-font-smoothing: inherit;
 }
 
 button,
@@ -99,7 +103,7 @@ svg {
 
 .screen {
   display: none;
-  gap: 14px;
+  gap: 16px;
 }
 
 .screen.active {
@@ -108,25 +112,26 @@ svg {
 
 .screenHeader {
   display: grid;
-  grid-template-columns: 50px minmax(0, 1fr);
-  gap: 13px;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 14px;
   align-items: center;
-  padding: 4px 4px 8px;
+  padding: 5px 4px 10px;
 }
 
 .screenHeader h1 {
   margin: 0;
   color: #111d34;
-  font-size: 1.12rem;
-  font-weight: 800;
+  font-size: 1.22rem;
+  line-height: 1.08;
+  font-weight: 820;
 }
 
 .screenHeader p {
   max-width: 31rem;
-  margin: 4px 0 0;
+  margin: 5px 0 0;
   color: #5f6878;
-  font-size: 0.72rem;
-  line-height: 1.35;
+  font-size: 0.78rem;
+  line-height: 1.38;
 }
 
 .iconBubble,
@@ -138,8 +143,8 @@ svg {
 }
 
 .iconBubble {
-  width: 44px;
-  height: 44px;
+  width: 46px;
+  height: 46px;
   background: #eef6ff;
   color: var(--blue);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
@@ -163,10 +168,10 @@ svg {
 .phoneSurface,
 .subscreenPanel {
   display: grid;
-  gap: 13px;
+  gap: 14px;
   align-content: start;
   min-height: calc(100vh - 110px - var(--tab-height));
-  padding: 10px 10px calc(var(--tab-height) + 22px + env(safe-area-inset-bottom));
+  padding: 12px 12px calc(var(--tab-height) + 24px + env(safe-area-inset-bottom));
   border: 1px solid rgba(232, 225, 216, 0.86);
   border-radius: 24px;
   background: rgba(255, 255, 255, 0.86);
@@ -180,8 +185,8 @@ svg {
   min-height: 18px;
   padding: 0 4px;
   color: #1f2937;
-  font-size: 0.58rem;
-  font-weight: 700;
+  font-size: 0.66rem;
+  font-weight: 760;
 }
 
 .navTitle {
@@ -200,23 +205,24 @@ svg {
 .navTitle h2 {
   margin: 0;
   color: #142039;
-  font-size: 1rem;
-  font-weight: 820;
+  font-size: 1.08rem;
+  line-height: 1.12;
+  font-weight: 830;
 }
 
 .navTitle small {
   color: var(--muted);
-  font-size: 0.66rem;
-  font-weight: 700;
+  font-size: 0.72rem;
+  font-weight: 720;
 }
 
 .iconButton,
 .ghostIcon {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 12px;
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
   background: #f4f7fb;
   color: #245f9b;
 }
@@ -230,11 +236,11 @@ svg {
 .searchBar {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 7px;
+  gap: 10px;
   align-items: center;
-  min-height: 37px;
-  padding: 0 10px;
-  border-radius: 11px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 14px;
   background: #f3f5f8;
   color: #8992a0;
 }
@@ -245,7 +251,8 @@ svg {
   outline: 0;
   background: transparent;
   color: var(--ink);
-  font-size: 0.78rem;
+  font-size: 0.88rem;
+  line-height: 1.2;
 }
 
 .sectionRow {
@@ -253,7 +260,7 @@ svg {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 .sectionRow h3,
@@ -261,40 +268,41 @@ svg {
 .subCard h3 {
   margin: 0;
   color: #16233b;
-  font-size: 0.78rem;
-  font-weight: 800;
+  font-size: 0.86rem;
+  line-height: 1.15;
+  font-weight: 820;
 }
 
 .sectionRow button,
 .actionRow button {
   background: transparent;
   color: #2e70b3;
-  font-size: 0.68rem;
-  font-weight: 740;
+  font-size: 0.74rem;
+  font-weight: 760;
 }
 
 .segmented {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
-  gap: 4px;
-  padding: 4px;
-  border-radius: 12px;
+  gap: 5px;
+  padding: 5px;
+  border-radius: 14px;
   background: #f3f5f8;
 }
 
 .segmented.small {
   width: fit-content;
-  min-width: 134px;
+  min-width: 142px;
 }
 
 .segmented button {
-  min-height: 29px;
-  padding: 0 10px;
-  border-radius: 9px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 11px;
   background: transparent;
   color: #586274;
-  font-size: 0.66rem;
+  font-size: 0.72rem;
   font-weight: 760;
   white-space: nowrap;
 }
@@ -309,24 +317,24 @@ svg {
 .decisionRows,
 .listMenu {
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .nameRow {
   display: grid;
   grid-template-columns: 24px minmax(0, 1fr) 92px auto auto;
-  gap: 8px;
+  gap: 9px;
   align-items: center;
-  min-height: 48px;
-  padding: 8px;
-  border-radius: 13px;
+  min-height: 52px;
+  padding: 9px;
+  border-radius: 15px;
   background: #fff;
   box-shadow: inset 0 0 0 1px rgba(232, 225, 216, 0.74);
 }
 
 .rank {
   color: #556070;
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 760;
   text-align: center;
 }
@@ -342,19 +350,21 @@ svg {
   display: block;
   overflow: hidden;
   color: #142039;
-  font-size: 0.78rem;
-  font-weight: 820;
+  font-size: 0.86rem;
+  line-height: 1.12;
+  font-weight: 830;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .nameMain small {
   display: block;
-  margin-top: 2px;
+  margin-top: 3px;
   overflow: hidden;
   color: #747d8e;
-  font-size: 0.6rem;
-  font-weight: 650;
+  font-size: 0.66rem;
+  line-height: 1.2;
+  font-weight: 670;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -367,13 +377,13 @@ svg {
 .spark svg {
   display: block;
   width: 100%;
-  height: 28px;
+  height: 30px;
 }
 
 .count {
   color: #536070;
-  font-size: 0.62rem;
-  font-weight: 760;
+  font-size: 0.68rem;
+  font-weight: 780;
   text-align: right;
 }
 
@@ -381,9 +391,9 @@ svg {
 .moreButton {
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 10px;
+  width: 31px;
+  height: 31px;
+  border-radius: 12px;
   background: #f4f7fb;
   color: var(--blue);
 }
@@ -395,12 +405,12 @@ svg {
 
 .softCallout {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto;
-  gap: 10px;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  gap: 12px;
   align-items: center;
-  min-height: 76px;
-  padding: 13px;
-  border-radius: 16px;
+  min-height: 78px;
+  padding: 14px;
+  border-radius: 18px;
   background: #f5f2ff;
   color: var(--ink);
   text-align: left;
@@ -411,8 +421,9 @@ svg {
 .decisionRow strong {
   display: block;
   color: #16233b;
-  font-size: 0.72rem;
-  font-weight: 820;
+  font-size: 0.8rem;
+  line-height: 1.12;
+  font-weight: 830;
 }
 
 .softCallout small,
@@ -421,23 +432,23 @@ svg {
   display: block;
   margin-top: 3px;
   color: #70798a;
-  font-size: 0.61rem;
+  font-size: 0.66rem;
   font-weight: 650;
-  line-height: 1.3;
+  line-height: 1.32;
 }
 
 .softCallout em,
 .listMenu em,
 .decisionRow em {
   color: #2c70b7;
-  font-size: 0.62rem;
+  font-size: 0.68rem;
   font-style: normal;
   font-weight: 780;
 }
 
 .miniIcon {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   background: #edf4ff;
   color: var(--blue);
 }
@@ -473,12 +484,12 @@ svg {
 .chip,
 .nameChip {
   flex: 0 0 auto;
-  min-height: 28px;
-  padding: 0 11px;
+  min-height: 30px;
+  padding: 0 12px;
   border-radius: 999px;
   background: #f3f5f8;
   color: #536070;
-  font-size: 0.66rem;
+  font-size: 0.7rem;
   font-weight: 760;
 }
 
@@ -510,20 +521,20 @@ input[type="range"] {
 .formStack input,
 .formStack select {
   width: 100%;
-  min-height: 36px;
-  padding: 0 10px;
+  min-height: 39px;
+  padding: 0 12px;
   border: 0;
   border-radius: 11px;
   background: #f4f6f9;
   color: #29364e;
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 720;
 }
 
 .chartBox {
   width: 100%;
   height: 265px;
-  border-radius: 16px;
+  border-radius: 18px;
   background: #fff;
   box-shadow: inset 0 0 0 1px rgba(232, 225, 216, 0.74);
   overflow: hidden;
@@ -543,7 +554,7 @@ input[type="range"] {
 }
 
 .lineChart text {
-  font-weight: 680;
+  font-weight: 700;
 }
 
 .lineChart line {
@@ -553,7 +564,7 @@ input[type="range"] {
 .legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 13px;
+  gap: 9px 14px;
   padding: 0 4px;
 }
 
@@ -562,7 +573,7 @@ input[type="range"] {
   align-items: center;
   gap: 5px;
   color: #536070;
-  font-size: 0.62rem;
+  font-size: 0.68rem;
   font-weight: 720;
 }
 
@@ -575,9 +586,9 @@ input[type="range"] {
 .metricPanel,
 .subCard {
   display: grid;
-  gap: 10px;
-  padding: 13px;
-  border-radius: 16px;
+  gap: 11px;
+  padding: 14px;
+  border-radius: 18px;
   background: #fff;
   box-shadow: inset 0 0 0 1px rgba(232, 225, 216, 0.74);
 }
@@ -593,10 +604,10 @@ input[type="range"] {
 .statRow {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) 0.7fr 0.6fr 0.8fr 0.7fr;
-  gap: 6px;
+  gap: 7px;
   align-items: center;
-  min-height: 38px;
-  padding: 7px 8px;
+  min-height: 40px;
+  padding: 8px 9px;
   background: #fff;
   color: #333d50;
   text-align: left;
@@ -604,17 +615,19 @@ input[type="range"] {
 
 .statRow b {
   display: block;
-  font-size: 0.66rem;
+  font-size: 0.7rem;
+  line-height: 1.1;
 }
 
 .statRow small {
   display: block;
   color: var(--muted);
-  font-size: 0.54rem;
+  font-size: 0.58rem;
+  line-height: 1.1;
 }
 
 .statRow span:not(:first-child) {
-  font-size: 0.6rem;
+  font-size: 0.64rem;
   font-weight: 720;
   text-align: right;
 }
@@ -622,14 +635,14 @@ input[type="range"] {
 .actionRow {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 7px;
+  gap: 8px;
 }
 
 .actionRow button {
-  min-height: 34px;
-  border-radius: 11px;
+  min-height: 36px;
+  border-radius: 13px;
   background: #f5f7fa;
-  font-size: 0.61rem;
+  font-size: 0.68rem;
 }
 
 .reviewSurface {
@@ -642,7 +655,7 @@ input[type="range"] {
   position: relative;
   display: grid;
   gap: 10px;
-  min-height: 395px;
+  min-height: 370px;
   padding: 22px 18px 15px;
   border-radius: 22px;
   background: #fff;
@@ -653,8 +666,8 @@ input[type="range"] {
 .detailHero h2 {
   margin: 0;
   color: #13203a;
-  font-size: clamp(2.45rem, 16vw, 4.1rem);
-  line-height: 0.95;
+  font-size: clamp(2.55rem, 15vw, 4rem);
+  line-height: 0.96;
   font-weight: 840;
 }
 
@@ -671,8 +684,8 @@ input[type="range"] {
 .cardMeta {
   margin: 0;
   color: #70798a;
-  font-size: 0.8rem;
-  font-weight: 720;
+  font-size: 0.84rem;
+  font-weight: 740;
 }
 
 .heartRound {
@@ -692,11 +705,11 @@ input[type="range"] {
 .trendPill {
   justify-self: center;
   width: fit-content;
-  padding: 7px 14px;
+  padding: 8px 15px;
   border-radius: 999px;
   background: var(--green-soft);
   color: #2b7a4b;
-  font-size: 0.7rem;
+  font-size: 0.74rem;
   font-weight: 820;
 }
 
@@ -736,20 +749,21 @@ input[type="range"] {
 .reviewStats small,
 .detailStats small {
   color: var(--muted);
-  font-size: 0.62rem;
+  font-size: 0.66rem;
+  line-height: 1.1;
 }
 
 .reviewStats b,
 .detailStats b {
   color: #13203a;
-  font-size: 0.92rem;
+  font-size: 0.96rem;
   line-height: 1;
 }
 
 .reviewStats em,
 .detailStats em {
   color: #6f7888;
-  font-size: 0.53rem;
+  font-size: 0.56rem;
   font-style: normal;
   font-weight: 680;
 }
@@ -760,23 +774,27 @@ input[type="range"] {
   justify-content: space-between;
   gap: 12px;
   padding: 13px;
-  border-radius: 16px;
+  border-radius: 18px;
   background: var(--purple-soft);
   color: #403488;
 }
 
 .schoolCard strong {
   display: block;
+  font-size: 0.86rem;
+  line-height: 1.12;
 }
 
 .schoolCard small {
   display: block;
   margin-top: 3px;
   color: #6b628f;
+  font-size: 0.7rem;
+  line-height: 1.25;
 }
 
 .schoolCard b {
-  font-size: 1rem;
+  font-size: 1.02rem;
 }
 
 .reviewActions {
@@ -789,9 +807,9 @@ input[type="range"] {
   display: grid;
   place-items: center;
   gap: 7px;
-  min-height: 72px;
-  border-radius: 17px;
-  font-size: 0.7rem;
+  min-height: 66px;
+  border-radius: 18px;
+  font-size: 0.74rem;
   font-weight: 800;
 }
 
@@ -818,19 +836,19 @@ input[type="range"] {
   margin-bottom: 8px;
   background: transparent;
   color: #2e70b3;
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 760;
 }
 
 .listMenu button,
 .decisionRow {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto;
-  gap: 11px;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  gap: 12px;
   align-items: center;
-  min-height: 58px;
-  padding: 10px;
-  border-radius: 15px;
+  min-height: 62px;
+  padding: 12px;
+  border-radius: 17px;
   background: #fff;
   color: var(--ink);
   text-align: left;
@@ -838,7 +856,7 @@ input[type="range"] {
 }
 
 .decisionRow em {
-  padding: 4px 8px;
+  padding: 5px 9px;
   border-radius: 999px;
   background: #f3f6fa;
   color: #6b7280;
@@ -878,21 +896,21 @@ input[type="range"] {
 
 .subContent {
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 .detailHero {
   position: relative;
   display: grid;
-  min-height: 98px;
+  min-height: 102px;
   align-items: end;
-  padding: 10px 72px 4px 4px;
+  padding: 12px 76px 5px 4px;
 }
 
 .detailHero p {
   margin: 6px 0 0;
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: 0.76rem;
   font-weight: 720;
 }
 
@@ -900,19 +918,19 @@ input[type="range"] {
   display: flex;
   gap: 4px;
   overflow-x: auto;
-  padding: 4px;
-  border-radius: 12px;
+  padding: 5px;
+  border-radius: 14px;
   background: #f4f6f9;
 }
 
 .subTabs button {
   flex: 1 0 auto;
-  min-height: 28px;
-  padding: 0 9px;
-  border-radius: 9px;
+  min-height: 31px;
+  padding: 0 11px;
+  border-radius: 11px;
   background: transparent;
   color: #536070;
-  font-size: 0.62rem;
+  font-size: 0.68rem;
   font-weight: 760;
 }
 
@@ -938,26 +956,26 @@ input[type="range"] {
 
 .gridStats small {
   color: var(--muted);
-  font-size: 0.62rem;
+  font-size: 0.66rem;
 }
 
 .gridStats b {
   color: #142039;
-  font-size: 0.86rem;
+  font-size: 0.92rem;
 }
 
 .gridStats em {
   color: var(--muted);
-  font-size: 0.58rem;
+  font-size: 0.6rem;
   font-style: normal;
 }
 
 .primaryWide,
 .secondaryWide {
   width: 100%;
-  min-height: 44px;
-  border-radius: 14px;
-  font-size: 0.76rem;
+  min-height: 46px;
+  border-radius: 15px;
+  font-size: 0.82rem;
   font-weight: 820;
 }
 
@@ -973,11 +991,11 @@ input[type="range"] {
 
 .similarHead,
 .candidateSummary {
-  padding: 12px;
-  border-radius: 14px;
+  padding: 14px;
+  border-radius: 16px;
   background: #f4f7fb;
   color: #546071;
-  font-size: 0.7rem;
+  font-size: 0.74rem;
 }
 
 .formStack {
@@ -989,7 +1007,7 @@ input[type="range"] {
   display: grid;
   gap: 7px;
   color: #536070;
-  font-size: 0.66rem;
+  font-size: 0.72rem;
   font-weight: 780;
 }
 
@@ -1011,7 +1029,7 @@ input[type="range"] {
   min-width: 420px;
   border-collapse: collapse;
   background: #fff;
-  font-size: 0.66rem;
+  font-size: 0.7rem;
 }
 
 .dataTable th,
@@ -1029,22 +1047,25 @@ input[type="range"] {
 .mutedEmpty,
 .emptyState {
   margin: 0;
-  padding: 18px;
-  border-radius: 16px;
+  padding: 20px;
+  border-radius: 18px;
   background: #f7f9fc;
   color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.28;
   text-align: center;
 }
 
 .emptyState h2 {
   margin: 0 0 6px;
   color: var(--ink);
-  font-size: 1rem;
+  font-size: 1.04rem;
 }
 
 .emptyState p {
   margin: 0;
-  font-size: 0.72rem;
+  font-size: 0.76rem;
+  line-height: 1.35;
 }
 
 .tabBar {
@@ -1074,7 +1095,7 @@ input[type="range"] {
   border-radius: 18px;
   background: transparent;
   color: #7a828f;
-  font-size: 0.62rem;
+  font-size: 0.68rem;
   font-weight: 780;
 }
 

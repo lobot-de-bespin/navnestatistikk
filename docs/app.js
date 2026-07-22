@@ -2,7 +2,7 @@ const STATUS_STORAGE_KEY = "navnestatistikk:nameStatus:v1";
 const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
-const SW_VERSION = "2026-07-22.13";
+const SW_VERSION = "2026-07-22.14";
 
 const state = {
   data: null,
@@ -300,6 +300,7 @@ function addToWork(item) {
   if (!item) return;
   state.selected.add(item.id);
   if (state.status[item.id] === "rejected") delete state.status[item.id];
+  resetReviewDeck();
   saveWorkSelection();
   saveStatus();
   toast(`${item.name} lagt til i arbeidsutvalg`);
@@ -309,14 +310,15 @@ function addToWork(item) {
 
 function removeFromWork(id) {
   state.selected.delete(id);
+  resetReviewDeck();
   saveWorkSelection();
   renderAll();
   updateUrl();
 }
 
-function setNameStatus(id, status) {
+function applyNameStatus(id, status) {
   const item = state.itemsById.get(id);
-  if (!item) return;
+  if (!item) return false;
   if (status === "neutral") {
     delete state.status[id];
   } else {
@@ -328,6 +330,12 @@ function setNameStatus(id, status) {
     state.history = state.history.filter((entry, index, arr) => index === arr.findIndex((other) => other.id === entry.id)).slice(0, 100);
   }
   saveStatus();
+  return true;
+}
+
+function setNameStatus(id, status) {
+  if (!applyNameStatus(id, status)) return;
+  resetReviewDeck();
   renderAll();
   updateUrl();
 }
@@ -510,6 +518,7 @@ function openCandidateBuilder() {
   $("#candidateList").replaceChildren(...rows.slice(0, 80).map((item) => nameRow(item)));
   $("#addAllCandidates").addEventListener("click", () => {
     rows.forEach((item) => state.selected.add(item.id));
+    resetReviewDeck();
     saveWorkSelection();
     toast(`${formatNumber(rows.length)} navn lagt til`);
     closeSubscreen();
@@ -592,14 +601,22 @@ function currentReviewItem() {
   return state.itemsById.get(state.review.deck[state.review.index]) ?? null;
 }
 
+function resetReviewDeck() {
+  state.review.deck = [];
+  state.review.index = 0;
+}
+
 function decideCurrent(status) {
   const item = currentReviewItem();
   if (!item) return;
-  state.review.undo.unshift({ id: item.id, previous: state.status[item.id] ?? "neutral", index: state.review.index });
-  setNameStatus(item.id, status);
+  state.review.undo.unshift({ id: item.id, previous: state.status[item.id] ?? "neutral", wasSelected: state.selected.has(item.id), index: state.review.index });
+  applyNameStatus(item.id, status);
   state.review.index += 1;
   ensureReviewDeck();
   renderReview();
+  renderMine();
+  renderCompare();
+  updateUrl();
 }
 
 function skipCurrent() {
@@ -613,7 +630,10 @@ function undoDecision() {
   if (!last) return;
   if (last.previous === "neutral") delete state.status[last.id];
   else state.status[last.id] = last.previous;
+  if (last.wasSelected) state.selected.add(last.id);
+  else state.selected.delete(last.id);
   state.review.index = last.index;
+  saveWorkSelection();
   saveStatus();
   renderAll();
 }
@@ -995,6 +1015,7 @@ async function importDecisions(event) {
       if (value === "rejected") state.selected.delete(id);
     }
   });
+  resetReviewDeck();
   saveWorkSelection();
   saveStatus();
   renderAll();

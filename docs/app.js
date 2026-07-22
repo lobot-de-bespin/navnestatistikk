@@ -8,7 +8,7 @@ const state = {
   selected: new Set(),
   nameStatus: {},
   showRejected: false,
-  activeView: "finn",
+  activeView: "hjem",
   lastTopNRows: [],
   review: {
     source: "random",
@@ -62,7 +62,7 @@ const state = {
 
 const els = {};
 const STATUS_STORAGE_KEY = "navnestatistikk:nameStatus:v1";
-const SW_VERSION = "2026-06-24.2";
+const SW_VERSION = "2026-07-22.1";
 const SIMILAR_METHOD_LABELS = {
   pearson: "Form",
   euclidean: "Skalert avstand",
@@ -126,11 +126,18 @@ document.addEventListener("DOMContentLoaded", () => {
     "statusBackupImport",
     "statusImportInput",
     "statusBackupMessage",
+    "hjemView",
+    "homePopularYear",
+    "homePopularGirls",
+    "homePopularBoys",
+    "homeSelectedCount",
+    "homeShortlistCount",
+    "homeRejectedCount",
     "finnView",
     "grafView",
     "vurderView",
-    "aktuelleView",
-    "uaktuelleView",
+    "mineSelectedCount",
+    "mineSelectedList",
     "reviewSource",
     "reviewShuffle",
     "buildReviewDeck",
@@ -631,6 +638,7 @@ function renderAll() {
   renderSelected();
   renderChart();
   renderSimilar();
+  renderHome();
   renderSummary();
   renderSchoolEstimate();
   renderCandidates();
@@ -644,7 +652,7 @@ function setActiveView(view) {
   state.activeView = view;
   document.body.classList.toggle("reviewModeActive", view === "vurder");
   document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
-  [els.finnView, els.grafView, els.vurderView, els.aktuelleView, els.uaktuelleView].forEach((panel) => {
+  [els.hjemView, els.finnView, els.grafView, els.vurderView].forEach((panel) => {
     if (!panel) return;
     panel.hidden = panel.id !== `${view}View`;
   });
@@ -659,6 +667,68 @@ function setActiveView(view) {
   }
 }
 
+function renderHome() {
+  if (!state.data) return;
+  const selected = selectedItems();
+  const shortlist = itemsWithStatus("shortlist");
+  const rejected = itemsWithStatus("rejected");
+  if (els.homeSelectedCount) els.homeSelectedCount.textContent = String(selected.length);
+  if (els.homeShortlistCount) els.homeShortlistCount.textContent = String(shortlist.length);
+  if (els.homeRejectedCount) els.homeRejectedCount.textContent = String(rejected.length);
+  if (els.mineSelectedCount) els.mineSelectedCount.textContent = String(selected.length);
+  renderMiniNameList(els.mineSelectedList, selected, "Ingen navn i arbeidsutvalget");
+  if (els.homePopularYear) els.homePopularYear.textContent = String(state.nameToYear);
+  renderPopularList(els.homePopularGirls, "jente");
+  renderPopularList(els.homePopularBoys, "gutt");
+}
+
+function renderPopularList(container, sex) {
+  if (!container) return;
+  const rows = state.data.names
+    .filter((item) => item.sex === sex)
+    .map((item) => ({ item, count: countInYear(item, state.nameToYear) }))
+    .filter((row) => row.count > 0)
+    .sort((a, b) => b.count - a.count || a.item.name.localeCompare(b.item.name, "no"))
+    .slice(0, 5);
+  container.innerHTML = "";
+  rows.forEach((row, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "popularRow";
+    button.innerHTML = `
+      <span>${index + 1}</span>
+      <strong>${escapeHtml(row.item.name)}</strong>
+      ${sparklineSvg(row.item)}
+      <em>${formatNumber(row.count)}</em>
+    `;
+    button.addEventListener("click", () => {
+      state.selected.add(row.item.id);
+      setActiveView("graf");
+      renderAll();
+    });
+    container.append(button);
+  });
+}
+
+function renderMiniNameList(container, items, emptyText) {
+  if (!container) return;
+  if (!items.length) {
+    container.innerHTML = `<p class="emptyState">${emptyText}</p>`;
+    return;
+  }
+  container.innerHTML = "";
+  items.slice(0, 12).forEach((item) => {
+    const row = document.createElement("div");
+    row.className = "miniNameRow";
+    row.innerHTML = `
+      <strong>${escapeHtml(item.name)}</strong>
+      <span>${item.sex}, toppår ${item.peakYear}</span>
+      ${sparklineSvg(item)}
+    `;
+    container.append(row);
+  });
+}
+
 function renderStatusViews() {
   const shortlist = itemsWithStatus("shortlist");
   const rejected = itemsWithStatus("rejected");
@@ -669,6 +739,7 @@ function renderStatusViews() {
   els.rejectedTabCount.textContent = String(rejected.length);
   renderStatusTable(els.shortlistTable, shortlist, "shortlist");
   renderStatusTable(els.rejectedTable, rejected, "rejected");
+  renderHome();
 }
 
 function renderStatusStrip(unresolved, shortlistCount, rejectedCount) {
@@ -707,7 +778,7 @@ function renderResults() {
   const fragment = document.createDocumentFragment();
   state.matches.slice(0, 250).forEach((item) => {
     const label = document.createElement("div");
-    label.className = "resultItem";
+    label.className = "resultItem nameCard";
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.checked = state.selected.has(item.id);
@@ -720,15 +791,48 @@ function renderResults() {
     const name = document.createElement("span");
     name.textContent = item.name;
     const meta = document.createElement("small");
-    meta.textContent = `${item.sex}, maks ${formatNumber(item.peakCount)} i ${item.peakYear}`;
+    const latestCount = countInYear(item, state.nameToYear);
+    const latestPoint = pointInYear(item, state.nameToYear);
+    const rank = latestPoint?.[2] ? `, rang ${latestPoint[2]} i ${state.nameToYear}` : "";
+    meta.textContent = `${item.sex}, ${latestCount ? formatNumber(latestCount) : "ingen"} i ${state.nameToYear}${rank}`;
     const selection = document.createElement("small");
     selection.className = "selectionState";
-    selection.textContent = checkbox.checked ? "Valgt til Utforsk" : "Ikke i utvalg";
+    selection.textContent = checkbox.checked ? "I arbeidsutvalg" : "Ikke lagt til";
+    const trend = document.createElement("span");
+    trend.className = "sparklineWrap";
+    trend.innerHTML = sparklineSvg(item);
     const actions = statusActions(item);
-    label.append(checkbox, name, meta, selection, actions);
+    label.append(checkbox, name, meta, trend, selection, actions);
     fragment.append(label);
   });
   els.resultList.append(fragment);
+}
+
+function sparklineSvg(item) {
+  if (!state.data || !item?.series?.length) return "";
+  const points = allPoints(item)
+    .filter((point) => point.year >= Math.max(state.nameFromYear, state.nameToYear - 60) && point.year <= state.nameToYear)
+    .map((point) => ({ year: point.year, value: point.count ?? point.shareSex ?? 0 }))
+    .filter((point) => Number.isFinite(point.value));
+  if (points.length < 2) return "";
+  const width = 96;
+  const height = 36;
+  const minYear = points[0].year;
+  const maxYear = points[points.length - 1].year;
+  const maxValue = Math.max(...points.map((point) => point.value), 1);
+  const d = points
+    .map((point, index) => {
+      const x = maxYear === minYear ? 0 : ((point.year - minYear) / (maxYear - minYear)) * width;
+      const y = height - (point.value / maxValue) * (height - 4) - 2;
+      return `${index ? "L" : "M"}${formatSvgNumber(x)} ${formatSvgNumber(y)}`;
+    })
+    .join(" ");
+  const color = item.sex === "jente" ? "#ef5f8f" : "#256fc9";
+  return `<svg class="sparkline" viewBox="0 0 ${width} ${height}" aria-hidden="true" focusable="false"><path d="${d}" fill="none" stroke="${color}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
+function formatSvgNumber(value) {
+  return Number(value).toFixed(1).replace(/\.0$/, "");
 }
 
 function selectedItems() {

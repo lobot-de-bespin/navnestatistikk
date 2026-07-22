@@ -14,6 +14,7 @@
     <link rel="icon" href="icon-192.png" type="image/png" sizes="192x192" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="mobile-redesign.css" />
     <script defer src="vendor/plotly-2.35.2.min.js"></script>
     <script defer src="app.js"></script>
   </head>
@@ -32,11 +33,10 @@
     <main class="layout">
       <section class="content">
         <nav class="tabs" aria-label="Arbeidsflater">
-          <button type="button" class="active" data-view="finn">Finn</button>
-          <button type="button" data-view="graf">Utforsk</button>
-          <button type="button" data-view="vurder">Vurder</button>
-          <button type="button" data-view="aktuelle">Aktuelle <span id="shortlistTabCount">0</span></button>
-          <button type="button" data-view="uaktuelle">Uaktuelle <span id="rejectedTabCount">0</span></button>
+          <button type="button" class="active" data-view="hjem"><span class="tabIcon" aria-hidden="true"></span>Hjem</button>
+          <button type="button" data-view="finn"><span class="tabIcon" aria-hidden="true"></span>Utforsk</button>
+          <button type="button" data-view="graf"><span class="tabIcon" aria-hidden="true"></span>Sammenlign</button>
+          <button type="button" data-view="vurder"><span class="tabIcon" aria-hidden="true"></span>Vurder</button>
         </nav>
 
         <div id="statusStrip" class="statusStrip" aria-label="Statusoversikt" hidden>
@@ -53,6 +53,73 @@
             <span id="statusUaktuelleCount" class="statusStripCount">0</span>
           </div>
         </div>
+
+        <section id="hjemView" class="viewPanel homeView" hidden>
+          <section class="module homeHero">
+            <div class="appMascot" aria-hidden="true"></div>
+            <div>
+              <p class="eyebrow">Navnestatistikk</p>
+              <h2>Finn navn med data i ryggen.</h2>
+              <p>Utforsk norske fornavn, samle kandidater og snevre inn listen i ditt eget tempo.</p>
+            </div>
+            <div class="homeActionGrid" aria-label="Snarveier">
+              <button type="button" data-view="finn">
+                <span>Utforsk</span>
+                <small>Finn navn</small>
+              </button>
+              <button type="button" data-view="graf">
+                <span>Sammenlign</span>
+                <small>Se kurver</small>
+              </button>
+              <button type="button" data-view="vurder">
+                <span>Vurder</span>
+                <small>Ett navn av gangen</small>
+              </button>
+            </div>
+          </section>
+
+          <section class="module homePopular">
+            <div class="sectionHead">
+              <div class="moduleHead">
+                <h2>Populære navn i nyeste år</h2>
+                <p>De vanligste navnene i siste tilgjengelige SSB-år.</p>
+              </div>
+              <span id="homePopularYear">-</span>
+            </div>
+            <div class="homePopularGrid">
+              <div>
+                <h3>Jentenavn</h3>
+                <div id="homePopularGirls" class="homePopularList"></div>
+              </div>
+              <div>
+                <h3>Guttenavn</h3>
+                <div id="homePopularBoys" class="homePopularList"></div>
+              </div>
+            </div>
+            <button type="button" class="wideLink" data-view="finn">Se flere navn</button>
+          </section>
+
+          <section class="module homeLists">
+            <div class="moduleHead">
+              <h2>Dine lister</h2>
+              <p>Fortsett der du slapp, eller gå rett til vurdering.</p>
+            </div>
+            <div class="homeListCards">
+              <button type="button" data-view="graf">
+                <span>Arbeidsutvalg</span>
+                <strong id="homeSelectedCount">0</strong>
+              </button>
+              <button type="button" data-view="vurder">
+                <span>Aktuelle</span>
+                <strong id="homeShortlistCount">0</strong>
+              </button>
+              <button type="button" data-view="vurder">
+                <span>Uaktuelle</span>
+                <strong id="homeRejectedCount">0</strong>
+              </button>
+            </div>
+          </section>
+        </section>
 
         <section id="finnView" class="viewPanel" hidden>
           <div class="functionGrid finGrid">
@@ -536,67 +603,72 @@
               <button id="reviewUndo" type="button" aria-label="Angre siste vurdering" title="Angre siste vurdering">Angre</button>
             </div>
           </div>
-        </section>
 
-        <section id="aktuelleView" class="viewPanel module listPanel" hidden>
-          <div class="candidateHead">
-            <div class="moduleHead">
-              <h2>Aktuelle</h2>
-              <p>Navn som fortsatt er aktuelle. Listen er separat fra utvalget i Utforsk.</p>
+          <section class="module listPanel mineNavnPanel">
+            <div class="candidateHead">
+              <div class="moduleHead">
+                <h2>Mine navn</h2>
+                <p>Arbeidsutvalg, aktuelle og uaktuelle navn samlet under vurderingsflyten.</p>
+              </div>
+              <div class="inlineActions">
+                <button id="showShortlistInChart" type="button">Sammenlign aktuelle</button>
+                <button id="clearShortlist" type="button">Tøm aktuelle</button>
+              </div>
             </div>
-            <div class="inlineActions">
-              <button id="showShortlistInChart" type="button">Vis i Utforsk</button>
-              <button id="clearShortlist" type="button">Tøm aktuelle</button>
+            <section class="backupPanel" aria-label="Sikkerhetskopi av navnevalg">
+              <div>
+                <h3>Sikkerhetskopi</h3>
+                <p>Eksporter aktuelle og uaktuelle navn som JSON eller CSV. Import slår sammen og overstyrer ved kollisjon.</p>
+              </div>
+              <div class="backupActions">
+                <button id="statusBackupExport" type="button">Eksporter JSON</button>
+                <button id="statusCsvExport" type="button">Eksporter CSV</button>
+                <button id="statusBackupImport" type="button">Importer JSON</button>
+                <input id="statusImportInput" type="file" accept="application/json,.json" hidden />
+              </div>
+              <p id="statusBackupMessage" class="backupMessage" role="status" aria-live="polite"></p>
+            </section>
+            <div class="mineNavnGrid">
+              <section>
+                <h3>Arbeidsutvalg <span id="mineSelectedCount">0</span></h3>
+                <div id="mineSelectedList" class="miniNameList"></div>
+              </section>
+              <section>
+                <h3>Aktuelle <span id="shortlistTabCount">0</span></h3>
+                <div class="tableWrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Navn</th>
+                        <th>Kjønn</th>
+                        <th>Toppår</th>
+                        <th>Maks</th>
+                        <th>Handling</th>
+                      </tr>
+                    </thead>
+                    <tbody id="shortlistTable"></tbody>
+                  </table>
+                </div>
+              </section>
+              <section>
+                <h3>Uaktuelle <span id="rejectedTabCount">0</span></h3>
+                <div class="tableWrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Navn</th>
+                        <th>Kjønn</th>
+                        <th>Toppår</th>
+                        <th>Maks</th>
+                        <th>Handling</th>
+                      </tr>
+                    </thead>
+                    <tbody id="rejectedTable"></tbody>
+                  </table>
+                </div>
+              </section>
             </div>
-          </div>
-          <section class="backupPanel" aria-label="Sikkerhetskopi av navnevalg">
-            <div>
-              <h3>Sikkerhetskopi</h3>
-              <p>Eksporter aktuelle og uaktuelle navn som JSON eller CSV. Import slår sammen og overstyrer ved kollisjon.</p>
-            </div>
-            <div class="backupActions">
-              <button id="statusBackupExport" type="button">Eksporter JSON</button>
-              <button id="statusCsvExport" type="button">Eksporter CSV</button>
-              <button id="statusBackupImport" type="button">Importer JSON</button>
-              <input id="statusImportInput" type="file" accept="application/json,.json" hidden />
-            </div>
-            <p id="statusBackupMessage" class="backupMessage" role="status" aria-live="polite"></p>
           </section>
-          <div class="tableWrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Navn</th>
-                  <th>Kjønn</th>
-                  <th>Toppår</th>
-                  <th>Maks</th>
-                  <th>Handling</th>
-                </tr>
-              </thead>
-              <tbody id="shortlistTable"></tbody>
-            </table>
-          </div>
-        </section>
-
-        <section id="uaktuelleView" class="viewPanel module listPanel" hidden>
-          <div class="moduleHead">
-            <h2>Uaktuelle</h2>
-            <p>Navn som skjules fra standardutforsking. De kan hentes tilbake når som helst.</p>
-          </div>
-          <div class="tableWrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Navn</th>
-                  <th>Kjønn</th>
-                  <th>Toppår</th>
-                  <th>Maks</th>
-                  <th>Handling</th>
-                </tr>
-              </thead>
-              <tbody id="rejectedTable"></tbody>
-            </table>
-          </div>
         </section>
       </section>
     </main>

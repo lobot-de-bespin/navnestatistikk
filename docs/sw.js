@@ -1,4 +1,4 @@
-const CACHE_VERSION = "2026-06-24.2";
+const CACHE_VERSION = "2026-07-22.1";
 const CACHE_PREFIX = "navnestatistikk-pwa";
 const CACHE_NAME = `${CACHE_PREFIX}-${CACHE_VERSION}`;
 
@@ -6,6 +6,7 @@ const SHELL_PATHS = [
   "./",
   "./index.html",
   "./styles.css",
+  "./mobile-redesign.css",
   "./app.js",
   "./sw.js",
   "./manifest.webmanifest",

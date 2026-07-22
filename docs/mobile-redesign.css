@@ -1,0 +1,812 @@
+:root {
+  color-scheme: light;
+  --bg: #fbf7ef;
+  --panel: #fffdf8;
+  --text: #10233f;
+  --muted: #667085;
+  --line: #eadfce;
+  --line-strong: #dccbb4;
+  --accent: #146c61;
+  --accent-dark: #0d514a;
+  --accent-soft: #e4f2ed;
+  --warm: #bf6b35;
+  --shadow: 0 16px 42px rgba(16, 35, 63, 0.12);
+  --shadow-soft: 0 8px 24px rgba(16, 35, 63, 0.08);
+}
+
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  background:
+    linear-gradient(180deg, rgba(255, 253, 248, 0.88), rgba(251, 247, 239, 0) 240px),
+    var(--bg);
+  color: var(--text);
+}
+
+button,
+input,
+select {
+  max-width: 100%;
+}
+
+button {
+  border-color: rgba(20, 108, 97, 0.18);
+  background: #fffdf8;
+  color: var(--text);
+  font-weight: 720;
+}
+
+button:hover {
+  border-color: rgba(20, 108, 97, 0.46);
+}
+
+button.active,
+button.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+input,
+select {
+  border-color: var(--line);
+  background: #fffefb;
+}
+
+.topbar {
+  border-bottom-color: rgba(234, 223, 206, 0.9);
+  background: rgba(255, 253, 248, 0.88);
+  color: var(--text);
+}
+
+.topbar h1,
+h2,
+h3,
+.moduleHead label,
+label {
+  color: var(--text);
+}
+
+.source a,
+.linkButton {
+  color: var(--accent-dark);
+}
+
+.content {
+  width: min(100%, 1220px);
+  margin: 0 auto;
+}
+
+.module {
+  min-width: 0;
+  border-color: rgba(220, 203, 180, 0.85);
+  border-radius: 18px;
+  background: rgba(255, 253, 248, 0.92);
+  box-shadow: var(--shadow-soft);
+}
+
+.sidebarModule,
+.selectedPanel,
+.chartControls,
+.summary,
+.schoolPanel,
+.tablePanel,
+.candidatePanel,
+.similarPanel,
+.chartModule,
+.listPanel {
+  padding: 16px;
+}
+
+.tabs {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.tabs button {
+  border-radius: 14px;
+}
+
+.homeView {
+  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+  align-items: start;
+}
+
+.homeHero,
+.homePopular,
+.homeLists {
+  padding: 20px;
+}
+
+.homeHero {
+  grid-row: span 2;
+  display: grid;
+  gap: 18px;
+  align-content: start;
+  min-height: 390px;
+  background:
+    radial-gradient(circle at 82% 18%, rgba(191, 107, 53, 0.14), transparent 34%),
+    linear-gradient(145deg, #fffdf8 0%, #f7efe1 100%);
+}
+
+.appMascot {
+  width: 72px;
+  height: 72px;
+  border-radius: 24px;
+  background:
+    linear-gradient(135deg, rgba(20, 108, 97, 0.9), rgba(16, 35, 63, 0.92)),
+    var(--accent);
+  box-shadow: 0 14px 28px rgba(16, 35, 63, 0.16);
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: var(--accent-dark);
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.homeHero h2 {
+  margin: 0;
+  max-width: 11ch;
+  font-size: clamp(2.2rem, 7vw, 4.2rem);
+  line-height: 0.98;
+}
+
+.homeHero p:not(.eyebrow) {
+  max-width: 34rem;
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 1.04rem;
+}
+
+.homeActionGrid,
+.homeListCards,
+.homePopularGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.homeActionGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.homeActionGrid button,
+.homeListCards button,
+.popularRow,
+.miniNameRow,
+.nameCard {
+  border: 1px solid rgba(220, 203, 180, 0.82);
+  border-radius: 16px;
+  background: #fffefb;
+  box-shadow: 0 6px 18px rgba(16, 35, 63, 0.06);
+}
+
+.homeActionGrid button,
+.homeListCards button {
+  display: grid;
+  gap: 3px;
+  justify-items: start;
+  min-height: 76px;
+  padding: 14px;
+  text-align: left;
+}
+
+.homeActionGrid small,
+.homeListCards span,
+.popularRow em,
+.miniNameRow span {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-style: normal;
+  font-weight: 650;
+}
+
+.homeListCards {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.homeListCards strong {
+  color: var(--accent-dark);
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.homePopularGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.homePopularGrid h3,
+.mineNavnGrid h3,
+.backupPanel h3 {
+  margin: 0 0 10px;
+  font-size: 0.92rem;
+}
+
+.homePopularList {
+  display: grid;
+  gap: 8px;
+}
+
+.popularRow,
+.miniNameRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(72px, 0.5fr) auto;
+  gap: 9px;
+  align-items: center;
+  min-height: 52px;
+  padding: 9px 10px;
+}
+
+.popularRow span:first-child {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-size: 0.78rem;
+}
+
+.popularRow strong,
+.miniNameRow strong,
+.resultItem > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.wideLink {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.resultList {
+  display: grid;
+  gap: 10px;
+  border: 0;
+  background: transparent;
+}
+
+.resultItem {
+  grid-template-columns: auto minmax(0, 1fr) minmax(82px, 0.35fr);
+  gap: 6px 10px;
+  padding: 12px;
+  border-bottom: 0;
+}
+
+.resultItem input[type="checkbox"] {
+  grid-row: 1 / 4;
+  align-self: start;
+  margin-top: 4px;
+}
+
+.resultItem > span:not(.sparklineWrap) {
+  font-size: 1.03rem;
+  font-weight: 850;
+}
+
+.resultItem small:not(.selectionState) {
+  grid-column: 2 / 3;
+}
+
+.sparklineWrap {
+  grid-column: 3;
+  grid-row: 1 / 3;
+  align-self: center;
+  min-width: 0;
+}
+
+.sparkline {
+  display: block;
+  width: 100%;
+  min-width: 64px;
+  height: 28px;
+}
+
+.selectionState,
+.rowActions {
+  grid-column: 2 / -1;
+}
+
+.rowActions button,
+.inlineActions button,
+.topNBulkActions button,
+.decisionBar button {
+  border-radius: 12px;
+}
+
+.chart {
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+.reviewModeShell {
+  max-width: min(100%, 1060px);
+}
+
+.reviewModeTop,
+.reviewStage,
+.reviewCard,
+.backupPanel,
+.tableWrap,
+.stat {
+  border-radius: 18px;
+}
+
+.reviewStage {
+  background:
+    radial-gradient(circle at 30% 16%, rgba(20, 108, 97, 0.13), transparent 34%),
+    linear-gradient(180deg, #fffaf1 0%, #f1e7d8 100%);
+}
+
+.reviewCard {
+  border-color: rgba(220, 203, 180, 0.9);
+  background: #fffefb;
+  color: var(--text);
+}
+
+.reviewCard dl > div,
+.stat {
+  border-color: rgba(220, 203, 180, 0.72);
+  background: #fffaf1;
+}
+
+.reviewActions button {
+  border-radius: 16px;
+}
+
+.mineNavnPanel {
+  margin-top: 4px;
+}
+
+.mineNavnGrid {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.75fr) repeat(2, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.miniNameList {
+  display: grid;
+  gap: 8px;
+}
+
+.miniNameRow {
+  grid-template-columns: minmax(0, 1fr) minmax(82px, 0.45fr);
+}
+
+.miniNameRow span {
+  grid-column: 1;
+}
+
+.miniNameRow .sparkline {
+  min-width: 82px;
+}
+
+@media (max-width: 980px) {
+  .content {
+    width: 100%;
+  }
+
+  .homeView,
+  .mineNavnGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .homeHero {
+    grid-row: auto;
+    min-height: 0;
+  }
+}
+
+@media (max-width: 780px) {
+  :root {
+    --shell-bottom-space: 86px;
+  }
+
+  body {
+    background:
+      linear-gradient(180deg, rgba(255, 253, 248, 0.92), rgba(251, 247, 239, 0) 220px),
+      #fbf7ef;
+  }
+
+  .topbar,
+  body.mobileShell .topbar {
+    display: none;
+  }
+
+  .layout,
+  body.mobileShell .layout {
+    min-height: 100dvh;
+  }
+
+  .content,
+  body.mobileShell .content {
+    gap: 12px;
+    padding:
+      12px
+      max(12px, env(safe-area-inset-right))
+      calc(18px + env(safe-area-inset-bottom) + var(--shell-bottom-space))
+      max(12px, env(safe-area-inset-left));
+  }
+
+  .module,
+  .homeActionGrid button,
+  .homeListCards button,
+  .popularRow,
+  .miniNameRow,
+  .nameCard {
+    border-radius: 20px;
+  }
+
+  .tabs,
+  body.mobileShell .tabs {
+    position: fixed;
+    right: max(10px, env(safe-area-inset-right));
+    bottom: max(10px, env(safe-area-inset-bottom));
+    left: max(10px, env(safe-area-inset-left));
+    z-index: 70;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    width: auto;
+    max-width: none;
+    margin: 0;
+    padding: 7px;
+    border: 1px solid rgba(220, 203, 180, 0.9);
+    border-radius: 26px;
+    background: rgba(255, 253, 248, 0.9);
+    box-shadow: 0 18px 40px rgba(16, 35, 63, 0.18);
+    backdrop-filter: saturate(1.15) blur(18px);
+  }
+
+  .tabs button,
+  body.mobileShell .tabs button {
+    display: grid;
+    place-items: center;
+    min-width: 0;
+    min-height: 54px;
+    padding: 0 2px;
+    border: 0;
+    border-radius: 20px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.72rem;
+    line-height: 1.05;
+  }
+
+  .tabs button.active,
+  body.mobileShell .tabs button.active {
+    background: var(--text);
+    color: #fff;
+  }
+
+  .tabIcon {
+    width: 22px;
+    height: 22px;
+    margin: 0 0 3px;
+    border-radius: 10px;
+    background: currentColor;
+    opacity: 0.9;
+    -webkit-mask: radial-gradient(circle at 50% 50%, #000 52%, transparent 54%);
+    mask: radial-gradient(circle at 50% 50%, #000 52%, transparent 54%);
+  }
+
+  .tabs button:nth-child(1) .tabIcon {
+    -webkit-mask:
+      linear-gradient(#000 0 0) center 56% / 16px 12px no-repeat,
+      linear-gradient(135deg, transparent 49%, #000 50% 74%, transparent 75%) center 29% / 18px 18px no-repeat;
+    mask:
+      linear-gradient(#000 0 0) center 56% / 16px 12px no-repeat,
+      linear-gradient(135deg, transparent 49%, #000 50% 74%, transparent 75%) center 29% / 18px 18px no-repeat;
+  }
+
+  .tabs button:nth-child(2) .tabIcon {
+    -webkit-mask:
+      radial-gradient(circle, #000 58%, transparent 60%) 25% 22% / 8px 8px no-repeat,
+      radial-gradient(circle, #000 58%, transparent 60%) 72% 22% / 8px 8px no-repeat,
+      radial-gradient(circle, #000 58%, transparent 60%) 25% 75% / 8px 8px no-repeat,
+      radial-gradient(circle, #000 58%, transparent 60%) 72% 75% / 8px 8px no-repeat;
+    mask:
+      radial-gradient(circle, #000 58%, transparent 60%) 25% 22% / 8px 8px no-repeat,
+      radial-gradient(circle, #000 58%, transparent 60%) 72% 22% / 8px 8px no-repeat,
+      radial-gradient(circle, #000 58%, transparent 60%) 25% 75% / 8px 8px no-repeat,
+      radial-gradient(circle, #000 58%, transparent 60%) 72% 75% / 8px 8px no-repeat;
+  }
+
+  .tabs button:nth-child(3) .tabIcon {
+    -webkit-mask:
+      linear-gradient(#000 0 0) 10% 75% / 4px 9px no-repeat,
+      linear-gradient(#000 0 0) 39% 50% / 4px 14px no-repeat,
+      linear-gradient(#000 0 0) 68% 28% / 4px 19px no-repeat;
+    mask:
+      linear-gradient(#000 0 0) 10% 75% / 4px 9px no-repeat,
+      linear-gradient(#000 0 0) 39% 50% / 4px 14px no-repeat,
+      linear-gradient(#000 0 0) 68% 28% / 4px 19px no-repeat;
+  }
+
+  .tabs button:nth-child(4) .tabIcon {
+    -webkit-mask:
+      radial-gradient(circle, #000 62%, transparent 64%) center 30% / 11px 11px no-repeat,
+      linear-gradient(#000 0 0) center 74% / 17px 8px no-repeat;
+    mask:
+      radial-gradient(circle, #000 62%, transparent 64%) center 30% / 11px 11px no-repeat,
+      linear-gradient(#000 0 0) center 74% / 17px 8px no-repeat;
+  }
+
+  .homeView {
+    gap: 12px;
+  }
+
+  .homeHero,
+  .homePopular,
+  .homeLists {
+    padding: 16px;
+  }
+
+  .homeHero h2 {
+    max-width: 12ch;
+    font-size: clamp(2rem, 10vw, 2.85rem);
+  }
+
+  .homeHero p:not(.eyebrow) {
+    font-size: 0.98rem;
+  }
+
+  .homeActionGrid,
+  .homePopularGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .homeActionGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .homeActionGrid {
+    gap: 10px;
+  }
+
+  .homeActionGrid button,
+  .homeListCards button {
+    min-height: 74px;
+    padding: 12px 10px;
+  }
+
+  .homeActionGrid button span {
+    font-size: 0.92rem;
+    line-height: 1.05;
+    overflow-wrap: anywhere;
+  }
+
+  .homeActionGrid button small {
+    font-size: 0.74rem;
+    line-height: 1.2;
+  }
+
+  .homeListCards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .homeListCards button {
+    padding: 11px;
+  }
+
+  .homeListCards strong {
+    font-size: 1.6rem;
+  }
+
+  .statusStrip,
+  body.mobileShell .statusStrip {
+    display: none;
+  }
+
+  .searchRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .quickFilters,
+  .listActions {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  .quickFilters::-webkit-scrollbar,
+  .listActions::-webkit-scrollbar {
+    display: none;
+  }
+
+  .quickFilters button,
+  .listActions button {
+    flex: 0 0 auto;
+  }
+
+  .resultList {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .resultItem {
+    grid-template-columns: auto minmax(0, 1fr) minmax(72px, 26%);
+    padding: 12px;
+  }
+
+  .rowActions {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .rowActions::-webkit-scrollbar {
+    display: none;
+  }
+
+  .rowActions button {
+    flex: 0 0 auto;
+  }
+
+  .toolbar,
+  .candidateFilters,
+  .similarControls,
+  .reviewControls,
+  .reviewCard dl,
+  .schoolControls {
+    grid-template-columns: 1fr;
+  }
+
+  .below {
+    gap: 12px;
+  }
+
+  .tableWrap {
+    max-width: 100%;
+  }
+
+  .reviewModeActive .topbar,
+  body.mobileShell.reviewModeActive .topbar {
+    display: none;
+  }
+
+  .reviewPanel {
+    min-height: auto;
+  }
+
+  .reviewModeShell,
+  body.mobileShell .reviewModeShell,
+  body.mobileShell.reviewModeActive .reviewModeShell {
+    min-height: calc(100dvh - var(--shell-bottom-space) - 24px);
+    grid-template-rows: auto minmax(330px, 1fr) auto;
+    gap: 12px;
+  }
+
+  .reviewModeTop {
+    padding: 14px;
+  }
+
+  .reviewHeading .moduleHead p {
+    display: none;
+  }
+
+  .reviewDeckMeta {
+    font-size: 0.84rem;
+    line-height: 1.35;
+  }
+
+  .reviewControls {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .reviewControls > div {
+    grid-column: 1 / 2;
+  }
+
+  .reviewShuffle {
+    grid-column: 1 / 2;
+    min-height: 30px;
+  }
+
+  #buildReviewDeck {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    align-self: stretch;
+    min-height: 0;
+    padding: 0 16px;
+  }
+
+  .reviewProgress {
+    grid-column: 1 / -1;
+    min-height: 30px;
+  }
+
+  .reviewStage {
+    min-height: min(58vh, 430px);
+    padding: 12px;
+  }
+
+  .reviewCard,
+  body.mobileShell.reviewModeActive .reviewCard {
+    width: min(100%, calc(100vw - 48px));
+    min-height: min(390px, 54vh);
+    padding: 22px;
+  }
+
+  .reviewCard h3 {
+    font-size: clamp(2.55rem, 15vw, 4.4rem);
+  }
+
+  .reviewActions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .reviewActions button {
+    min-height: 52px;
+  }
+
+  .mineNavnGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .topbar,
+  body.mobileShell .topbar {
+    padding:
+      calc(12px + env(safe-area-inset-top))
+      max(12px, env(safe-area-inset-right))
+      10px
+      max(12px, env(safe-area-inset-left));
+  }
+
+  .source {
+    font-size: 0.72rem;
+  }
+
+  .moduleHead h2,
+  .moduleHead label {
+    font-size: 0.98rem;
+  }
+
+  .homeListCards {
+    grid-template-columns: 1fr;
+  }
+
+  .popularRow {
+    grid-template-columns: auto minmax(0, 1fr) minmax(64px, 22%);
+  }
+
+  .popularRow em {
+    grid-column: 2 / -1;
+  }
+
+  .resultItem {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .sparklineWrap {
+    grid-column: 2;
+    grid-row: auto;
+  }
+
+  .selectionState,
+  .rowActions {
+    grid-column: 2;
+  }
+
+  .decisionBar {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .backupActions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}

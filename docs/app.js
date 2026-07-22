@@ -62,7 +62,7 @@ const state = {
 
 const els = {};
 const STATUS_STORAGE_KEY = "navnestatistikk:nameStatus:v1";
-const SW_VERSION = "2026-07-22.9";
+const SW_VERSION = "2026-07-22.10";
 const SIMILAR_METHOD_LABELS = {
   pearson: "Form",
   euclidean: "Skalert avstand",
@@ -133,10 +133,20 @@ document.addEventListener("DOMContentLoaded", () => {
     "homeSelectedCount",
     "homeShortlistCount",
     "homeRejectedCount",
+    "homeJourneyText",
+    "journeyExplore",
+    "journeyDiscover",
+    "journeyCompare",
+    "journeyReview",
+    "journeyChoose",
+    "homeNextAction",
     "mobileNameCount",
     "finnView",
     "grafView",
     "vurderView",
+    "discoverCount",
+    "discoverReferenceName",
+    "discoverCards",
     "mineSelectedCount",
     "mineSelectedList",
     "reviewSource",
@@ -558,7 +568,7 @@ async function loadData() {
   els.topNYear.value = state.topNYear;
   restoreFromUrl();
   els.dataStatus.textContent = `Navnedata: ${state.nameFromYear}-${state.nameToYear}, bygget ${state.data.meta.builtAt.slice(0, 10)}`;
-  updateMatches(true);
+  updateMatches(false);
   setActiveView(state.activeView);
 }
 
@@ -649,6 +659,7 @@ function updateMatches(autoSelect = false) {
 
 function renderAll() {
   renderResults();
+  renderDiscover();
   renderSelected();
   renderChart();
   renderSimilar();
@@ -670,6 +681,7 @@ function setActiveView(view) {
     if (!panel) return;
     panel.hidden = panel.id !== `${view}View`;
   });
+  window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   if (view === "vurder" && !state.review.deck.length && state.review.autoBuild) buildReviewDeck(false);
   renderStatusViews();
   renderReviewCard();
@@ -698,6 +710,44 @@ function renderHome() {
   if (els.mobileNameCount) els.mobileNameCount.textContent = formatNumber(state.data.names.length);
   renderPopularList(els.homePopularGirls, "jente");
   renderPopularList(els.homePopularBoys, "gutt");
+  renderJourney(selected.length, shortlist.length, rejected.length);
+}
+
+function renderJourney(selectedCount, shortlistCount, rejectedCount) {
+  const reviewedCount = shortlistCount + rejectedCount;
+  const stage =
+    shortlistCount > 0 ? "choose" :
+    reviewedCount > 0 ? "review" :
+    selectedCount >= 2 ? "compare" :
+    selectedCount > 0 ? "discover" :
+    "explore";
+  const copy = {
+    explore: ["Start med å finne noen navn du liker.", "Utforsk", "finn"],
+    discover: ["Du har et navn å bygge videre fra. Se lignende navn og utvid listen.", "Oppdag flere", "finn"],
+    compare: ["Arbeidsutvalget er klart for sammenligning før du vurderer.", "Sammenlign", "graf"],
+    review: ["Noen navn er vurdert. Fortsett til listen føles ryddig.", "Fortsett vurdering", "vurder"],
+    choose: ["Du har aktuelle navn. Sammenlign dem og snevre inn mot valget.", "Se aktuelle", "vurder"],
+  }[stage];
+  if (els.homeJourneyText) els.homeJourneyText.textContent = copy[0];
+  if (els.homeNextAction) {
+    els.homeNextAction.textContent = copy[1];
+    els.homeNextAction.dataset.view = copy[2];
+  }
+  [
+    ["journeyExplore", "explore"],
+    ["journeyDiscover", "discover"],
+    ["journeyCompare", "compare"],
+    ["journeyReview", "review"],
+    ["journeyChoose", "choose"],
+  ].forEach(([id, key]) => {
+    if (!els[id]) return;
+    els[id].classList.toggle("active", key === stage);
+    els[id].classList.toggle("done", journeyOrder(key) < journeyOrder(stage));
+  });
+}
+
+function journeyOrder(stage) {
+  return ["explore", "discover", "compare", "review", "choose"].indexOf(stage);
 }
 
 function renderPopularList(container, sex) {
@@ -845,6 +895,92 @@ function renderResults() {
     fragment.append(label);
   });
   els.resultList.append(fragment);
+}
+
+function renderDiscover() {
+  if (!els.discoverCards || !state.data) return;
+  const reference = discoverReferenceItem();
+  if (!reference) {
+    if (els.discoverReferenceName) els.discoverReferenceName.textContent = "første treff";
+    if (els.discoverCount) els.discoverCount.textContent = "0 forslag";
+    els.discoverCards.innerHTML = '<p class="emptyState">Søk etter et navn eller legg et navn i arbeidsutvalget for å få forslag.</p>';
+    return;
+  }
+  const rows = discoverRows(reference).slice(0, 6);
+  if (els.discoverReferenceName) els.discoverReferenceName.textContent = reference.name;
+  if (els.discoverCount) els.discoverCount.textContent = `${formatNumber(rows.length)} forslag`;
+  if (!rows.length) {
+    els.discoverCards.innerHTML = '<p class="emptyState">Fant ingen gode forslag fra dette navnet.</p>';
+    return;
+  }
+  els.discoverCards.innerHTML = "";
+  const fragment = document.createDocumentFragment();
+  rows.forEach((row) => {
+    const item = row.item;
+    const card = document.createElement("article");
+    card.className = "discoverCard";
+    const latestCount = countInYear(item, state.nameToYear);
+    card.innerHTML = `
+      <div>
+        <strong>${escapeHtml(item.name)} <span class="sexMark ${item.sex}">${item.sex === "jente" ? "♀" : "♂"}</span></strong>
+        <small>${formatDecimal(row.similarity * 100, 0)} % lignende kurve · toppår ${item.peakYear}</small>
+      </div>
+      ${sparklineSvg(item)}
+      <span>${latestCount ? formatNumber(latestCount) : "–"} i ${state.nameToYear}</span>
+    `;
+    const actions = document.createElement("div");
+    actions.className = "discoverActions";
+    const add = document.createElement("button");
+    add.type = "button";
+    add.textContent = state.selected.has(item.id) ? "Lagt til" : "Legg til";
+    add.className = state.selected.has(item.id) ? "active" : "";
+    add.addEventListener("click", () => {
+      state.selected.add(item.id);
+      renderAll();
+    });
+    const compare = document.createElement("button");
+    compare.type = "button";
+    compare.textContent = "Sammenlign";
+    compare.addEventListener("click", () => {
+      state.selected.add(reference.id);
+      state.selected.add(item.id);
+      setActiveView("graf");
+      renderAll();
+    });
+    actions.append(add, compare);
+    card.append(actions);
+    fragment.append(card);
+  });
+  els.discoverCards.append(fragment);
+}
+
+function discoverReferenceItem() {
+  return selectedItems()[0] || state.matches[0] || null;
+}
+
+function discoverRows(reference) {
+  const previous = {
+    method: state.similar.method,
+    metric: state.similar.metric,
+    smooth: state.similar.smooth,
+    fromYear: state.similar.fromYear,
+    toYear: state.similar.toYear,
+  };
+  state.similar.method = "pearson";
+  state.similar.metric = "shareSex";
+  state.similar.smooth = 3;
+  state.similar.fromYear = Math.max(1945, state.nameFromYear);
+  state.similar.toYear = state.nameToYear;
+  const referenceSeries = comparableSeries(reference, "shareSex");
+  const rows = state.data.names
+    .filter((item) => item.id !== reference.id)
+    .filter((item) => item.sex === reference.sex)
+    .filter((item) => state.showRejected || statusOf(item.id) !== "rejected")
+    .map((item) => similarityRow(referenceSeries, item))
+    .filter(Boolean)
+    .sort((a, b) => b.similarity - a.similarity || a.item.name.localeCompare(b.item.name, "no"));
+  Object.assign(state.similar, previous);
+  return rows;
 }
 
 function topTenLabel(item) {

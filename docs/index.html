@@ -128,6 +128,21 @@
             </div>
           </section>
 
+          <section class="module homeJourney">
+            <div class="moduleHead">
+              <h2>Reisen din</h2>
+              <p id="homeJourneyText">Start med å finne noen navn du liker.</p>
+            </div>
+            <div class="journeyTrack" aria-label="Arbeidsflyt">
+              <span id="journeyExplore" class="active">Utforsk</span>
+              <span id="journeyDiscover">Oppdag</span>
+              <span id="journeyCompare">Sammenlign</span>
+              <span id="journeyReview">Vurder</span>
+              <span id="journeyChoose">Velg</span>
+            </div>
+            <button id="homeNextAction" type="button" class="wideLink" data-view="finn">Fortsett</button>
+          </section>
+
           <section class="module homePopular">
             <div class="sectionHead">
               <div class="moduleHead">
@@ -219,6 +234,21 @@
                   <button type="button" data-sex="jente">Jente</button>
                   <button type="button" data-sex="gutt">Gutt</button>
                 </div>
+              </section>
+
+              <section class="module sidebarModule discoverModule">
+                <div class="sectionHead">
+                  <div class="moduleHead">
+                    <h2>Oppdag lignende navn</h2>
+                    <p>Forslag basert på historisk navneutvikling og popularitet.</p>
+                  </div>
+                  <span id="discoverCount">0 forslag</span>
+                </div>
+                <div class="discoverReference">
+                  <span>Tar utgangspunkt i</span>
+                  <strong id="discoverReferenceName">første treff</strong>
+                </div>
+                <div id="discoverCards" class="discoverCards" aria-label="Lignende navn"></div>
               </section>
 
               <section class="module sidebarModule">

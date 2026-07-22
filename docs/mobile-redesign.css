@@ -168,7 +168,8 @@ label {
 
 .homeHero,
 .homePopular,
-.homeLists {
+.homeLists,
+.homeJourney {
   padding: 20px;
 }
 
@@ -282,6 +283,125 @@ label {
 .homePopularList {
   display: grid;
   gap: 8px;
+}
+
+.homeJourney {
+  display: grid;
+  gap: 14px;
+}
+
+.journeyTrack {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.journeyTrack span {
+  display: grid;
+  place-items: center;
+  min-height: 36px;
+  padding: 0 8px;
+  border: 1px solid rgba(226, 214, 199, 0.85);
+  border-radius: 999px;
+  background: #fffefd;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 780;
+  text-align: center;
+}
+
+.journeyTrack span.done {
+  background: #edf7ef;
+  color: #2f7848;
+}
+
+.journeyTrack span.active {
+  border-color: rgba(34, 106, 167, 0.34);
+  background: #edf4ff;
+  color: #174f84;
+}
+
+.discoverModule {
+  display: grid;
+  gap: 14px;
+}
+
+.discoverReference {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: #f6f9ff;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.discoverReference strong {
+  color: #10223f;
+}
+
+.discoverCards {
+  display: grid;
+  gap: 10px;
+}
+
+.discoverCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 108px;
+  gap: 8px 12px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid rgba(226, 214, 199, 0.78);
+  border-radius: 18px;
+  background: #fffefd;
+  box-shadow: 0 8px 20px rgba(16, 35, 63, 0.06);
+}
+
+.discoverCard strong {
+  display: block;
+  font-size: 1.05rem;
+}
+
+.discoverCard small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+
+.discoverCard .sparkline {
+  width: 108px;
+  height: 42px;
+}
+
+.discoverCard > span {
+  grid-column: 1;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 720;
+}
+
+.discoverActions {
+  display: flex;
+  gap: 8px;
+  grid-column: 1 / -1;
+}
+
+.discoverActions button {
+  flex: 1 1 0;
+  min-height: 36px;
+  border-radius: 14px;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.discoverActions button.active,
+.discoverActions button:first-child {
+  background: #edf4ff;
+  color: #174f84;
 }
 
 .popularRow,
@@ -1848,7 +1968,16 @@ label {
   }
 
   body.mobileShell #grafView .selectedPanel {
+    order: 2;
     padding: 14px;
+  }
+
+  body.mobileShell #grafView .chartModule {
+    order: 1;
+  }
+
+  body.mobileShell #grafView .chartControls {
+    order: 3;
   }
 
   body.mobileShell #grafView .selectedPanel .moduleHead p {
@@ -1877,5 +2006,42 @@ label {
 
   body.mobileShell .chart {
     height: min(46vh, 350px);
+  }
+
+  body.mobileShell .homeJourney {
+    order: 2;
+  }
+
+  body.mobileShell .homePopular {
+    order: 3;
+  }
+
+  body.mobileShell .homeLists {
+    order: 4;
+  }
+
+  body.mobileShell .journeyTrack {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 5px;
+  }
+
+  body.mobileShell .journeyTrack span {
+    min-width: 0;
+    min-height: 34px;
+    padding: 0 3px;
+    font-size: 0.62rem;
+  }
+
+  body.mobileShell .discoverCard {
+    grid-template-columns: minmax(0, 1fr) 92px;
+  }
+
+  body.mobileShell .discoverCard .sparkline {
+    width: 92px;
+  }
+
+  body.mobileShell.reviewModeActive .mineNavnPanel {
+    border-style: dashed;
+    background: rgba(255, 253, 248, 0.76);
   }
 }

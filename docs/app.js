@@ -62,7 +62,7 @@ const state = {
 
 const els = {};
 const STATUS_STORAGE_KEY = "navnestatistikk:nameStatus:v1";
-const SW_VERSION = "2026-07-22.7";
+const SW_VERSION = "2026-07-22.8";
 const SIMILAR_METHOD_LABELS = {
   pearson: "Form",
   euclidean: "Skalert avstand",
@@ -1070,9 +1070,9 @@ function renderReviewCard() {
   els.reviewCard.className = "reviewCard";
   els.reviewCard.innerHTML = `
     <div class="reviewMeta">${reviewProgressLabel(currentNumber, total, remaining)}</div>
-    <button type="button" class="reviewHeart" aria-label="Legg i arbeidsutvalg">♡</button>
+    <button type="button" class="reviewHeart" aria-label="Legg i arbeidsutvalg"><svg class="buttonIcon"><use href="#icon-heart"></use></svg></button>
     <h3>${escapeHtml(item.name)} <span class="sexMark ${item.sex}">${item.sex === "jente" ? "♀" : "♂"}</span></h3>
-    <p class="trendPill">↗ ${trendCopy(item)}</p>
+    <p class="trendPill"><svg class="inlineIcon"><use href="#icon-arrow-up-right"></use></svg>${trendCopy(item)}</p>
     <div class="reviewSpark">${sparklineSvg(item)}</div>
     <dl>
       <div><dt>Antall</dt><dd>${latestCount ? formatNumber(latestCount) : "–"}<small>${item.sex === "jente" ? "jenter" : "gutter"} i ${state.nameToYear}</small></dd></div>

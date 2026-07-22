@@ -24,6 +24,47 @@ body {
   overflow-x: hidden;
 }
 
+.iconSprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.tabIcon,
+.buttonIcon,
+.actionIcon,
+.bannerIcon,
+.inlineIcon {
+  display: block;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.buttonIcon {
+  width: 22px;
+  height: 22px;
+}
+
+.inlineIcon {
+  width: 16px;
+  height: 16px;
+}
+
+.actionIcon {
+  width: 26px;
+  height: 26px;
+}
+
+.bannerIcon {
+  width: 22px;
+  height: 22px;
+}
+
 body {
   background:
     linear-gradient(180deg, rgba(255, 253, 248, 0.88), rgba(251, 247, 239, 0) 240px),
@@ -1652,7 +1693,7 @@ label {
   }
 
   body.mobileShell.reviewModeActive .mineNavnPanel {
-    margin-top: 10px;
+    margin-top: 104px;
   }
 }
 
@@ -1692,5 +1733,110 @@ label {
 
   body.mobileShell.reviewModeActive .reviewPanel {
     padding-bottom: 188px;
+  }
+}
+
+@media (max-width: 780px) {
+  body.mobileShell .tabIcon {
+    width: 22px;
+    height: 22px;
+    margin: 0 0 3px;
+    border-radius: 0;
+    background: none !important;
+    -webkit-mask: none !important;
+    mask: none !important;
+  }
+
+  body.mobileShell .homeActionGrid button::before {
+    display: none !important;
+    content: none !important;
+  }
+
+  body.mobileShell .homeActionGrid .actionIcon {
+    display: block;
+    place-self: center;
+    width: 44px;
+    height: 44px;
+    margin-bottom: 7px;
+    padding: 10px;
+    border-radius: 999px;
+    background: #edf4ff;
+    color: #226aa7;
+  }
+
+  body.mobileShell .homeActionGrid button:nth-child(2) .actionIcon {
+    background: #eef8f0;
+    color: #4b9b69;
+  }
+
+  body.mobileShell .homeActionGrid button:nth-child(3) .actionIcon {
+    background: #fff1f6;
+    color: #ee6d99;
+  }
+
+  body.mobileShell .mobileScreenHead button {
+    font-size: 0;
+  }
+
+  body.mobileShell .mobileInfoBanner > span:first-child {
+    color: #226aa7;
+  }
+
+  body.mobileShell .trendPill {
+    display: inline-flex;
+    gap: 5px;
+    align-items: center;
+  }
+
+  body.mobileShell .reviewHeart {
+    color: #10223f;
+  }
+
+  body.mobileShell #finnView .listActions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+    padding-bottom: 0;
+  }
+
+  body.mobileShell #finnView .listActions button {
+    width: 100%;
+    min-height: 38px;
+  }
+
+  body.mobileShell #finnView .listActions button:nth-child(n + 3) {
+    display: none;
+  }
+
+  body.mobileShell #grafView .selectedPanel {
+    padding: 14px;
+  }
+
+  body.mobileShell #grafView .selectedPanel .moduleHead p {
+    display: none;
+  }
+
+  body.mobileShell #grafView .decisionBar {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin-bottom: 8px;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  body.mobileShell #grafView .decisionBar::-webkit-scrollbar {
+    display: none;
+  }
+
+  body.mobileShell #grafView .decisionBar button {
+    flex: 0 0 auto;
+    min-width: 112px;
+    min-height: 38px;
+    border-radius: 16px;
+  }
+
+  body.mobileShell .chart {
+    height: min(46vh, 350px);
   }
 }

@@ -2,7 +2,7 @@ const STATUS_STORAGE_KEY = "navnestatistikk:nameStatus:v1";
 const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
-const SW_VERSION = "2026-07-22.14";
+const SW_VERSION = "2026-07-22.15";
 
 const state = {
   data: null,
@@ -217,7 +217,15 @@ function renderExplore() {
   $("[data-popular-sex='gutt']")?.classList.toggle("active", state.popularSex === "gutt");
   const list = $("#popularList");
   if (!list) return;
-  const rows = state.query ? searchRows(state.query).slice(0, 10) : popularRows(state.popularSex, 5);
+  const hasQuery = state.query.length > 0;
+  const rows = hasQuery ? searchRows(state.query).slice(0, 10) : popularRows(state.popularSex, 5);
+  $("#exploreListTitle").textContent = hasQuery ? "Søkeresultater" : "Populære navn";
+  $("#popularSexToggle").hidden = hasQuery;
+  $("#openCandidateList").textContent = hasQuery ? "Filtrer" : "Se alle";
+  if (!rows.length) {
+    list.innerHTML = `<p class="mutedEmpty">Ingen navn matcher søket. Bruk Søk og filtre for mønstersøk.</p>`;
+    return;
+  }
   list.replaceChildren(...rows.map((item, index) => nameRow(item, { rank: index + 1, detail: true })));
 }
 
@@ -228,16 +236,11 @@ function setPopularSex(sex) {
 
 function searchRows(query) {
   const q = normalize(query);
-  let regex = null;
-  try {
-    regex = query && /[.*^$[\]|()?+{}\\]/.test(query) ? new RegExp(query, "i") : null;
-  } catch {
-    regex = null;
-  }
+  if (!q) return [];
   return state.data.names
     .filter((item) => state.filters.sex === "alle" || item.sex === state.filters.sex)
     .filter((item) => !state.status[item.id] || state.status[item.id] !== "rejected")
-    .filter((item) => (regex ? regex.test(item.name) : normalize(item.name).includes(q)))
+    .filter((item) => normalize(item.name).includes(q))
     .sort((a, b) => latestCount(b) - latestCount(a) || a.name.localeCompare(b.name, "no"));
 }
 
@@ -252,7 +255,7 @@ function popularRows(sex = "jente", limit = 10) {
 function renderRecentSearches() {
   const rail = $("#recentSearches");
   if (!rail) return;
-  const fallback = ["Nora", "Alma", "Eli", "a$"];
+  const fallback = ["Nora", "Alma", "Eli", "Oline"];
   rail.replaceChildren(...(state.recent.length ? state.recent : fallback).map((query) => {
     const button = document.createElement("button");
     button.type = "button";
@@ -268,7 +271,7 @@ function renderRecentSearches() {
 }
 
 function rememberSearch(query) {
-  if (query.length < 2) return;
+  if ((query.match(/[\p{L}\p{N}]/gu) || []).length < 2) return;
   state.recent = [query, ...state.recent.filter((item) => item.toLowerCase() !== query.toLowerCase())].slice(0, 8);
   localStorage.setItem(RECENT_STORAGE_KEY, JSON.stringify(state.recent));
 }
@@ -632,7 +635,9 @@ function undoDecision() {
   else state.status[last.id] = last.previous;
   if (last.wasSelected) state.selected.add(last.id);
   else state.selected.delete(last.id);
-  state.review.index = last.index;
+  const work = [...state.selected].filter((id) => id !== last.id && !state.status[id]);
+  state.review.deck = [last.id, ...work];
+  state.review.index = 0;
   saveWorkSelection();
   saveStatus();
   renderAll();

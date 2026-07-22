@@ -2,7 +2,7 @@ const STATUS_STORAGE_KEY = "navnestatistikk:nameStatus:v1";
 const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
-const SW_VERSION = "2026-07-22.17";
+const SW_VERSION = "2026-07-22.18";
 
 const state = {
   data: null,
@@ -110,6 +110,7 @@ function bindChrome() {
   $("#reviewUndo")?.addEventListener("click", undoDecision);
   $("#reviewBack")?.addEventListener("click", undoDecision);
   $("#reviewMenu")?.addEventListener("click", () => openNameList("work"));
+  bindReviewSwipe();
   $("#openBackup")?.addEventListener("click", openBackup);
   $("#openHistory")?.addEventListener("click", openHistory);
   $$("[data-open-list]").forEach((button) => {
@@ -376,11 +377,28 @@ function compareItems() {
 function renderCompareChips(items) {
   const rail = $("#compareChips");
   rail.replaceChildren(...items.map((item) => {
-    const chip = document.createElement("button");
-    chip.type = "button";
-    chip.className = `nameChip ${item.sex}`;
-    chip.textContent = item.name;
-    chip.addEventListener("click", () => openNameDetail(item));
+    const chip = document.createElement("span");
+    chip.className = `nameChip removable ${item.sex}`;
+
+    const open = document.createElement("button");
+    open.type = "button";
+    open.className = "nameChipName";
+    open.textContent = item.name;
+    open.setAttribute("aria-label", `Åpne detaljer for ${item.name}`);
+    open.addEventListener("click", () => openNameDetail(item));
+
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "chipRemove";
+    remove.innerHTML = '<svg aria-hidden="true"><use href="#icon-x"></use></svg>';
+    remove.setAttribute("aria-label", `Fjern ${item.name} fra sammenligning`);
+    remove.addEventListener("click", (event) => {
+      event.stopPropagation();
+      removeFromWork(item.id);
+      toast(`${item.name} fjernet fra sammenligning`);
+    });
+
+    chip.append(open, remove);
     return chip;
   }));
 }
@@ -585,6 +603,7 @@ function renderReview() {
   $("#reviewUndo").hidden = !state.review.undo.length;
   $("#reviewCounter").textContent = state.review.deck.length ? `${Math.min(state.review.index + 1, state.review.deck.length)} av ${state.review.deck.length}` : "0 av 0";
   const card = $("#reviewCard");
+  resetReviewSwipe(card);
   if (!item) {
     card.innerHTML = `<div class="emptyState"><h2>Ingen navn å vurdere</h2><p>Legg navn i arbeidsutvalget fra Utforsk eller Mine navn.</p></div>`;
     return;
@@ -605,6 +624,75 @@ function renderReview() {
     <section class="schoolCard"><span><strong>Skolekontekst</strong><small>Estimat i relevant skoleløp</small></span><b>${formatDecimal(schoolEstimate(item, state.latestYear, 100, 7), 2)}</b></section>
   `;
   bindSubscreenButtons(card);
+}
+
+const reviewSwipe = {
+  active: false,
+  pointerId: null,
+  startX: 0,
+  startY: 0,
+  dx: 0,
+  dy: 0,
+};
+
+function bindReviewSwipe() {
+  const card = $("#reviewCard");
+  if (!card) return;
+  card.addEventListener("pointerdown", startReviewSwipe);
+  card.addEventListener("pointermove", moveReviewSwipe);
+  card.addEventListener("pointerup", endReviewSwipe);
+  card.addEventListener("pointercancel", cancelReviewSwipe);
+}
+
+function startReviewSwipe(event) {
+  const card = event.currentTarget;
+  if (!currentReviewItem() || event.target.closest("button")) return;
+  reviewSwipe.active = true;
+  reviewSwipe.pointerId = event.pointerId;
+  reviewSwipe.startX = event.clientX;
+  reviewSwipe.startY = event.clientY;
+  reviewSwipe.dx = 0;
+  reviewSwipe.dy = 0;
+  card.setPointerCapture?.(event.pointerId);
+  card.classList.add("is-swiping");
+}
+
+function moveReviewSwipe(event) {
+  if (!reviewSwipe.active || event.pointerId !== reviewSwipe.pointerId) return;
+  const card = event.currentTarget;
+  reviewSwipe.dx = event.clientX - reviewSwipe.startX;
+  reviewSwipe.dy = event.clientY - reviewSwipe.startY;
+  const x = Math.max(-96, Math.min(96, reviewSwipe.dx));
+  card.style.setProperty("--swipe-x", `${x}px`);
+  card.style.setProperty("--swipe-rotate", `${x / 42}deg`);
+  card.classList.toggle("swipe-right", reviewSwipe.dx > 32);
+  card.classList.toggle("swipe-left", reviewSwipe.dx < -32);
+}
+
+function endReviewSwipe(event) {
+  if (!reviewSwipe.active || event.pointerId !== reviewSwipe.pointerId) return;
+  const card = event.currentTarget;
+  const horizontal = Math.abs(reviewSwipe.dx) > 76 && Math.abs(reviewSwipe.dx) > Math.abs(reviewSwipe.dy) * 1.25;
+  const status = reviewSwipe.dx > 0 ? "shortlist" : "rejected";
+  cancelReviewSwipe(event);
+  if (horizontal) decideCurrent(status);
+}
+
+function cancelReviewSwipe(event) {
+  const card = event.currentTarget ?? $("#reviewCard");
+  if (card && reviewSwipe.pointerId !== null) card.releasePointerCapture?.(reviewSwipe.pointerId);
+  resetReviewSwipe(card);
+}
+
+function resetReviewSwipe(card = $("#reviewCard")) {
+  reviewSwipe.active = false;
+  reviewSwipe.pointerId = null;
+  reviewSwipe.dx = 0;
+  reviewSwipe.dy = 0;
+  if (!card) return;
+  card.classList.remove("is-swiping", "swipe-right", "swipe-left");
+  card.style.removeProperty("--swipe-x");
+  card.style.removeProperty("--swipe-rotate");
 }
 
 function ensureReviewDeck() {

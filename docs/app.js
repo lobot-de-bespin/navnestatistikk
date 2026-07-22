@@ -2,7 +2,7 @@ const STATUS_STORAGE_KEY = "navnestatistikk:nameStatus:v1";
 const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
-const SW_VERSION = "2026-07-22.19";
+const SW_VERSION = "2026-07-22.20";
 
 const state = {
   data: null,
@@ -65,7 +65,7 @@ async function loadData() {
   state.compare.fromYear = Math.max(1900, state.firstYear);
   state.itemsById = new Map(state.data.names.map((item) => [item.id, item]));
   state.selected = new Set([...state.selected].filter((id) => state.itemsById.has(id)));
-  saveWorkSelection();
+  saveWorkSelection(false);
 }
 
 function bindChrome() {
@@ -162,8 +162,8 @@ function saveStatus() {
   localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(state.history.slice(0, 100)));
 }
 
-function saveWorkSelection() {
-  state.hasUserSelection = true;
+function saveWorkSelection(markUserSelection = true) {
+  if (markUserSelection) state.hasUserSelection = true;
   localStorage.setItem(WORK_STORAGE_KEY, JSON.stringify([...state.selected]));
 }
 

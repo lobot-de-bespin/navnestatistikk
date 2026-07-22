@@ -43,13 +43,12 @@
               <h1>Utforsk</h1>
               <p>Finn og utforsk navn. Søk, filtrer, oppdag populære navn og lignende navn.</p>
             </div>
+            <div class="headerActions">
+              <button id="openFilter" class="iconButton" type="button" aria-label="Søk og filtre"><svg><use href="#icon-filter"></use></svg></button>
+            </div>
           </header>
 
           <section class="phoneSurface">
-            <div class="navTitle">
-              <h2>Utforsk</h2>
-              <button id="openFilter" class="iconButton" type="button" aria-label="Søk og filtre"><svg><use href="#icon-filter"></use></svg></button>
-            </div>
             <div class="searchBar">
               <svg><use href="#icon-search"></use></svg>
               <input id="searchInput" type="search" placeholder="Søk etter navn..." autocomplete="off" />
@@ -85,13 +84,12 @@
               <h1>Sammenlign</h1>
               <p>Sammenlign flere navn og se hvordan de har utviklet seg over tid.</p>
             </div>
+            <div class="headerActions">
+              <button id="shareCompare" class="iconButton" type="button" aria-label="Del visning"><svg><use href="#icon-share"></use></svg></button>
+            </div>
           </header>
 
           <section class="phoneSurface">
-            <div class="navTitle">
-              <h2>Sammenlign</h2>
-              <button id="shareCompare" class="iconButton" type="button" aria-label="Del visning"><svg><use href="#icon-share"></use></svg></button>
-            </div>
             <div id="compareChips" class="chipRail"></div>
             <div class="segmented" aria-label="Mål">
               <button class="active" type="button" data-metric="count">Antall</button>
@@ -135,14 +133,14 @@
               <h1>Vurder</h1>
               <p>Vurder navn ett og ett. Marker som aktuelt, uaktuelt eller hopp over.</p>
             </div>
+            <div class="headerActions dual">
+              <button id="reviewBack" class="ghostIcon" type="button" aria-label="Forrige"><svg><use href="#icon-back"></use></svg></button>
+              <button id="reviewMenu" class="ghostIcon" type="button" aria-label="Arbeidsutvalg"><svg><use href="#icon-list"></use></svg></button>
+            </div>
           </header>
 
           <section class="phoneSurface reviewSurface">
-            <div class="navTitle center">
-              <button id="reviewBack" class="ghostIcon" type="button" aria-label="Forrige"><svg><use href="#icon-back"></use></svg></button>
-              <div><h2>Vurder</h2><small id="reviewCounter">0 av 0</small></div>
-              <button id="reviewMenu" class="ghostIcon" type="button" aria-label="Arbeidsutvalg"><svg><use href="#icon-list"></use></svg></button>
-            </div>
+            <p class="reviewProgressLine" id="reviewCounter">0 av 0</p>
             <article id="reviewCard" class="reviewCard"></article>
             <div class="reviewActions">
               <button id="reviewShortlist" class="reviewAction yes" type="button"><svg><use href="#icon-heart"></use></svg><span>Aktuelt</span></button>
@@ -160,13 +158,12 @@
               <h1>Mine navn</h1>
               <p>Se og organiser dine navn i arbeidsutvalg, aktuelle og uaktuelle.</p>
             </div>
+            <div class="headerActions">
+              <button id="openBackup" class="iconButton" type="button" aria-label="Innstillinger"><svg><use href="#icon-gear"></use></svg></button>
+            </div>
           </header>
 
           <section class="phoneSurface">
-            <div class="navTitle">
-              <h2>Mine navn</h2>
-              <button id="openBackup" class="iconButton" type="button" aria-label="Innstillinger"><svg><use href="#icon-gear"></use></svg></button>
-            </div>
             <div class="listMenu">
               <button type="button" data-open-list="work"><span class="miniIcon blue"><svg><use href="#icon-list"></use></svg></span><span><strong>Arbeidsutvalg</strong><small id="workCount">0 navn</small></span><em>›</em></button>
               <button type="button" data-open-list="shortlist"><span class="miniIcon green"><svg><use href="#icon-heart"></use></svg></span><span><strong>Aktuelle</strong><small id="shortlistCount">0 navn</small></span><em>›</em></button>

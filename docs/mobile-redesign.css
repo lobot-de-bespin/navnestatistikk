@@ -112,10 +112,27 @@ svg {
 
 .screenHeader {
   display: grid;
-  grid-template-columns: 52px minmax(0, 1fr);
-  gap: 14px;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  gap: 12px;
   align-items: center;
   padding: 5px 4px 10px;
+}
+
+.screenHeader > div:nth-child(2) {
+  min-width: 0;
+}
+
+.headerActions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  align-self: start;
+  padding-top: 1px;
+}
+
+.headerActions.dual {
+  gap: 6px;
 }
 
 .screenHeader h1 {
@@ -186,25 +203,6 @@ svg {
   min-height: 32px;
 }
 
-.phoneSurface > .navTitle {
-  grid-template-columns: minmax(0, 1fr) auto;
-  min-height: 38px;
-  margin-bottom: -2px;
-}
-
-.phoneSurface > .navTitle h2 {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-}
-
-.phoneSurface > .navTitle > .iconButton {
-  grid-column: 2;
-  justify-self: end;
-}
-
 .navTitle.center {
   grid-template-columns: 34px minmax(0, 1fr) 34px;
   text-align: center;
@@ -234,7 +232,7 @@ svg {
   flex: 0 0 38px;
   aspect-ratio: 1;
   padding: 0;
-  border-radius: 14px;
+  border-radius: 50%;
   background: #f4f7fb;
   color: #245f9b;
   line-height: 0;
@@ -605,7 +603,7 @@ input[type="range"] {
 
 .chartBox {
   width: 100%;
-  height: 265px;
+  height: 198px;
   border-radius: 18px;
   background: #fff;
   box-shadow: inset 0 0 0 1px rgba(232, 225, 216, 0.74);
@@ -658,8 +656,8 @@ input[type="range"] {
 .metricPanel,
 .subCard {
   display: grid;
-  gap: 11px;
-  padding: 14px;
+  gap: 9px;
+  padding: 10px;
   border-radius: 18px;
   background: #fff;
   box-shadow: inset 0 0 0 1px rgba(232, 225, 216, 0.74);
@@ -668,9 +666,16 @@ input[type="range"] {
 .statTable {
   display: grid;
   gap: 1px;
-  overflow: hidden;
+  max-height: 84px;
+  overflow-y: auto;
+  overflow-x: hidden;
   border-radius: 12px;
   background: #edf0f4;
+  scrollbar-width: none;
+}
+
+.statTable::-webkit-scrollbar {
+  display: none;
 }
 
 .statRow {
@@ -678,8 +683,8 @@ input[type="range"] {
   grid-template-columns: minmax(0, 1.2fr) 0.7fr 0.6fr 0.8fr 0.7fr;
   gap: 7px;
   align-items: center;
-  min-height: 40px;
-  padding: 8px 9px;
+  min-height: 37px;
+  padding: 7px 9px;
   background: #fff;
   color: #333d50;
   text-align: left;
@@ -719,8 +724,16 @@ input[type="range"] {
 
 .reviewSurface {
   min-height: calc(100vh - 100px - var(--tab-height));
-  gap: 10px;
+  gap: 11px;
   background: linear-gradient(180deg, #fff7fb 0%, #fffefd 38%);
+}
+
+.reviewProgressLine {
+  margin: 0;
+  color: #70798a;
+  font-size: 0.74rem;
+  font-weight: 780;
+  text-align: center;
 }
 
 .reviewCard {

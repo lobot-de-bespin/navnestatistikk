@@ -49,6 +49,7 @@
           </header>
 
           <section class="phoneSurface">
+            <section id="exploreWorkflow" class="workflowCard"></section>
             <div class="searchBar">
               <svg><use href="#icon-search"></use></svg>
               <input id="searchInput" type="search" placeholder="Søk etter navn..." autocomplete="off" />
@@ -90,6 +91,7 @@
           </header>
 
           <section class="phoneSurface">
+            <section id="compareWorkflow" class="workflowCard"></section>
             <div id="compareChips" class="chipRail"></div>
             <div class="segmented" aria-label="Mål">
               <button class="active" type="button" data-metric="count">Antall</button>
@@ -118,8 +120,9 @@
               <div id="compareStats" class="statTable"></div>
             </section>
             <div class="actionRow">
-              <button id="openCompareSettings" type="button">Innstillinger</button>
-              <button id="openCompareTable" type="button">Tabellvisning</button>
+              <button id="compareReview" class="primaryStep" type="button">Vurder</button>
+              <button id="openCompareSettings" type="button" aria-label="Innstillinger">Innst.</button>
+              <button id="openCompareTable" type="button" aria-label="Tabellvisning">Tabell</button>
               <button id="downloadCsv" type="button">CSV</button>
               <button id="downloadPng" type="button">Graf</button>
             </div>
@@ -164,6 +167,7 @@
           </header>
 
           <section class="phoneSurface">
+            <section id="mineWorkflow" class="workflowCard"></section>
             <div class="listMenu">
               <button type="button" data-open-list="work"><span class="miniIcon blue"><svg><use href="#icon-list"></use></svg></span><span><strong>Arbeidsutvalg</strong><small id="workCount">0 navn</small></span><em>›</em></button>
               <button type="button" data-open-list="shortlist"><span class="miniIcon green"><svg><use href="#icon-heart"></use></svg></span><span><strong>Aktuelle</strong><small id="shortlistCount">0 navn</small></span><em>›</em></button>

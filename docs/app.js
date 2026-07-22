@@ -2,7 +2,7 @@ const STATUS_STORAGE_KEY = "navnestatistikk:nameStatus:v1";
 const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
-const SW_VERSION = "2026-07-22.20";
+const SW_VERSION = "2026-07-22.21";
 
 const state = {
   data: null,
@@ -69,6 +69,7 @@ async function loadData() {
 }
 
 function bindChrome() {
+  document.addEventListener("click", handleWorkflowNavigation);
   $$(".tabBar button").forEach((button) => {
     button.addEventListener("click", () => setTab(button.dataset.tab));
   });
@@ -106,6 +107,7 @@ function bindChrome() {
   });
   $("#openCompareSettings")?.addEventListener("click", openCompareSettings);
   $("#openCompareTable")?.addEventListener("click", openCompareTable);
+  $("#compareReview")?.addEventListener("click", () => setTab("review"));
   $("#reviewShortlist")?.addEventListener("click", () => commitReviewDecision("shortlist", 1));
   $("#reviewReject")?.addEventListener("click", () => commitReviewDecision("rejected", -1));
   $("#reviewSkip")?.addEventListener("click", skipCurrent);
@@ -213,10 +215,64 @@ function setTab(tab) {
 
 function renderAll() {
   if (!state.data) return;
+  renderWorkflowCards();
   renderExplore();
   renderCompare();
   renderReview();
   renderMine();
+}
+
+function workflowCounts() {
+  return {
+    work: workItems().length,
+    shortlist: itemsWithStatus("shortlist").length,
+    rejected: itemsWithStatus("rejected").length,
+  };
+}
+
+function workflowSummaryMarkup(counts) {
+  return `
+    <div class="workflowCounts" aria-label="Status">
+      <span><b>${formatNumber(counts.work)}</b><small>Utvalg</small></span>
+      <span><b>${formatNumber(counts.shortlist)}</b><small>Akt.</small></span>
+      <span><b>${formatNumber(counts.rejected)}</b><small>Ute</small></span>
+    </div>
+  `;
+}
+
+function renderWorkflowCards() {
+  const counts = workflowCounts();
+  const explore = $("#exploreWorkflow");
+  if (explore) {
+    explore.innerHTML = counts.work
+      ? `${workflowSummaryMarkup(counts)}<button class="workflowCta" data-go-tab="compare" type="button">Sammenlign</button>`
+      : `${workflowSummaryMarkup(counts)}<span class="workflowNote">Start med et navn.</span>`;
+  }
+  const compare = $("#compareWorkflow");
+  if (compare) {
+    compare.innerHTML = counts.work
+      ? `${workflowSummaryMarkup(counts)}<button class="workflowCta" data-go-tab="review" type="button">Vurder ${formatNumber(counts.work)}</button>`
+      : `${workflowSummaryMarkup(counts)}<button class="workflowCta" data-go-tab="explore" type="button">Finn navn først</button>`;
+  }
+  const mine = $("#mineWorkflow");
+  if (mine) {
+    const next = nextMineStep(counts);
+    mine.innerHTML = `${workflowSummaryMarkup(counts)}<button class="workflowCta" data-go-tab="${next.tab}" type="button">${next.label}</button>`;
+  }
+}
+
+function handleWorkflowNavigation(event) {
+  const button = event.target.closest("[data-go-tab]");
+  if (!button) return;
+  event.preventDefault();
+  setTab(button.dataset.goTab);
+}
+
+function nextMineStep(counts) {
+  if (counts.work >= 2) return { tab: "compare", label: "Sammenlign" };
+  if (counts.work === 1) return { tab: "review", label: "Vurder navnet" };
+  if (counts.shortlist) return { tab: "compare", label: "Se aktuelle i graf" };
+  return { tab: "explore", label: "Finn navn" };
 }
 
 function renderExplore() {
@@ -372,13 +428,17 @@ function renderCompare() {
   renderCompareChips(items);
   renderCompareStats(items);
   renderChart(items);
+  const reviewButton = $("#compareReview");
+  if (reviewButton) {
+    const count = workItems().length;
+    reviewButton.hidden = !count;
+    reviewButton.textContent = count ? `Vurder ${formatNumber(count)}` : "Vurder";
+  }
 }
 
 function compareItems() {
   const selected = [...state.selected].map((id) => state.itemsById.get(id)).filter(Boolean);
-  if (selected.length) return selected;
-  if (state.hasUserSelection) return [];
-  return ["1NORA", "1EMMA", "1ALMA", "1ASTRID"].map((id) => state.itemsById.get(id)).filter(Boolean);
+  return selected;
 }
 
 function renderCompareChips(items) {
@@ -418,7 +478,13 @@ function renderChart(items) {
   const chart = $("#compareChart");
   if (!chart) return;
   if (!items.length) {
-    chart.innerHTML = `<div class="emptyState"><h2>Ingen navn å sammenligne</h2><p>Legg til navn fra Utforsk eller Mine navn.</p></div>`;
+    chart.innerHTML = `
+      <div class="emptyState">
+        <h2>Ingen navn å sammenligne</h2>
+        <p>Arbeidsutvalget er tomt.</p>
+        <button class="primaryWide" data-go-tab="explore" type="button">Finn navn</button>
+      </div>
+    `;
     chart.dataset.traces = "0";
     $("#compareLegend").replaceChildren();
     return;
@@ -625,11 +691,19 @@ function renderReview() {
   $("#reviewCounter").textContent = state.review.deck.length ? `${Math.min(state.review.index + 1, state.review.deck.length)} av ${state.review.deck.length}` : "0 av 0";
   const card = $("#reviewCard");
   resetReviewSwipe(card);
+  $(".reviewActions").hidden = !item;
   if (!item) {
-    card.innerHTML = `<div class="emptyState"><h2>Ingen navn å vurdere</h2><p>Legg navn i arbeidsutvalget fra Utforsk eller Mine navn.</p></div>`;
+    card.innerHTML = `
+      <div class="emptyState">
+        <h2>Ingen navn å vurdere</h2>
+        <p>Arbeidsutvalget er tomt.</p>
+        <button class="primaryWide" data-go-tab="explore" type="button">Finn navn</button>
+      </div>
+    `;
     return;
   }
   const latest = pointInYear(item, state.latestYear);
+  $(".reviewActions").hidden = false;
   card.innerHTML = `
     <button class="heartRound" data-status="${item.id}" data-next="shortlist" type="button"><svg><use href="#icon-heart"></use></svg></button>
     <p class="cardMeta">${state.review.index + 1} av ${state.review.deck.length}</p>
@@ -740,8 +814,7 @@ function commitReviewDecision(status, direction) {
 function ensureReviewDeck() {
   if (state.review.deck.length && state.review.index < state.review.deck.length) return;
   const work = workItems();
-  const fallback = state.data ? popularRows("jente", 40).concat(popularRows("gutt", 40)).filter((item) => !state.status[item.id]) : [];
-  state.review.deck = (work.length ? work : fallback).map((item) => item.id);
+  state.review.deck = work.map((item) => item.id);
   state.review.index = 0;
 }
 

@@ -1,4 +1,4 @@
-const CACHE_VERSION = "2026-07-22.18";
+const CACHE_VERSION = "2026-07-22.19";
 const CACHE_PREFIX = "navnestatistikk-pwa";
 const CACHE_NAME = `${CACHE_PREFIX}-${CACHE_VERSION}`;
 

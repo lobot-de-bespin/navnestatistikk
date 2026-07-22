@@ -2,7 +2,7 @@ const STATUS_STORAGE_KEY = "navnestatistikk:nameStatus:v1";
 const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
-const SW_VERSION = "2026-07-22.18";
+const SW_VERSION = "2026-07-22.19";
 
 const state = {
   data: null,
@@ -11,6 +11,7 @@ const state = {
   firstYear: 1880,
   itemsById: new Map(),
   selected: new Set(),
+  hasUserSelection: false,
   status: {},
   history: [],
   recent: [],
@@ -34,6 +35,7 @@ const state = {
     deck: [],
     index: 0,
     undo: [],
+    swiping: false,
   },
   candidateRows: [],
 };
@@ -104,8 +106,8 @@ function bindChrome() {
   });
   $("#openCompareSettings")?.addEventListener("click", openCompareSettings);
   $("#openCompareTable")?.addEventListener("click", openCompareTable);
-  $("#reviewShortlist")?.addEventListener("click", () => decideCurrent("shortlist"));
-  $("#reviewReject")?.addEventListener("click", () => decideCurrent("rejected"));
+  $("#reviewShortlist")?.addEventListener("click", () => commitReviewDecision("shortlist", 1));
+  $("#reviewReject")?.addEventListener("click", () => commitReviewDecision("rejected", -1));
   $("#reviewSkip")?.addEventListener("click", skipCurrent);
   $("#reviewUndo")?.addEventListener("click", undoDecision);
   $("#reviewBack")?.addEventListener("click", undoDecision);
@@ -131,7 +133,9 @@ function registerServiceWorker() {
 
 function loadLocalState() {
   try {
-    const selected = JSON.parse(localStorage.getItem(WORK_STORAGE_KEY) || "[]");
+    const storedSelection = localStorage.getItem(WORK_STORAGE_KEY);
+    state.hasUserSelection = storedSelection !== null;
+    const selected = JSON.parse(storedSelection || "[]");
     state.selected = new Set(Array.isArray(selected) ? selected.filter((id) => typeof id === "string") : []);
   } catch {
     state.selected = new Set();
@@ -159,6 +163,7 @@ function saveStatus() {
 }
 
 function saveWorkSelection() {
+  state.hasUserSelection = true;
   localStorage.setItem(WORK_STORAGE_KEY, JSON.stringify([...state.selected]));
 }
 
@@ -175,6 +180,7 @@ function restoreFromUrl() {
       .map((id) => state.itemsById.get(id))
       .filter(Boolean)
       .forEach((item) => state.selected.add(item.id));
+    state.hasUserSelection = true;
     saveWorkSelection();
   }
   if (params.has("metric")) state.compare.metric = params.get("metric");
@@ -371,11 +377,16 @@ function renderCompare() {
 function compareItems() {
   const selected = [...state.selected].map((id) => state.itemsById.get(id)).filter(Boolean);
   if (selected.length) return selected;
+  if (state.hasUserSelection) return [];
   return ["1NORA", "1EMMA", "1ALMA", "1ASTRID"].map((id) => state.itemsById.get(id)).filter(Boolean);
 }
 
 function renderCompareChips(items) {
   const rail = $("#compareChips");
+  if (!items.length) {
+    rail.innerHTML = `<span class="emptyChip">Ingen navn valgt</span>`;
+    return;
+  }
   rail.replaceChildren(...items.map((item) => {
     const chip = document.createElement("span");
     chip.className = `nameChip removable ${item.sex}`;
@@ -406,6 +417,12 @@ function renderCompareChips(items) {
 function renderChart(items) {
   const chart = $("#compareChart");
   if (!chart) return;
+  if (!items.length) {
+    chart.innerHTML = `<div class="emptyState"><h2>Ingen navn å sammenligne</h2><p>Legg til navn fra Utforsk eller Mine navn.</p></div>`;
+    chart.dataset.traces = "0";
+    $("#compareLegend").replaceChildren();
+    return;
+  }
   const metric = effectiveMetric();
   chart.innerHTML = lineChartSvg(items, metric, state.compare.fromYear, state.latestYear, 344, 250);
   chart.dataset.traces = String(items.length);
@@ -419,6 +436,10 @@ function renderChart(items) {
 
 function renderCompareStats(items) {
   const table = $("#compareStats");
+  if (!items.length) {
+    table.innerHTML = `<p class="mutedEmpty">Sammenligningen er tom.</p>`;
+    return;
+  }
   table.replaceChildren(...items.map((item) => {
     const point = pointInYear(item, state.latestYear);
     const row = document.createElement("button");
@@ -662,11 +683,12 @@ function moveReviewSwipe(event) {
   const card = event.currentTarget;
   reviewSwipe.dx = event.clientX - reviewSwipe.startX;
   reviewSwipe.dy = event.clientY - reviewSwipe.startY;
-  const x = Math.max(-96, Math.min(96, reviewSwipe.dx));
-  card.style.setProperty("--swipe-x", `${x}px`);
-  card.style.setProperty("--swipe-rotate", `${x / 42}deg`);
-  card.classList.toggle("swipe-right", reviewSwipe.dx > 32);
-  card.classList.toggle("swipe-left", reviewSwipe.dx < -32);
+  const rotation = Math.max(-16, Math.min(16, reviewSwipe.dx / 14));
+  card.style.setProperty("--swipe-x", `${reviewSwipe.dx}px`);
+  card.style.setProperty("--swipe-y", `${reviewSwipe.dy}px`);
+  card.style.setProperty("--swipe-rotate", `${rotation}deg`);
+  card.classList.toggle("hintShortlist", reviewSwipe.dx > 70);
+  card.classList.toggle("hintReject", reviewSwipe.dx < -70);
 }
 
 function endReviewSwipe(event) {
@@ -674,8 +696,9 @@ function endReviewSwipe(event) {
   const card = event.currentTarget;
   const horizontal = Math.abs(reviewSwipe.dx) > 76 && Math.abs(reviewSwipe.dx) > Math.abs(reviewSwipe.dy) * 1.25;
   const status = reviewSwipe.dx > 0 ? "shortlist" : "rejected";
+  const direction = reviewSwipe.dx > 0 ? 1 : -1;
   cancelReviewSwipe(event);
-  if (horizontal) decideCurrent(status);
+  if (horizontal) commitReviewDecision(status, direction);
 }
 
 function cancelReviewSwipe(event) {
@@ -690,14 +713,33 @@ function resetReviewSwipe(card = $("#reviewCard")) {
   reviewSwipe.dx = 0;
   reviewSwipe.dy = 0;
   if (!card) return;
-  card.classList.remove("is-swiping", "swipe-right", "swipe-left");
+  card.classList.remove("is-swiping", "hintShortlist", "hintReject", "swipeShortlist", "swipeReject");
   card.style.removeProperty("--swipe-x");
+  card.style.removeProperty("--swipe-y");
   card.style.removeProperty("--swipe-rotate");
+  card.style.opacity = "";
+}
+
+function commitReviewDecision(status, direction) {
+  if (state.review.swiping) return;
+  const card = $("#reviewCard");
+  if (!card || !currentReviewItem()) return;
+  state.review.swiping = true;
+  card.classList.remove("hintShortlist", "hintReject");
+  card.classList.add(status === "shortlist" ? "swipeShortlist" : "swipeReject");
+  card.style.setProperty("--swipe-x", `${direction * 170}vw`);
+  card.style.setProperty("--swipe-y", "-4vh");
+  card.style.setProperty("--swipe-rotate", `${direction * 18}deg`);
+  card.style.opacity = "0";
+  setTimeout(() => {
+    state.review.swiping = false;
+    decideCurrent(status);
+  }, 180);
 }
 
 function ensureReviewDeck() {
   if (state.review.deck.length && state.review.index < state.review.deck.length) return;
-  const work = [...state.selected].map((id) => state.itemsById.get(id)).filter((item) => item && !state.status[item.id]);
+  const work = workItems();
   const fallback = state.data ? popularRows("jente", 40).concat(popularRows("gutt", 40)).filter((item) => !state.status[item.id]) : [];
   state.review.deck = (work.length ? work : fallback).map((item) => item.id);
   state.review.index = 0;
@@ -747,7 +789,7 @@ function undoDecision() {
 }
 
 function renderMine() {
-  const work = [...state.selected].map((id) => state.itemsById.get(id)).filter(Boolean);
+  const work = workItems();
   const shortlist = itemsWithStatus("shortlist");
   const rejected = itemsWithStatus("rejected");
   $("#workCount").textContent = `${formatNumber(work.length)} navn`;
@@ -774,11 +816,12 @@ function decisionRow(entry) {
 
 function openNameList(kind) {
   const title = kind === "work" ? "Arbeidsutvalg" : kind === "shortlist" ? "Aktuelle" : "Uaktuelle";
-  const rows = kind === "work" ? [...state.selected].map((id) => state.itemsById.get(id)).filter(Boolean) : itemsWithStatus(kind);
+  const rows = kind === "work" ? workItems() : itemsWithStatus(kind);
   openSubscreen(title, `
     <p class="subLead">${kind === "work" ? "Navn som ikke er endelig vurdert ennå." : kind === "shortlist" ? "Navn som er markert som aktuelle." : "Navn som er valgt bort."}</p>
     <div class="sectionRow"><h3>${formatNumber(rows.length)} navn</h3><button id="listPrimaryAction" type="button">${kind === "work" ? "Sammenlign" : "Del liste"}</button></div>
     <div id="mineListRows" class="nameRows"></div>
+    ${rows.length ? `<button class="secondaryWide" data-clear-list="${kind}" type="button">${kind === "work" ? "Tøm arbeidsutvalg" : kind === "shortlist" ? "Tøm aktuelle" : "Tøm uaktuelle"}</button>` : ""}
   `);
   $("#mineListRows").replaceChildren(...rows.map((item) => listManageRow(item, kind)));
   $("#listPrimaryAction").addEventListener("click", () => {
@@ -789,6 +832,31 @@ function openNameList(kind) {
       copyShareLink();
     }
   });
+}
+
+function workItems() {
+  return [...state.selected].map((id) => state.itemsById.get(id)).filter((item) => item && !state.status[item.id]);
+}
+
+function clearNameList(kind) {
+  const rows = kind === "work" ? workItems() : itemsWithStatus(kind);
+  if (!rows.length) return;
+  if (kind === "work") {
+    rows.forEach((item) => state.selected.delete(item.id));
+  } else {
+    rows.forEach((item) => {
+      delete state.status[item.id];
+      state.selected.add(item.id);
+    });
+    state.history = state.history.filter((entry) => state.status[entry.id]);
+    saveStatus();
+  }
+  resetReviewDeck();
+  saveWorkSelection();
+  closeSubscreen();
+  renderAll();
+  updateUrl();
+  toast(kind === "work" ? "Arbeidsutvalg tømt" : kind === "shortlist" ? "Aktuelle tømt" : "Uaktuelle tømt");
 }
 
 function listManageRow(item, kind) {
@@ -858,6 +926,7 @@ function bindSubscreenButtons(root = document) {
     removeFromWork(button.dataset.remove);
     if (button.dataset.closeAfter === "true") closeSubscreen();
   }));
+  $$("[data-clear-list]", root).forEach((button) => button.addEventListener("click", () => clearNameList(button.dataset.clearList)));
   $$("[data-similar]", root).forEach((button) => button.addEventListener("click", () => openSimilar(state.itemsById.get(button.dataset.similar))));
 }
 

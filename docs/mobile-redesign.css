@@ -186,6 +186,25 @@ svg {
   min-height: 32px;
 }
 
+.phoneSurface > .navTitle {
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 38px;
+  margin-bottom: -2px;
+}
+
+.phoneSurface > .navTitle h2 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.phoneSurface > .navTitle > .iconButton {
+  grid-column: 2;
+  justify-self: end;
+}
+
 .navTitle.center {
   grid-template-columns: 34px minmax(0, 1fr) 34px;
   text-align: center;
@@ -211,6 +230,9 @@ svg {
   place-items: center;
   width: 38px;
   height: 38px;
+  min-width: 38px;
+  flex: 0 0 38px;
+  aspect-ratio: 1;
   padding: 0;
   border-radius: 14px;
   background: #f4f7fb;
@@ -505,6 +527,18 @@ svg {
   color: #1b65a9;
 }
 
+.emptyChip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #f3f5f8;
+  color: #7a828f;
+  font-size: 0.7rem;
+  font-weight: 760;
+}
+
 .nameChip.removable {
   gap: 6px;
   min-height: 34px;
@@ -698,22 +732,62 @@ input[type="range"] {
   border-radius: 22px;
   background: #fff;
   box-shadow: inset 0 0 0 1px rgba(232, 225, 216, 0.88), 0 10px 28px rgba(28, 35, 48, 0.06);
-  touch-action: pan-y;
-  transition: transform 160ms ease, box-shadow 160ms ease;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  transition: transform 160ms ease, opacity 160ms ease, box-shadow 160ms ease;
   will-change: transform;
 }
 
+.reviewCard.is-swiping,
+.reviewCard.swipeShortlist,
+.reviewCard.swipeReject {
+  transform: translate(var(--swipe-x, 0), var(--swipe-y, 0)) rotate(var(--swipe-rotate, 0));
+}
+
 .reviewCard.is-swiping {
-  transform: translateX(var(--swipe-x, 0)) rotate(var(--swipe-rotate, 0));
   transition: none;
 }
 
-.reviewCard.swipe-right {
+.reviewCard.hintShortlist,
+.reviewCard.swipeShortlist {
   box-shadow: inset 0 0 0 2px rgba(74, 163, 111, 0.38), 0 18px 34px rgba(74, 163, 111, 0.16);
 }
 
-.reviewCard.swipe-left {
+.reviewCard.hintReject,
+.reviewCard.swipeReject {
   box-shadow: inset 0 0 0 2px rgba(220, 90, 109, 0.36), 0 18px 34px rgba(220, 90, 109, 0.14);
+}
+
+.reviewCard.hintShortlist::after,
+.reviewCard.hintReject::after,
+.reviewCard.swipeShortlist::after,
+.reviewCard.swipeReject::after {
+  position: absolute;
+  top: 24px;
+  z-index: 2;
+  padding: 8px 12px;
+  border: 2px solid currentColor;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.reviewCard.hintShortlist::after,
+.reviewCard.swipeShortlist::after {
+  right: 24px;
+  color: #28794a;
+  content: "Aktuelt";
+}
+
+.reviewCard.hintReject::after,
+.reviewCard.swipeReject::after {
+  left: 24px;
+  color: #bd4155;
+  content: "Uaktuelt";
 }
 
 .reviewCard h2,

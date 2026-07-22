@@ -1,7 +1,8 @@
 const STATUS_STORAGE_KEY = "navnestatistikk:nameStatus:v1";
+const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
-const SW_VERSION = "2026-07-22.12";
+const SW_VERSION = "2026-07-22.13";
 
 const state = {
   data: null,
@@ -61,6 +62,8 @@ async function loadData() {
   state.filters.toYear = state.latestYear;
   state.compare.fromYear = Math.max(1900, state.firstYear);
   state.itemsById = new Map(state.data.names.map((item) => [item.id, item]));
+  state.selected = new Set([...state.selected].filter((id) => state.itemsById.has(id)));
+  saveWorkSelection();
 }
 
 function bindChrome() {
@@ -126,6 +129,12 @@ function registerServiceWorker() {
 
 function loadLocalState() {
   try {
+    const selected = JSON.parse(localStorage.getItem(WORK_STORAGE_KEY) || "[]");
+    state.selected = new Set(Array.isArray(selected) ? selected.filter((id) => typeof id === "string") : []);
+  } catch {
+    state.selected = new Set();
+  }
+  try {
     state.status = JSON.parse(localStorage.getItem(STATUS_STORAGE_KEY) || "{}") || {};
   } catch {
     state.status = {};
@@ -147,6 +156,10 @@ function saveStatus() {
   localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(state.history.slice(0, 100)));
 }
 
+function saveWorkSelection() {
+  localStorage.setItem(WORK_STORAGE_KEY, JSON.stringify([...state.selected]));
+}
+
 function restoreFromUrl() {
   const params = new URLSearchParams(location.search);
   if (params.has("q")) {
@@ -160,6 +173,7 @@ function restoreFromUrl() {
       .map((id) => state.itemsById.get(id))
       .filter(Boolean)
       .forEach((item) => state.selected.add(item.id));
+    saveWorkSelection();
   }
   if (params.has("metric")) state.compare.metric = params.get("metric");
   if (params.has("from")) state.compare.fromYear = clampYear(Number(params.get("from")));
@@ -283,8 +297,10 @@ function nameRow(item, options = {}) {
 }
 
 function addToWork(item) {
+  if (!item) return;
   state.selected.add(item.id);
   if (state.status[item.id] === "rejected") delete state.status[item.id];
+  saveWorkSelection();
   saveStatus();
   toast(`${item.name} lagt til i arbeidsutvalg`);
   renderAll();
@@ -293,6 +309,7 @@ function addToWork(item) {
 
 function removeFromWork(id) {
   state.selected.delete(id);
+  saveWorkSelection();
   renderAll();
   updateUrl();
 }
@@ -306,6 +323,7 @@ function setNameStatus(id, status) {
     state.status[id] = status;
     if (status === "shortlist") state.selected.add(id);
     if (status === "rejected") state.selected.delete(id);
+    saveWorkSelection();
     state.history.unshift({ id, status, at: new Date().toISOString() });
     state.history = state.history.filter((entry, index, arr) => index === arr.findIndex((other) => other.id === entry.id)).slice(0, 100);
   }
@@ -379,7 +397,6 @@ function renderCompareStats(items) {
 function openNameDetail(item) {
   openSubscreen(item.name, detailMarkup(item), () => setNameStatus(item.id, "shortlist"));
   $("#subAction").innerHTML = '<svg><use href="#icon-heart"></use></svg>';
-  bindSubscreenButtons();
   requestAnimationFrame(() => renderMiniChart("detailChart", [item], "shareSex", 1900, 3));
 }
 
@@ -415,7 +432,7 @@ function detailMarkup(item) {
 }
 
 function openSimilar(item) {
-  const rows = similarRows(item, "curve").slice(0, 40);
+  const rows = similarRows(item, "text").slice(0, 40);
   openSubscreen("Finn lignende navn", `
     <div class="similarHead">
       <span>Lignende navn: <b>${escapeHtml(item.name)}</b></span>
@@ -493,6 +510,7 @@ function openCandidateBuilder() {
   $("#candidateList").replaceChildren(...rows.slice(0, 80).map((item) => nameRow(item)));
   $("#addAllCandidates").addEventListener("click", () => {
     rows.forEach((item) => state.selected.add(item.id));
+    saveWorkSelection();
     toast(`${formatNumber(rows.length)} navn lagt til`);
     closeSubscreen();
     renderAll();
@@ -971,8 +989,13 @@ async function importDecisions(event) {
   if (!file) return;
   const payload = JSON.parse(await file.text());
   Object.entries(payload.decisions || {}).forEach(([id, value]) => {
-    if (state.itemsById.has(id) && (value === "shortlist" || value === "rejected")) state.status[id] = value;
+    if (state.itemsById.has(id) && (value === "shortlist" || value === "rejected")) {
+      state.status[id] = value;
+      if (value === "shortlist") state.selected.add(id);
+      if (value === "rejected") state.selected.delete(id);
+    }
   });
+  saveWorkSelection();
   saveStatus();
   renderAll();
   toast("Beslutninger importert");

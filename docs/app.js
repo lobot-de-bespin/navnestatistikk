@@ -1,2422 +1,990 @@
+const STATUS_STORAGE_KEY = "navnestatistikk:nameStatus:v1";
+const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
+const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
+const SW_VERSION = "2026-07-22.12";
+
 const state = {
   data: null,
-  nameFromYear: 1945,
-  nameToYear: 2025,
-  sex: "alle",
-  regex: ".*",
-  matches: [],
+  years: [],
+  latestYear: 2025,
+  firstYear: 1880,
+  itemsById: new Map(),
   selected: new Set(),
-  nameStatus: {},
-  showRejected: false,
-  activeView: "hjem",
-  lastTopNRows: [],
+  status: {},
+  history: [],
+  recent: [],
+  tab: "explore",
+  popularSex: "jente",
+  query: "",
+  filters: {
+    sex: "alle",
+    fromYear: 1900,
+    toYear: 2025,
+    popularity: "alle",
+    pattern: "",
+    schoolMax: "",
+  },
+  compare: {
+    metric: "count",
+    fromYear: 1900,
+    smooth: 3,
+  },
   review: {
-    source: "random",
-    sourceLabel: "",
-    sourceNote: "",
-    sourceCount: 0,
-    autoBuild: true,
     deck: [],
     index: 0,
-    history: [],
-    shuffle: true,
-    swiping: false,
+    undo: [],
   },
-  metric: "count",
-  scale: "linear",
-  chartSmooth: 3,
-  fromYear: 1880,
-  toYear: 2025,
-  topNSelectionMode: "top",
-  topNYear: 2025,
-  topNFromYear: 1880,
-  topNToYear: 2025,
-  topNRangePreset: "top10",
-  topNRangeFrom: 0,
-  topNRangeTo: 10,
-  topNRangeLimit: 50,
-  schoolBirthYear: 2018,
-  childGrade: 1,
-  gradeSize: 100,
-  candidate: {
-    regex: ".*",
-    sex: "alle",
-    birthYear: 2023,
-    grade: 3,
-    gradeSize: 100,
-    maxSchoolmates: 1,
-    sort: "school",
-    rows: [],
-  },
-  similar: {
-    referenceId: "",
-    method: "pearson",
-    metric: "shareSex",
-    smooth: 3,
-    fromYear: 1880,
-    toYear: 2025,
-    rows: [],
-  },
-  markers: false,
+  candidateRows: [],
 };
 
-const els = {};
-const STATUS_STORAGE_KEY = "navnestatistikk:nameStatus:v1";
-const SW_VERSION = "2026-07-22.11";
-const SIMILAR_METHOD_LABELS = {
-  pearson: "Form",
-  euclidean: "Skalert avstand",
-  unscaled: "Uskalert avstand",
-};
-const SIMILAR_METHODS = new Set(Object.keys(SIMILAR_METHOD_LABELS));
-const MOBILE_SHELL_QUERY = window.matchMedia?.("(max-width: 780px)");
-const STANDALONE_QUERY = window.matchMedia?.("(display-mode: standalone)");
+const $ = (selector, root = document) => root.querySelector(selector);
+const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+const nf = new Intl.NumberFormat("nb-NO");
 
-document.addEventListener("DOMContentLoaded", () => {
-  [
-    "dataStatus",
-    "regexInput",
-    "applyRegex",
-    "regexError",
-    "resultCount",
-    "resultList",
-    "selectVisible",
-    "clearSelected",
-    "shortlistVisible",
-    "rejectVisible",
-    "showRejectedToggle",
-    "topNSelectionMode",
-    "topNCount",
-    "topNCountControl",
-    "topNMode",
-    "topNRangeControls",
-    "topNRangePreset",
-    "topNRangeFrom",
-    "topNRangeTo",
-    "topNRangeLimit",
-    "topNYearControl",
-    "topNYear",
-    "topNPeriodControls",
-    "topNFromYear",
-    "topNToYear",
-    "syncTopNYears",
-    "selectTopN",
-    "shortlistTopN",
-    "rejectTopN",
-    "metricSelect",
-    "scaleSelect",
-    "chartSmooth",
-    "fromYear",
-    "toYear",
-    "markersToggle",
-    "selectedCount",
-    "selectedNames",
-    "selectedShortlist",
-    "selectedReject",
-    "selectedReview",
-    "selectedClear",
-    "compareInsightText",
-    "shortlistTabCount",
-    "rejectedTabCount",
-    "statusStrip",
-    "statusUavklarteCount",
-    "statusAktuelleCount",
-    "statusUaktuelleCount",
-    "statusBackupExport",
-    "statusCsvExport",
-    "statusBackupImport",
-    "statusImportInput",
-    "statusBackupMessage",
-    "hjemView",
-    "homePopularYear",
-    "homePopularGirls",
-    "homePopularBoys",
-    "homeSelectedCount",
-    "homeShortlistCount",
-    "homeRejectedCount",
-    "homeJourneyText",
-    "journeyExplore",
-    "journeyDiscover",
-    "journeyCompare",
-    "journeyReview",
-    "journeyChoose",
-    "homeNextAction",
-    "mobileNameCount",
-    "finnView",
-    "grafView",
-    "vurderView",
-    "discoverCount",
-    "discoverReferenceName",
-    "discoverCards",
-    "mineSelectedCount",
-    "mineSummarySelected",
-    "mineSummaryShortlist",
-    "mineSelectedList",
-    "reviewSource",
-    "reviewShuffle",
-    "buildReviewDeck",
-    "reviewDeckMeta",
-    "reviewProgress",
-    "reviewCard",
-    "reviewReject",
-    "reviewSkip",
-    "reviewShortlist",
-    "reviewUndo",
-    "shortlistTable",
-    "rejectedTable",
-    "showShortlistInChart",
-    "clearShortlist",
-    "chart",
-    "similarReference",
-    "similarMethod",
-    "similarMetric",
-    "similarSmooth",
-    "similarFromYear",
-    "similarToYear",
-    "findSimilar",
-    "addSimilarTop",
-    "shortlistSimilarTop",
-    "rejectSimilarTop",
-    "syncSimilarYears",
-    "similarCount",
-    "similarBasis",
-    "similarTable",
-    "summaryGrid",
-    "schoolBirthYear",
-    "childGrade",
-    "gradeSize",
-    "schoolScopeHeader",
-    "schoolTable",
-    "copyExploreToCandidates",
-    "candidateRegex",
-    "candidateSex",
-    "candidateBirthYear",
-    "candidateGrade",
-    "candidateGradeSize",
-    "candidateMaxSchool",
-    "candidateSort",
-    "applyCandidateFilters",
-    "shortlistCandidates",
-    "rejectCandidates",
-    "candidateError",
-    "candidateCount",
-    "candidateScope",
-    "candidateTable",
-    "dataTable",
-    "copyLink",
-    "mobileCopyLink",
-    "downloadCsv",
-    "downloadPng",
-    "mobileReviewUndo",
-    "mineSelectedSegmentCount",
-    "shortlistSegmentCount",
-    "rejectedSegmentCount",
-    "helpDialog",
-    "helpDialogTitle",
-    "helpDialogBody",
-    "helpDialogClose",
-  ].forEach((id) => {
-    els[id] = document.getElementById(id);
-  });
+document.addEventListener("DOMContentLoaded", init);
 
-  state.nameStatus = loadNameStatus();
-  setupPwaShell();
-  setupInfoButtons();
-  wireEvents();
-  loadData();
-});
-
-function setupPwaShell() {
-  const standalone = Boolean(STANDALONE_QUERY?.matches || window.navigator.standalone);
-  document.body.classList.toggle("standaloneApp", Boolean(standalone));
-  updateShellMode();
-  if (MOBILE_SHELL_QUERY) {
-    if (MOBILE_SHELL_QUERY.addEventListener) {
-      MOBILE_SHELL_QUERY.addEventListener("change", updateShellMode);
-    } else if (MOBILE_SHELL_QUERY.addListener) {
-      MOBILE_SHELL_QUERY.addListener(updateShellMode);
-    }
-  }
-  if (STANDALONE_QUERY) {
-    if (STANDALONE_QUERY.addEventListener) {
-      STANDALONE_QUERY.addEventListener("change", updateShellMode);
-    } else if (STANDALONE_QUERY.addListener) {
-      STANDALONE_QUERY.addListener(updateShellMode);
-    }
-  }
-  if ("serviceWorker" in navigator && window.isSecureContext) {
-    navigator.serviceWorker.register(`sw.js?v=${encodeURIComponent(SW_VERSION)}`, { scope: "./" }).catch(() => {});
-  }
-}
-
-function updateShellMode() {
-  const standalone = Boolean(STANDALONE_QUERY?.matches || window.navigator.standalone);
-  const compact = Boolean(standalone || MOBILE_SHELL_QUERY?.matches);
-  document.body.classList.toggle("standaloneApp", standalone);
-  document.body.classList.toggle("mobileShell", compact);
-}
-
-function setupInfoButtons() {
-  if (!els.helpDialog || !els.helpDialogTitle || !els.helpDialogBody) return;
-  document.querySelectorAll(".moduleHead").forEach((head, index) => {
-    const text = head.querySelector(":scope > p");
-    const title = head.querySelector(":scope > h2, :scope > label");
-    if (!text || !title) return;
-
-    const row = document.createElement("div");
-    row.className = "moduleTitleRow";
-    head.insertBefore(row, title);
-    row.append(title);
-
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "infoButton";
-    button.setAttribute("aria-label", `Vis info om ${title.textContent.trim().toLowerCase()}`);
-    button.setAttribute("aria-haspopup", "dialog");
-    button.append(createBootstrapInfoIcon());
-    button.addEventListener("click", () => openHelpDialog(title.textContent.trim(), text.textContent.trim()));
-    row.append(button);
-  });
-
-  els.helpDialogClose?.addEventListener("click", closeHelpDialog);
-  els.helpDialog.addEventListener("click", (event) => {
-    if (event.target === els.helpDialog) closeHelpDialog();
-  });
-}
-
-function createBootstrapInfoIcon() {
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("viewBox", "0 0 16 16");
-  svg.setAttribute("aria-hidden", "true");
-  svg.setAttribute("focusable", "false");
-  svg.classList.add("bootstrapIcon");
-  [
-    "M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16",
-    "m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0",
-  ].forEach((shape) => {
-    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    path.setAttribute("d", shape);
-    svg.append(path);
-  });
-  return svg;
-}
-
-function openHelpDialog(title, body) {
-  els.helpDialogTitle.textContent = title || "Info";
-  els.helpDialogBody.textContent = body;
-  if (typeof els.helpDialog.showModal === "function") {
-    els.helpDialog.showModal();
-  } else {
-    els.helpDialog.setAttribute("open", "");
-  }
-}
-
-function closeHelpDialog() {
-  if (!els.helpDialog) return;
-  if (typeof els.helpDialog.close === "function") {
-    els.helpDialog.close();
-  } else {
-    els.helpDialog.removeAttribute("open");
-  }
-}
-
-function wireEvents() {
-  document.querySelectorAll("[data-view]").forEach((button) => {
-    button.addEventListener("click", () => setActiveView(button.dataset.view));
-  });
-  document.querySelectorAll("[data-focus]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const target = document.getElementById(button.dataset.focus);
-      target?.focus();
-    });
-  });
-  els.applyRegex.addEventListener("click", () => {
-    state.regex = els.regexInput.value.trim() || ".*";
-    updateMatches();
-  });
-  els.regexInput.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-      state.regex = els.regexInput.value.trim() || ".*";
-      updateMatches();
-    }
-  });
-  document.querySelectorAll("[data-template]").forEach((button) => {
-    button.addEventListener("click", () => {
-      els.regexInput.value = button.dataset.template;
-      state.regex = button.dataset.template;
-      updateMatches();
-    });
-  });
-  document.querySelectorAll("[data-sex]").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.sex = button.dataset.sex;
-      document.querySelectorAll("[data-sex]").forEach((b) => b.classList.toggle("active", b === button));
-      updateMatches();
-    });
-  });
-  els.selectVisible.addEventListener("click", () => {
-    state.matches.slice(0, 200).forEach((name) => state.selected.add(name.id));
-    renderAll();
-  });
-  els.clearSelected.addEventListener("click", () => {
-    state.selected.clear();
-    renderAll();
-  });
-  els.selectedShortlist.addEventListener("click", () => bulkSetStatus(selectedItems(), "shortlist"));
-  els.selectedReject.addEventListener("click", () => bulkSetStatus(selectedItems(), "rejected"));
-  els.selectedReview.addEventListener("click", reviewSelectedItems);
-  els.selectedClear.addEventListener("click", () => {
-    state.selected.clear();
-    renderAll();
-  });
-  els.shortlistVisible.addEventListener("click", () => bulkSetStatus(state.matches.slice(0, 250), "shortlist"));
-  els.rejectVisible.addEventListener("click", () => bulkSetStatus(state.matches.slice(0, 250), "rejected"));
-  els.showRejectedToggle.addEventListener("change", () => {
-    state.showRejected = els.showRejectedToggle.checked;
-    updateMatches();
-  });
-  els.selectTopN.addEventListener("click", selectTopN);
-  els.shortlistTopN.addEventListener("click", () => bulkSetStatus(lastTopNItems(), "shortlist"));
-  els.rejectTopN.addEventListener("click", () => bulkSetStatus(lastTopNItems(), "rejected"));
-  els.topNSelectionMode.addEventListener("change", () => {
-    state.topNSelectionMode = els.topNSelectionMode.value;
-    writeTopNControls();
-    updateUrl();
-  });
-  els.topNMode.addEventListener("change", () => {
-    writeTopNControls();
-    updateUrl();
-  });
-  els.topNRangePreset.addEventListener("change", () => {
-    applyTopNRangePreset();
-    updateUrl();
-  });
-  [els.topNYear, els.topNFromYear, els.topNToYear, els.topNRangeFrom, els.topNRangeTo, els.topNRangeLimit].forEach((input) => {
-    input.addEventListener("change", () => {
-      readTopNControls(true);
-      updateUrl();
-    });
-  });
-  els.syncTopNYears.addEventListener("click", () => {
-    state.topNFromYear = state.fromYear;
-    state.topNToYear = state.toYear;
-    writeTopNControls();
-    updateUrl();
-  });
-  els.metricSelect.addEventListener("change", () => {
-    state.metric = els.metricSelect.value;
-    renderAll();
-  });
-  els.scaleSelect.addEventListener("change", () => {
-    state.scale = els.scaleSelect.value;
-    renderChart();
-  });
-  els.chartSmooth.addEventListener("change", () => {
-    state.chartSmooth = Math.max(1, Number(els.chartSmooth.value) || 1);
-    renderChart();
-    updateUrl();
-  });
-  [els.fromYear, els.toYear].forEach((input) => {
-    input.addEventListener("change", () => {
-      state.fromYear = clampNameYear(Number(els.fromYear.value));
-      state.toYear = clampNameYear(Number(els.toYear.value));
-      if (state.fromYear > state.toYear) [state.fromYear, state.toYear] = [state.toYear, state.fromYear];
-      els.fromYear.value = state.fromYear;
-      els.toYear.value = state.toYear;
-      renderAll();
-    });
-  });
-  [els.schoolBirthYear, els.childGrade, els.gradeSize].forEach((input) => {
-    input.addEventListener("input", () => {
-      readSchoolControls(false);
-      renderSchoolEstimate();
-      updateUrl();
-    });
-    input.addEventListener("change", () => {
-      readSchoolControls(true);
-      renderSchoolEstimate();
-      updateUrl();
-    });
-  });
-  [
-    els.candidateRegex,
-    els.candidateSex,
-    els.candidateBirthYear,
-    els.candidateGrade,
-    els.candidateGradeSize,
-    els.candidateMaxSchool,
-    els.candidateSort,
-  ].forEach((input) => {
-    input.addEventListener("input", () => {
-      readCandidateControls(false);
-      renderCandidates();
-      updateUrl();
-    });
-    input.addEventListener("change", () => {
-      readCandidateControls(true);
-      renderCandidates();
-      updateUrl();
-    });
-  });
-  els.applyCandidateFilters.addEventListener("click", () => {
-    readCandidateControls(true);
-    renderCandidates();
-    updateUrl();
-  });
-  els.copyExploreToCandidates.addEventListener("click", () => {
-    copyExploreToCandidates();
-    renderCandidates();
-    updateUrl();
-  });
-  els.markersToggle.addEventListener("change", () => {
-    state.markers = els.markersToggle.checked;
-    renderChart();
-  });
-  [els.similarReference, els.similarMethod, els.similarMetric, els.similarSmooth, els.similarFromYear, els.similarToYear].forEach((input) => {
-    input.addEventListener("change", () => {
-      readSimilarControls(true);
-      renderSimilar();
-      updateUrl();
-    });
-  });
-  els.findSimilar.addEventListener("click", () => {
-    readSimilarControls(true);
-    renderSimilar();
-    updateUrl();
-  });
-  els.syncSimilarYears.addEventListener("click", () => {
-    state.similar.fromYear = state.fromYear;
-    state.similar.toYear = state.toYear;
-    writeSimilarControls();
-    renderSimilar();
-    updateUrl();
-  });
-  els.addSimilarTop.addEventListener("click", () => {
-    state.similar.rows.slice(0, 5).forEach((row) => state.selected.add(row.item.id));
-    renderAll();
-  });
-  els.shortlistSimilarTop.addEventListener("click", () => bulkSetStatus(state.similar.rows.slice(0, 50).map((row) => row.item), "shortlist"));
-  els.rejectSimilarTop.addEventListener("click", () => bulkSetStatus(state.similar.rows.slice(0, 50).map((row) => row.item), "rejected"));
-  els.shortlistCandidates.addEventListener("click", () => bulkSetStatus(state.candidate.rows.map((row) => row.item), "shortlist"));
-  els.rejectCandidates.addEventListener("click", () => bulkSetStatus(state.candidate.rows.map((row) => row.item), "rejected"));
-  els.buildReviewDeck.addEventListener("click", buildReviewDeck);
-  els.reviewReject.addEventListener("click", () => commitReviewSwipe("rejected", -1));
-  els.reviewShortlist.addEventListener("click", () => commitReviewSwipe("shortlist", 1));
-  els.reviewSkip.addEventListener("click", reviewSkip);
-  els.reviewUndo.addEventListener("click", reviewUndo);
-  els.mobileReviewUndo?.addEventListener("click", reviewUndo);
-  els.showShortlistInChart.addEventListener("click", () => {
-    state.selected = new Set(itemsWithStatus("shortlist").map((item) => item.id));
-    setActiveView("graf");
-    renderAll();
-  });
-  els.statusBackupExport.addEventListener("click", exportNameStatusBackup);
-  els.statusCsvExport.addEventListener("click", exportNameStatusCsv);
-  els.statusBackupImport.addEventListener("click", () => els.statusImportInput.click());
-  els.statusImportInput.addEventListener("change", handleNameStatusImport);
-  els.clearShortlist.addEventListener("click", () => {
-    const items = itemsWithStatus("shortlist");
-    if (items.length && confirm(`Fjerne ${items.length} navn fra aktuelle?`)) {
-      items.forEach((item) => setNameStatus(item.id, "neutral", false));
-      saveNameStatus();
-      renderAll();
-    }
-  });
-  els.copyLink.addEventListener("click", copyShareLink);
-  els.mobileCopyLink?.addEventListener("click", copyShareLink);
-  els.downloadCsv.addEventListener("click", downloadCsv);
-  els.downloadPng.addEventListener("click", () => {
-    Plotly.downloadImage(els.chart, { format: "png", filename: "navnestatistikk", height: 900, width: 1400 });
-  });
-  window.addEventListener("resize", () => {
-    updateShellMode();
-    if (state.data) Plotly.Plots.resize(els.chart);
-  });
-  document.addEventListener("keydown", handleReviewKeyboard);
+async function init() {
+  bindChrome();
+  loadLocalState();
+  await loadData();
+  restoreFromUrl();
+  renderAll();
+  registerServiceWorker();
 }
 
 async function loadData() {
   const response = await fetch("assets/names-data.json");
   state.data = await response.json();
-  const [nameFromYear, nameToYear] = nameYearRange();
-  state.nameFromYear = nameFromYear;
-  state.nameToYear = nameToYear;
-  state.fromYear = state.nameFromYear;
-  state.toYear = state.nameToYear;
-  els.fromYear.min = state.nameFromYear;
-  els.fromYear.max = state.nameToYear;
-  els.toYear.min = state.nameFromYear;
-  els.toYear.max = state.nameToYear;
-  els.topNYear.min = state.nameFromYear;
-  els.topNYear.max = state.nameToYear;
-  els.topNFromYear.min = state.nameFromYear;
-  els.topNFromYear.max = state.nameToYear;
-  els.topNToYear.min = state.nameFromYear;
-  els.topNToYear.max = state.nameToYear;
-  els.schoolBirthYear.min = state.nameFromYear;
-  els.schoolBirthYear.max = state.nameToYear;
-  els.candidateBirthYear.min = state.nameFromYear;
-  els.candidateBirthYear.max = state.nameToYear;
-  els.similarFromYear.min = state.nameFromYear;
-  els.similarFromYear.max = state.nameToYear;
-  els.similarToYear.min = state.nameFromYear;
-  els.similarToYear.max = state.nameToYear;
-  els.fromYear.value = state.fromYear;
-  els.toYear.value = state.toYear;
-  state.similar.fromYear = state.fromYear;
-  state.similar.toYear = state.toYear;
-  state.topNYear = state.toYear;
-  state.topNFromYear = state.fromYear;
-  state.topNToYear = state.toYear;
-  els.topNYear.value = state.topNYear;
-  restoreFromUrl();
-  els.dataStatus.textContent = `Navnedata: ${state.nameFromYear}-${state.nameToYear}, bygget ${state.data.meta.builtAt.slice(0, 10)}`;
-  updateMatches(false);
-  setActiveView(state.activeView);
+  state.years = state.data.years;
+  state.firstYear = state.years[0];
+  state.latestYear = state.years.at(-1);
+  state.filters.toYear = state.latestYear;
+  state.compare.fromYear = Math.max(1900, state.firstYear);
+  state.itemsById = new Map(state.data.names.map((item) => [item.id, item]));
+}
+
+function bindChrome() {
+  $$(".tabBar button").forEach((button) => {
+    button.addEventListener("click", () => setTab(button.dataset.tab));
+  });
+  $("#searchInput")?.addEventListener("input", (event) => {
+    state.query = event.target.value.trim();
+    if (state.query) rememberSearch(state.query);
+    renderExplore();
+  });
+  $("#openFilter")?.addEventListener("click", openFilters);
+  $("#candidateCard")?.addEventListener("click", openCandidateBuilder);
+  $("#openCandidateList")?.addEventListener("click", openCandidateBuilder);
+  $("[data-popular-sex='jente']")?.addEventListener("click", () => setPopularSex("jente"));
+  $("[data-popular-sex='gutt']")?.addEventListener("click", () => setPopularSex("gutt"));
+  $$("[data-metric]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.compare.metric = button.dataset.metric;
+      renderCompare();
+      updateUrl();
+    });
+  });
+  $("#compareYears")?.addEventListener("change", (event) => {
+    state.compare.fromYear = Number(event.target.value);
+    renderCompare();
+    updateUrl();
+  });
+  $("#compareSmooth")?.addEventListener("change", (event) => {
+    state.compare.smooth = Number(event.target.value);
+    renderCompare();
+    updateUrl();
+  });
+  $("#shareCompare")?.addEventListener("click", copyShareLink);
+  $("#downloadCsv")?.addEventListener("click", downloadCsv);
+  $("#downloadPng")?.addEventListener("click", () => {
+    downloadChartSvg();
+  });
+  $("#openCompareSettings")?.addEventListener("click", openCompareSettings);
+  $("#openCompareTable")?.addEventListener("click", openCompareTable);
+  $("#reviewShortlist")?.addEventListener("click", () => decideCurrent("shortlist"));
+  $("#reviewReject")?.addEventListener("click", () => decideCurrent("rejected"));
+  $("#reviewSkip")?.addEventListener("click", skipCurrent);
+  $("#reviewUndo")?.addEventListener("click", undoDecision);
+  $("#reviewBack")?.addEventListener("click", undoDecision);
+  $("#openBackup")?.addEventListener("click", openBackup);
+  $("#openHistory")?.addEventListener("click", openHistory);
+  $$("[data-open-list]").forEach((button) => {
+    button.addEventListener("click", () => openNameList(button.dataset.openList));
+  });
+  $("#subBack")?.addEventListener("click", closeSubscreen);
+  $("#subscreen")?.addEventListener("click", (event) => {
+    if (event.target.id === "subscreen") closeSubscreen();
+  });
+  $("#importInput")?.addEventListener("change", importDecisions);
+}
+
+function registerServiceWorker() {
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register(`sw.js?v=${encodeURIComponent(SW_VERSION)}`, { scope: "./" }).catch(() => {});
+  }
+}
+
+function loadLocalState() {
+  try {
+    state.status = JSON.parse(localStorage.getItem(STATUS_STORAGE_KEY) || "{}") || {};
+  } catch {
+    state.status = {};
+  }
+  try {
+    state.history = JSON.parse(localStorage.getItem(HISTORY_STORAGE_KEY) || "[]").slice(0, 100);
+  } catch {
+    state.history = [];
+  }
+  try {
+    state.recent = JSON.parse(localStorage.getItem(RECENT_STORAGE_KEY) || "[]").slice(0, 8);
+  } catch {
+    state.recent = [];
+  }
+}
+
+function saveStatus() {
+  localStorage.setItem(STATUS_STORAGE_KEY, JSON.stringify(state.status));
+  localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(state.history.slice(0, 100)));
 }
 
 function restoreFromUrl() {
   const params = new URLSearchParams(location.search);
   if (params.has("q")) {
-    state.regex = params.get("q");
-    els.regexInput.value = state.regex;
+    state.query = params.get("q") || "";
+    $("#searchInput").value = state.query;
   }
-  if (params.has("sex")) {
-    state.sex = params.get("sex");
-    document.querySelectorAll("[data-sex]").forEach((button) => {
-      button.classList.toggle("active", button.dataset.sex === state.sex);
-    });
-  }
-  if (params.has("metric")) {
-    state.metric = params.get("metric");
-    els.metricSelect.value = state.metric;
-  }
-  if (params.has("smooth")) {
-    state.chartSmooth = Math.max(1, Number(params.get("smooth")) || 1);
-    els.chartSmooth.value = String(state.chartSmooth);
-  }
-  if (params.has("from")) state.fromYear = clampNameYear(Number(params.get("from")));
-  if (params.has("to")) state.toYear = clampNameYear(Number(params.get("to")));
-  if (params.has("topSelect")) state.topNSelectionMode = params.get("topSelect");
-  els.topNSelectionMode.value = state.topNSelectionMode;
-  if (params.has("topMode")) els.topNMode.value = params.get("topMode");
-  if (params.has("topYear")) state.topNYear = clampNameYear(Number(params.get("topYear")));
-  if (params.has("topFrom")) state.topNFromYear = clampNameYear(Number(params.get("topFrom")));
-  if (params.has("topTo")) state.topNToYear = clampNameYear(Number(params.get("topTo")));
-  if (state.topNFromYear > state.topNToYear) [state.topNFromYear, state.topNToYear] = [state.topNToYear, state.topNFromYear];
-  if (params.has("topRange")) state.topNRangePreset = params.get("topRange");
-  if (params.has("topRangeFrom")) state.topNRangeFrom = clampPercent(Number(params.get("topRangeFrom")));
-  if (params.has("topRangeTo")) state.topNRangeTo = clampPercent(Number(params.get("topRangeTo")));
-  if (params.has("topLimit")) state.topNRangeLimit = Math.max(1, Math.min(250, Number(params.get("topLimit")) || 50));
-  if (state.topNRangeFrom > state.topNRangeTo) [state.topNRangeFrom, state.topNRangeTo] = [state.topNRangeTo, state.topNRangeFrom];
-  if (params.has("schoolYear")) state.schoolBirthYear = clampNameYear(Number(params.get("schoolYear")));
-  if (params.has("grade")) state.childGrade = clampGrade(Number(params.get("grade")));
-  if (params.has("gradeSize")) state.gradeSize = Math.max(1, Number(params.get("gradeSize")) || 100);
-  if (params.has("candidateQ")) state.candidate.regex = params.get("candidateQ");
-  if (params.has("candidateSex")) state.candidate.sex = params.get("candidateSex");
-  if (params.has("candidateYear")) state.candidate.birthYear = clampNameYear(Number(params.get("candidateYear")));
-  if (params.has("candidateGrade")) state.candidate.grade = clampGrade(Number(params.get("candidateGrade")));
-  if (params.has("candidateSize")) state.candidate.gradeSize = Math.max(1, Number(params.get("candidateSize")) || 100);
-  if (params.has("candidateMax")) state.candidate.maxSchoolmates = Math.max(0, Number(params.get("candidateMax")) || 0);
-  if (params.has("candidateSort")) state.candidate.sort = params.get("candidateSort");
-  if (params.has("similarReference")) state.similar.referenceId = params.get("similarReference");
-  if (params.has("similarMethod")) state.similar.method = normalizeSimilarMethod(params.get("similarMethod"));
-  if (params.has("similarMetric")) state.similar.metric = params.get("similarMetric");
-  if (params.has("similarSmooth")) state.similar.smooth = Math.max(1, Number(params.get("similarSmooth")) || 3);
-  if (params.has("similarFrom")) state.similar.fromYear = clampNameYear(Number(params.get("similarFrom")));
-  if (params.has("similarTo")) state.similar.toYear = clampNameYear(Number(params.get("similarTo")));
-  if (state.similar.fromYear > state.similar.toYear) [state.similar.fromYear, state.similar.toYear] = [state.similar.toYear, state.similar.fromYear];
-  els.fromYear.value = state.fromYear;
-  els.toYear.value = state.toYear;
-  writeTopNControls();
-  els.schoolBirthYear.value = state.schoolBirthYear;
-  els.childGrade.value = state.childGrade;
-  els.gradeSize.value = state.gradeSize;
-  writeCandidateControls();
   if (params.has("names")) {
-    params.get("names").split(",").filter(Boolean).forEach((id) => state.selected.add(id));
+    params
+      .get("names")
+      .split(",")
+      .map((id) => state.itemsById.get(id))
+      .filter(Boolean)
+      .forEach((item) => state.selected.add(item.id));
   }
-  writeSimilarControls();
+  if (params.has("metric")) state.compare.metric = params.get("metric");
+  if (params.has("from")) state.compare.fromYear = clampYear(Number(params.get("from")));
+  if (params.has("smooth")) state.compare.smooth = Math.max(1, Number(params.get("smooth")) || 3);
 }
 
-function updateMatches(autoSelect = false) {
-  if (!state.data) return;
-  let pattern;
-  try {
-    pattern = new RegExp(state.regex, "iu");
-    els.regexError.textContent = "";
-  } catch (error) {
-    els.regexError.textContent = error.message;
-    return;
-  }
-  state.matches = state.data.names
-    .filter((item) => state.sex === "alle" || item.sex === state.sex)
-    .filter((item) => state.showRejected || statusOf(item.id) !== "rejected")
-    .filter((item) => pattern.test(item.name) || pattern.test(item.key.replaceAll("_", " ")))
-    .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name, "no"));
-  if (autoSelect && state.selected.size === 0) {
-    state.matches.slice(0, 8).forEach((item) => state.selected.add(item.id));
-  }
+function updateUrl() {
+  const params = new URLSearchParams();
+  if (state.query) params.set("q", state.query);
+  if (state.selected.size) params.set("names", [...state.selected].join(","));
+  params.set("metric", state.compare.metric);
+  params.set("from", String(state.compare.fromYear));
+  params.set("smooth", String(state.compare.smooth));
+  history.replaceState(null, "", `${location.pathname}?${params.toString()}`);
+}
+
+function setTab(tab) {
+  state.tab = tab;
+  $$(".screen").forEach((screen) => screen.classList.toggle("active", screen.dataset.view === tab));
+  $$(".tabBar button").forEach((button) => button.classList.toggle("active", button.dataset.tab === tab));
+  closeSubscreen(false);
+  if (tab === "review") ensureReviewDeck();
   renderAll();
+  requestAnimationFrame(() => {
+    if (tab === "compare") renderCompare();
+  });
+  window.scrollTo({ top: 0, behavior: "instant" });
 }
 
 function renderAll() {
-  renderResults();
-  renderDiscover();
-  renderSelected();
-  renderChart();
-  renderCompareInsight();
-  renderSimilar();
-  renderHome();
-  renderSummary();
-  renderSchoolEstimate();
-  renderCandidates();
-  renderTable();
-  renderStatusViews();
-  renderReviewCard();
+  if (!state.data) return;
+  renderExplore();
+  renderCompare();
+  renderReview();
+  renderMine();
+}
+
+function renderExplore() {
+  renderRecentSearches();
+  $("[data-popular-sex='jente']")?.classList.toggle("active", state.popularSex === "jente");
+  $("[data-popular-sex='gutt']")?.classList.toggle("active", state.popularSex === "gutt");
+  const list = $("#popularList");
+  if (!list) return;
+  const rows = state.query ? searchRows(state.query).slice(0, 10) : popularRows(state.popularSex, 5);
+  list.replaceChildren(...rows.map((item, index) => nameRow(item, { rank: index + 1, detail: true })));
+}
+
+function setPopularSex(sex) {
+  state.popularSex = sex;
+  renderExplore();
+}
+
+function searchRows(query) {
+  const q = normalize(query);
+  let regex = null;
+  try {
+    regex = query && /[.*^$[\]|()?+{}\\]/.test(query) ? new RegExp(query, "i") : null;
+  } catch {
+    regex = null;
+  }
+  return state.data.names
+    .filter((item) => state.filters.sex === "alle" || item.sex === state.filters.sex)
+    .filter((item) => !state.status[item.id] || state.status[item.id] !== "rejected")
+    .filter((item) => (regex ? regex.test(item.name) : normalize(item.name).includes(q)))
+    .sort((a, b) => latestCount(b) - latestCount(a) || a.name.localeCompare(b.name, "no"));
+}
+
+function popularRows(sex = "jente", limit = 10) {
+  return state.data.names
+    .filter((item) => item.sex === sex)
+    .filter((item) => latestCount(item) > 0)
+    .sort((a, b) => latestCount(b) - latestCount(a) || a.name.localeCompare(b.name, "no"))
+    .slice(0, limit);
+}
+
+function renderRecentSearches() {
+  const rail = $("#recentSearches");
+  if (!rail) return;
+  const fallback = ["Nora", "Alma", "Eli", "a$"];
+  rail.replaceChildren(...(state.recent.length ? state.recent : fallback).map((query) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "chip";
+    button.textContent = query;
+    button.addEventListener("click", () => {
+      state.query = query;
+      $("#searchInput").value = query;
+      renderExplore();
+    });
+    return button;
+  }));
+}
+
+function rememberSearch(query) {
+  if (query.length < 2) return;
+  state.recent = [query, ...state.recent.filter((item) => item.toLowerCase() !== query.toLowerCase())].slice(0, 8);
+  localStorage.setItem(RECENT_STORAGE_KEY, JSON.stringify(state.recent));
+}
+
+function nameRow(item, options = {}) {
+  const row = document.createElement("article");
+  row.className = "nameRow";
+  row.innerHTML = `
+    <span class="rank">${options.rank ?? ""}</span>
+    <button class="nameMain" type="button">
+      <strong>${escapeHtml(item.name)}</strong>
+      <small>${escapeHtml(item.sex)} · toppår ${item.peakYear}</small>
+    </button>
+    <span class="spark">${sparklineSvg(item)}</span>
+    <span class="count">${formatNumber(latestCount(item))}</span>
+    <button class="addButton ${state.selected.has(item.id) ? "active" : ""}" type="button" aria-label="Legg til ${escapeHtml(item.name)}">
+      <svg><use href="#icon-plus"></use></svg>
+    </button>
+  `;
+  $(".nameMain", row).addEventListener("click", () => openNameDetail(item));
+  $(".addButton", row).addEventListener("click", (event) => {
+    event.stopPropagation();
+    addToWork(item);
+  });
+  return row;
+}
+
+function addToWork(item) {
+  state.selected.add(item.id);
+  if (state.status[item.id] === "rejected") delete state.status[item.id];
+  saveStatus();
+  toast(`${item.name} lagt til i arbeidsutvalg`);
+  renderAll();
   updateUrl();
 }
 
-function setActiveView(view) {
-  state.activeView = view;
-  document.body.classList.toggle("reviewModeActive", view === "vurder");
-  document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
-  [els.hjemView, els.finnView, els.grafView, els.vurderView].forEach((panel) => {
-    if (!panel) return;
-    panel.hidden = panel.id !== `${view}View`;
-  });
-  window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-  if (view === "vurder" && !state.review.deck.length && state.review.autoBuild) buildReviewDeck(false);
-  renderStatusViews();
-  renderReviewCard();
-  if (view === "graf" && state.data) {
-    requestAnimationFrame(() => {
-      renderChart();
-      if (window.Plotly && els.chart) Plotly.Plots.resize(els.chart);
-    });
-  }
+function removeFromWork(id) {
+  state.selected.delete(id);
+  renderAll();
+  updateUrl();
 }
 
-function renderHome() {
-  if (!state.data) return;
-  const selected = selectedItems();
-  const shortlist = itemsWithStatus("shortlist");
-  const rejected = itemsWithStatus("rejected");
-  if (els.homeSelectedCount) els.homeSelectedCount.textContent = String(selected.length);
-  if (els.homeShortlistCount) els.homeShortlistCount.textContent = String(shortlist.length);
-  if (els.homeRejectedCount) els.homeRejectedCount.textContent = String(rejected.length);
-  if (els.mineSelectedCount) els.mineSelectedCount.textContent = String(selected.length);
-  if (els.mineSummarySelected) els.mineSummarySelected.textContent = String(selected.length);
-  if (els.mineSummaryShortlist) els.mineSummaryShortlist.textContent = String(shortlist.length);
-  if (els.mineSelectedSegmentCount) els.mineSelectedSegmentCount.textContent = String(selected.length);
-  if (els.shortlistSegmentCount) els.shortlistSegmentCount.textContent = String(shortlist.length);
-  if (els.rejectedSegmentCount) els.rejectedSegmentCount.textContent = String(rejected.length);
-  renderMiniNameList(els.mineSelectedList, selected, "Ingen navn i arbeidsutvalget");
-  if (els.homePopularYear) els.homePopularYear.textContent = String(state.nameToYear);
-  if (els.mobileNameCount) els.mobileNameCount.textContent = formatNumber(state.data.names.length);
-  renderPopularList(els.homePopularGirls, "jente");
-  renderPopularList(els.homePopularBoys, "gutt");
-  renderJourney(selected.length, shortlist.length, rejected.length);
-}
-
-function renderJourney(selectedCount, shortlistCount, rejectedCount) {
-  const reviewedCount = shortlistCount + rejectedCount;
-  const stage =
-    shortlistCount > 0 ? "choose" :
-    reviewedCount > 0 ? "review" :
-    selectedCount >= 2 ? "compare" :
-    selectedCount > 0 ? "discover" :
-    "explore";
-  const copy = {
-    explore: ["Start med å finne noen navn du liker.", "Utforsk", "finn"],
-    discover: ["Du har et navn å bygge videre fra. Se lignende navn og utvid listen.", "Oppdag flere", "finn"],
-    compare: ["Arbeidsutvalget er klart for sammenligning før du vurderer.", "Sammenlign", "graf"],
-    review: ["Noen navn er vurdert. Fortsett til listen føles ryddig.", "Fortsett vurdering", "vurder"],
-    choose: ["Du har aktuelle navn. Sammenlign dem og snevre inn mot valget.", "Se aktuelle", "vurder"],
-  }[stage];
-  if (els.homeJourneyText) els.homeJourneyText.textContent = copy[0];
-  if (els.homeNextAction) {
-    els.homeNextAction.textContent = copy[1];
-    els.homeNextAction.dataset.view = copy[2];
-  }
-  [
-    ["journeyExplore", "explore"],
-    ["journeyDiscover", "discover"],
-    ["journeyCompare", "compare"],
-    ["journeyReview", "review"],
-    ["journeyChoose", "choose"],
-  ].forEach(([id, key]) => {
-    if (!els[id]) return;
-    els[id].classList.toggle("active", key === stage);
-    els[id].classList.toggle("done", journeyOrder(key) < journeyOrder(stage));
-  });
-}
-
-function journeyOrder(stage) {
-  return ["explore", "discover", "compare", "review", "choose"].indexOf(stage);
-}
-
-function renderPopularList(container, sex) {
-  if (!container) return;
-  const rows = state.data.names
-    .filter((item) => item.sex === sex)
-    .map((item) => ({ item, count: countInYear(item, state.nameToYear) }))
-    .filter((row) => row.count > 0)
-    .sort((a, b) => b.count - a.count || a.item.name.localeCompare(b.item.name, "no"))
-    .slice(0, 5);
-  container.innerHTML = "";
-  rows.forEach((row, index) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "popularRow";
-    button.innerHTML = `
-      <span>${index + 1}</span>
-      <strong>${escapeHtml(row.item.name)}</strong>
-      ${sparklineSvg(row.item)}
-      <em>${formatNumber(row.count)}</em>
-    `;
-    button.addEventListener("click", () => {
-      state.selected.add(row.item.id);
-      setActiveView("graf");
-      renderAll();
-    });
-    container.append(button);
-  });
-}
-
-function renderMiniNameList(container, items, emptyText) {
-  if (!container) return;
-  if (!items.length) {
-    container.innerHTML = `<p class="emptyState">${emptyText}</p>`;
-    return;
-  }
-  container.innerHTML = "";
-  items.slice(0, 12).forEach((item) => {
-    const row = document.createElement("div");
-    row.className = "miniNameRow";
-    row.innerHTML = `
-      <strong>${escapeHtml(item.name)}</strong>
-      <span>${item.sex}, toppår ${item.peakYear}</span>
-      ${sparklineSvg(item)}
-    `;
-    container.append(row);
-  });
-}
-
-function renderStatusViews() {
-  const shortlist = itemsWithStatus("shortlist");
-  const rejected = itemsWithStatus("rejected");
-  const total = state.data?.names.length ?? 0;
-  const unresolved = Math.max(0, total - shortlist.length - rejected.length);
-  renderStatusStrip(unresolved, shortlist.length, rejected.length);
-  els.shortlistTabCount.textContent = String(shortlist.length);
-  els.rejectedTabCount.textContent = String(rejected.length);
-  renderStatusTable(els.shortlistTable, shortlist, "shortlist");
-  renderStatusTable(els.rejectedTable, rejected, "rejected");
-  renderHome();
-}
-
-function renderStatusStrip(unresolved, shortlistCount, rejectedCount) {
-  if (!els.statusStrip) return;
-  els.statusStrip.hidden = !state.data;
-  if (!state.data) return;
-  els.statusUavklarteCount.textContent = formatNumber(unresolved);
-  els.statusAktuelleCount.textContent = formatNumber(shortlistCount);
-  els.statusUaktuelleCount.textContent = formatNumber(rejectedCount);
-}
-
-function renderStatusTable(tbody, items, mode) {
-  if (!items.length) {
-    tbody.innerHTML = `<tr><td colspan="5">${mode === "shortlist" ? "Ingen aktuelle navn" : "Ingen uaktuelle navn"}</td></tr>`;
-    return;
-  }
-  tbody.innerHTML = "";
-  const fragment = document.createDocumentFragment();
-  items.forEach((item) => {
-    const tr = document.createElement("tr");
-    tr.append(
-      cell(item.name),
-      cell(item.sex),
-      cell(String(item.peakYear)),
-      cell(formatNumber(item.peakCount)),
-      actionCell(item),
-    );
-    fragment.append(tr);
-  });
-  tbody.append(fragment);
-}
-
-function renderResults() {
-  els.resultCount.textContent = `${formatNumber(state.matches.length)} navn`;
-  els.resultList.innerHTML = "";
-  const fragment = document.createDocumentFragment();
-  state.matches.slice(0, 250).forEach((item) => {
-    const label = document.createElement("article");
-    label.className = "resultItem nameCard";
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.checked = state.selected.has(item.id);
-    checkbox.setAttribute("aria-label", `Velg ${item.name} til Utforsk`);
-    checkbox.title = "Velg til Utforsk";
-    checkbox.addEventListener("change", () => {
-      checkbox.checked ? state.selected.add(item.id) : state.selected.delete(item.id);
-      renderAll();
-    });
-    const latestCount = countInYear(item, state.nameToYear);
-    const latestPoint = pointInYear(item, state.nameToYear);
-    const rank = latestPoint?.[2] ? latestPoint[2] : null;
-    const rankBadge = document.createElement("span");
-    rankBadge.className = "rankBadge";
-    rankBadge.textContent = rank ? String(rank) : "–";
-    const nameBlock = document.createElement("div");
-    nameBlock.className = "resultNameBlock";
-    nameBlock.innerHTML = `
-      <strong>${escapeHtml(item.name)} <span class="sexMark ${item.sex}">${item.sex === "jente" ? "♀" : "♂"}</span></strong>
-      <small>${topTenLabel(item)} · toppår ${item.peakYear}</small>
-    `;
-    const stats = document.createElement("div");
-    stats.className = "resultStats";
-    stats.innerHTML = `
-      <span><small>Antall (${state.nameToYear})</small><strong>${latestCount ? formatNumber(latestCount) : "–"}</strong></span>
-      <span><small>Rang (${state.nameToYear})</small><strong>${rank ? formatNumber(rank) : "–"}</strong></span>
-    `;
-    const selection = document.createElement("small");
-    selection.className = "selectionState";
-    selection.textContent = checkbox.checked ? "I arbeidsutvalg" : "Ikke lagt til";
-    const trend = document.createElement("span");
-    trend.className = "sparklineWrap";
-    trend.innerHTML = sparklineSvg(item);
-    const actions = statusActions(item);
-    const addButton = document.createElement("button");
-    addButton.type = "button";
-    addButton.className = checkbox.checked ? "addNameButton active" : "addNameButton";
-    addButton.textContent = checkbox.checked ? "Lagt til" : "+ Legg til";
-    addButton.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      checkbox.checked = !checkbox.checked;
-      checkbox.dispatchEvent(new Event("change"));
-    });
-    label.append(rankBadge, checkbox, nameBlock, trend, stats, addButton, selection, actions);
-    fragment.append(label);
-  });
-  els.resultList.append(fragment);
-}
-
-function renderDiscover() {
-  if (!els.discoverCards || !state.data) return;
-  const reference = discoverReferenceItem();
-  if (!reference) {
-    if (els.discoverReferenceName) els.discoverReferenceName.textContent = "første treff";
-    if (els.discoverCount) els.discoverCount.textContent = "0 forslag";
-    els.discoverCards.innerHTML = '<p class="emptyState">Søk etter et navn eller legg et navn i arbeidsutvalget for å få forslag.</p>';
-    return;
-  }
-  const rows = discoverRows(reference).slice(0, 6);
-  if (els.discoverReferenceName) els.discoverReferenceName.textContent = reference.name;
-  if (els.discoverCount) els.discoverCount.textContent = `${formatNumber(rows.length)} forslag`;
-  if (!rows.length) {
-    els.discoverCards.innerHTML = '<p class="emptyState">Fant ingen gode forslag fra dette navnet.</p>';
-    return;
-  }
-  els.discoverCards.innerHTML = "";
-  const fragment = document.createDocumentFragment();
-  rows.forEach((row) => {
-    const item = row.item;
-    const card = document.createElement("article");
-    card.className = "discoverCard";
-    const latestCount = countInYear(item, state.nameToYear);
-    card.innerHTML = `
-      <div>
-        <strong>${escapeHtml(item.name)} <span class="sexMark ${item.sex}">${item.sex === "jente" ? "♀" : "♂"}</span></strong>
-        <small>${formatDecimal(row.similarity * 100, 0)} % lignende kurve · toppår ${item.peakYear}</small>
-      </div>
-      ${sparklineSvg(item)}
-      <span>${latestCount ? formatNumber(latestCount) : "–"} i ${state.nameToYear}</span>
-    `;
-    const actions = document.createElement("div");
-    actions.className = "discoverActions";
-    const add = document.createElement("button");
-    add.type = "button";
-    add.textContent = state.selected.has(item.id) ? "Lagt til" : "Legg til";
-    add.className = state.selected.has(item.id) ? "active" : "";
-    add.addEventListener("click", () => {
-      state.selected.add(item.id);
-      renderAll();
-    });
-    const compare = document.createElement("button");
-    compare.type = "button";
-    compare.textContent = "Sammenlign";
-    compare.addEventListener("click", () => {
-      state.selected.add(reference.id);
-      state.selected.add(item.id);
-      setActiveView("graf");
-      renderAll();
-    });
-    actions.append(add, compare);
-    card.append(actions);
-    fragment.append(card);
-  });
-  els.discoverCards.append(fragment);
-}
-
-function discoverReferenceItem() {
-  return selectedItems()[0] || state.matches[0] || null;
-}
-
-function discoverRows(reference) {
-  const previous = {
-    method: state.similar.method,
-    metric: state.similar.metric,
-    smooth: state.similar.smooth,
-    fromYear: state.similar.fromYear,
-    toYear: state.similar.toYear,
-  };
-  state.similar.method = "pearson";
-  state.similar.metric = "shareSex";
-  state.similar.smooth = 3;
-  state.similar.fromYear = Math.max(1945, state.nameFromYear);
-  state.similar.toYear = state.nameToYear;
-  const referenceSeries = comparableSeries(reference, "shareSex");
-  const rows = state.data.names
-    .filter((item) => item.id !== reference.id)
-    .filter((item) => item.sex === reference.sex)
-    .filter((item) => state.showRejected || statusOf(item.id) !== "rejected")
-    .map((item) => similarityRow(referenceSeries, item))
-    .filter(Boolean)
-    .sort((a, b) => b.similarity - a.similarity || a.item.name.localeCompare(b.item.name, "no"));
-  Object.assign(state.similar, previous);
-  return rows;
-}
-
-function topTenLabel(item) {
-  const topTenYears = allPoints(item).filter((point) => point.rank && point.rank <= 10).length;
-  if (topTenYears) return `Topp 10 siste ${Math.min(10, topTenYears)} år`;
-  const latestPoint = pointInYear(item, state.nameToYear);
-  if (latestPoint?.[2]) return `Rang ${latestPoint[2]} i ${state.nameToYear}`;
-  return item.sex;
-}
-
-function sparklineSvg(item) {
-  if (!state.data || !item?.series?.length) return "";
-  const points = allPoints(item)
-    .filter((point) => point.year >= Math.max(state.nameFromYear, state.nameToYear - 60) && point.year <= state.nameToYear)
-    .map((point) => ({ year: point.year, value: point.count ?? point.shareSex ?? 0 }))
-    .filter((point) => Number.isFinite(point.value));
-  if (points.length < 2) return "";
-  const width = 96;
-  const height = 36;
-  const minYear = points[0].year;
-  const maxYear = points[points.length - 1].year;
-  const maxValue = Math.max(...points.map((point) => point.value), 1);
-  const d = points
-    .map((point, index) => {
-      const x = maxYear === minYear ? 0 : ((point.year - minYear) / (maxYear - minYear)) * width;
-      const y = height - (point.value / maxValue) * (height - 4) - 2;
-      return `${index ? "L" : "M"}${formatSvgNumber(x)} ${formatSvgNumber(y)}`;
-    })
-    .join(" ");
-  const color = item.sex === "jente" ? "#ef5f8f" : "#256fc9";
-  return `<svg class="sparkline" viewBox="0 0 ${width} ${height}" aria-hidden="true" focusable="false"><path d="${d}" fill="none" stroke="${color}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-}
-
-function formatSvgNumber(value) {
-  return Number(value).toFixed(1).replace(/\.0$/, "");
-}
-
-function selectedItems() {
-  const byId = new Map(state.data.names.map((item) => [item.id, item]));
-  return [...state.selected].map((id) => byId.get(id)).filter(Boolean);
-}
-
-function itemById(id) {
-  return state.data?.names.find((item) => item.id === id) ?? null;
-}
-
-function loadNameStatus() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(STATUS_STORAGE_KEY) || "{}");
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
-    return Object.fromEntries(Object.entries(parsed).filter(([, value]) => value === "shortlist" || value === "rejected"));
-  } catch {
-    return {};
-  }
-}
-
-function saveNameStatus() {
-  localStorage.setItem(STATUS_STORAGE_KEY, JSON.stringify(state.nameStatus));
-}
-
-function setBackupMessage(message, kind = "info") {
-  if (!els.statusBackupMessage) return;
-  els.statusBackupMessage.textContent = message;
-  els.statusBackupMessage.classList.toggle("isError", kind === "error");
-  els.statusBackupMessage.classList.toggle("isSuccess", kind === "success");
-}
-
-function statusOf(id) {
-  return state.nameStatus[id] ?? "neutral";
-}
-
-function setNameStatus(id, status, render = true) {
+function setNameStatus(id, status) {
+  const item = state.itemsById.get(id);
+  if (!item) return;
   if (status === "neutral") {
-    delete state.nameStatus[id];
+    delete state.status[id];
   } else {
-    state.nameStatus[id] = status;
+    state.status[id] = status;
+    if (status === "shortlist") state.selected.add(id);
     if (status === "rejected") state.selected.delete(id);
+    state.history.unshift({ id, status, at: new Date().toISOString() });
+    state.history = state.history.filter((entry, index, arr) => index === arr.findIndex((other) => other.id === entry.id)).slice(0, 100);
   }
-  saveNameStatus();
-  if (render) {
-    updateMatches();
-  }
+  saveStatus();
+  renderAll();
+  updateUrl();
 }
 
-function itemsWithStatus(status) {
-  if (!state.data) return [];
-  return state.data.names.filter((item) => statusOf(item.id) === status).sort((a, b) => a.name.localeCompare(b.name, "no") || a.sex.localeCompare(b.sex, "no"));
+function renderCompare() {
+  $$("[data-metric]").forEach((button) => button.classList.toggle("active", button.dataset.metric === state.compare.metric));
+  $("#compareYears").value = String(state.compare.fromYear);
+  $("#compareSmooth").value = String(state.compare.smooth);
+  $("#compareYearLabel").textContent = state.latestYear;
+  const items = compareItems();
+  renderCompareChips(items);
+  renderCompareStats(items);
+  renderChart(items);
 }
 
-function statusActions(item) {
-  const wrap = document.createElement("span");
-  wrap.className = "rowActions";
-  const current = statusOf(item.id);
-  if (current !== "shortlist") wrap.append(smallAction("Aktuell", () => setNameStatus(item.id, "shortlist"), "decisionPositive"));
-  if (current !== "rejected") wrap.append(smallAction("Uaktuell", () => setNameStatus(item.id, "rejected"), "decisionReject"));
-  if (current !== "neutral") wrap.append(smallAction("Uavklart", () => setNameStatus(item.id, "neutral"), "decisionReset"));
-  return wrap;
+function compareItems() {
+  const selected = [...state.selected].map((id) => state.itemsById.get(id)).filter(Boolean);
+  if (selected.length) return selected;
+  return ["1NORA", "1EMMA", "1ALMA", "1ASTRID"].map((id) => state.itemsById.get(id)).filter(Boolean);
 }
 
-function smallAction(text, handler, className = "") {
-  const button = document.createElement("button");
-  button.type = "button";
-  if (className) button.className = className;
-  button.textContent = text;
-  button.addEventListener("click", (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    handler();
+function renderCompareChips(items) {
+  const rail = $("#compareChips");
+  rail.replaceChildren(...items.map((item) => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = `nameChip ${item.sex}`;
+    chip.textContent = item.name;
+    chip.addEventListener("click", () => openNameDetail(item));
+    return chip;
+  }));
+}
+
+function renderChart(items) {
+  const chart = $("#compareChart");
+  if (!chart) return;
+  const metric = effectiveMetric();
+  chart.innerHTML = lineChartSvg(items, metric, state.compare.fromYear, state.latestYear, 344, 250);
+  chart.dataset.traces = String(items.length);
+  const legend = $("#compareLegend");
+  legend.replaceChildren(...items.map((item, index) => {
+    const label = document.createElement("span");
+    label.innerHTML = `<i style="background:${chartColor(index, item)}"></i>${escapeHtml(item.name)}`;
+    return label;
+  }));
+}
+
+function renderCompareStats(items) {
+  const table = $("#compareStats");
+  table.replaceChildren(...items.map((item) => {
+    const point = pointInYear(item, state.latestYear);
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "statRow";
+    row.innerHTML = `
+      <span><b>${escapeHtml(item.name)}</b><small>${escapeHtml(item.sex)}</small></span>
+      <span>${formatNumber(point?.[1] ?? 0)}</span>
+      <span>${point?.[2] ? formatNumber(point[2]) : "-"}</span>
+      <span>${formatPercent(point?.[3])}</span>
+      <span>${item.peakYear}</span>
+    `;
+    row.addEventListener("click", () => openNameDetail(item));
+    return row;
+  }));
+}
+
+function openNameDetail(item) {
+  openSubscreen(item.name, detailMarkup(item), () => setNameStatus(item.id, "shortlist"));
+  $("#subAction").innerHTML = '<svg><use href="#icon-heart"></use></svg>';
+  bindSubscreenButtons();
+  requestAnimationFrame(() => renderMiniChart("detailChart", [item], "shareSex", 1900, 3));
+}
+
+function detailMarkup(item) {
+  const latest = pointInYear(item, state.latestYear);
+  return `
+    <section class="detailHero">
+      <div><h2>${escapeHtml(item.name)} <span class="${item.sex}">${sexSymbol(item)}</span></h2><p>${escapeHtml(item.sex)}</p></div>
+      <button class="heartRound" data-status="${item.id}" data-next="shortlist" type="button"><svg><use href="#icon-heart"></use></svg></button>
+    </section>
+    <div class="subTabs"><button class="active">Oversikt</button><button>Statistikk</button><button>Skole</button><button data-similar="${item.id}">Lignende</button></div>
+    <section class="subCard">
+      <h3>Utvikling over tid</h3>
+      <div id="detailChart" class="miniChart"></div>
+      <div class="detailStats">
+        <span><small>Antall (${state.latestYear})</small><b>${formatNumber(latest?.[1] ?? 0)}</b></span>
+        <span><small>Rang (${state.latestYear})</small><b>${latest?.[2] ? formatNumber(latest[2]) : "-"}</b></span>
+        <span><small>Andel</small><b>${formatPercent(latest?.[3])}</b></span>
+      </div>
+    </section>
+    <section class="subCard gridStats">
+      <span><small>Toppår</small><b>${item.peakYear}</b><em>${formatNumber(item.peakCount)} fødte</em></span>
+      <span><small>Første år</small><b>${item.firstYear ?? item.firstDataYear}</b></span>
+      <span><small>Siste år</small><b>${item.lastYear ?? item.lastDataYear}</b></span>
+    </section>
+    <section class="subCard schoolCard">
+      <span><strong>Skolekontekst</strong><small>Estimat i relevant skoleløp</small></span>
+      <b>${formatDecimal(schoolEstimate(item, state.latestYear, 100, 7), 2)}</b>
+    </section>
+    <button class="primaryWide" data-add="${item.id}" type="button">Legg til arbeidsutvalg</button>
+    <button class="secondaryWide" data-similar="${item.id}" type="button">Finn lignende navn</button>
+  `;
+}
+
+function openSimilar(item) {
+  const rows = similarRows(item, "curve").slice(0, 40);
+  openSubscreen("Finn lignende navn", `
+    <div class="similarHead">
+      <span>Lignende navn: <b>${escapeHtml(item.name)}</b></span>
+    </div>
+    <div class="segmented subMode" aria-label="Likhetstype">
+      <button class="active" type="button" data-sim-mode="text">Tekstlikhet</button>
+      <button type="button" data-sim-mode="curve">Utvikling</button>
+      <button type="button" data-sim-mode="popularity">Popularitet</button>
+    </div>
+    <div id="similarList" class="nameRows"></div>
+  `);
+  renderSimilarList(item, rows);
+  $$("[data-sim-mode]").forEach((button) => {
+    button.addEventListener("click", () => {
+      $$("[data-sim-mode]").forEach((b) => b.classList.toggle("active", b === button));
+      renderSimilarList(item, similarRows(item, button.dataset.simMode).slice(0, 40));
+    });
   });
-  return button;
 }
 
-function actionCell(item) {
-  const td = document.createElement("td");
-  td.append(statusActions(item));
-  return td;
+function renderSimilarList(reference, rows) {
+  const list = $("#similarList");
+  if (!list) return;
+  list.replaceChildren(...rows.map((row) => {
+    const item = row.item;
+    const element = nameRow(item);
+    $(".rank", element).textContent = "";
+    $(".count", element).textContent = `${formatDecimal(row.similarity * 100, 0)} %`;
+    $(".nameMain small", element).textContent = `${row.reason}`;
+    return element;
+  }));
 }
 
-function bulkSetStatus(items, status) {
-  const unique = uniqueItems(items).filter((item) => statusOf(item.id) !== status);
-  if (!unique.length) return;
-  if (unique.length >= 50 && !confirm(`${status === "rejected" ? "Avvise" : "Merke som aktuelle"} ${unique.length} navn?`)) return;
-  unique.forEach((item) => setNameStatus(item.id, status, false));
-  saveNameStatus();
-  updateMatches();
+function openFilters() {
+  openSubscreen("Søk og filtre", `
+    <form id="filterForm" class="formStack">
+      <label>Søk etter navn<input name="query" type="search" value="${escapeHtml(state.query)}" /></label>
+      <label>Kjønn<select name="sex"><option value="alle">Alle</option><option value="jente">Jente</option><option value="gutt">Gutt</option></select></label>
+      <label>Periode<div class="rangePair"><input name="fromYear" type="number" min="${state.firstYear}" max="${state.latestYear}" value="${state.filters.fromYear}" /><input name="toYear" type="number" min="${state.firstYear}" max="${state.latestYear}" value="${state.filters.toYear}" /></div></label>
+      <label>Popularitet<select name="popularity"><option value="alle">Alle</option><option value="top50">Topp 50 i siste år</option><option value="rising">Stigende trend</option><option value="rare">Mindre vanlig nå</option></select></label>
+      <label>Navnemønster<input name="pattern" type="text" placeholder="f.eks. ^El eller a$" value="${escapeHtml(state.filters.pattern)}" /></label>
+      <label>Forventet navnetetthet<input name="schoolMax" type="number" min="0" step="0.1" placeholder="Maks i skoleløp" value="${escapeHtml(state.filters.schoolMax)}" /></label>
+      <button class="primaryWide" type="submit">Vis ${formatNumber(filteredRows().length)} navn</button>
+    </form>
+  `);
+  $("#filterForm [name='sex']").value = state.filters.sex;
+  $("#filterForm [name='popularity']").value = state.filters.popularity;
+  $("#filterForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    state.query = String(form.get("query") || "").trim();
+    state.filters.sex = String(form.get("sex"));
+    state.filters.fromYear = clampYear(Number(form.get("fromYear")));
+    state.filters.toYear = clampYear(Number(form.get("toYear")));
+    state.filters.popularity = String(form.get("popularity"));
+    state.filters.pattern = String(form.get("pattern") || "").trim();
+    state.filters.schoolMax = String(form.get("schoolMax") || "").trim();
+    $("#searchInput").value = state.query;
+    closeSubscreen();
+    renderExplore();
+  });
 }
 
-function uniqueItems(items) {
-  const seen = new Set();
-  return items.filter((item) => item && !seen.has(item.id) && seen.add(item.id));
+function openCandidateBuilder() {
+  const rows = filteredRows().slice(0, 248);
+  state.candidateRows = rows;
+  openSubscreen("Kandidatliste", `
+    <section class="subCard candidateSummary">
+      <strong>${formatNumber(rows.length)} navn</strong>
+      <small>${state.filters.sex === "alle" ? "Jenter og gutter" : state.filters.sex} · ${state.filters.fromYear}-${state.filters.toYear}</small>
+    </section>
+    <div id="candidateList" class="nameRows"></div>
+    <button class="primaryWide" id="addAllCandidates" type="button">Legg til alle (${formatNumber(rows.length)})</button>
+  `);
+  $("#candidateList").replaceChildren(...rows.slice(0, 80).map((item) => nameRow(item)));
+  $("#addAllCandidates").addEventListener("click", () => {
+    rows.forEach((item) => state.selected.add(item.id));
+    toast(`${formatNumber(rows.length)} navn lagt til`);
+    closeSubscreen();
+    renderAll();
+    updateUrl();
+  });
 }
 
-function lastTopNItems() {
-  if (state.lastTopNRows.length) return state.lastTopNRows.map((row) => row.item);
-  selectTopN();
-  return state.lastTopNRows.map((row) => row.item);
+function openCompareSettings() {
+  openSubscreen("Innstillinger", `
+    <form id="compareSettingsForm" class="formStack">
+      <label>Tidsperiode<input name="fromYear" type="range" min="${state.firstYear}" max="${state.latestYear}" value="${state.compare.fromYear}" /></label>
+      <label>Mål<select name="metric"><option value="count">Antall</option><option value="shareSex">Andel (%)</option><option value="rank">Rang</option><option value="index">Indeks</option></select></label>
+      <label>Glatting<input name="smooth" type="range" min="1" max="10" value="${state.compare.smooth}" /></label>
+      <button class="primaryWide" type="submit">Oppdater</button>
+    </form>
+  `);
+  $("#compareSettingsForm [name='metric']").value = state.compare.metric;
+  $("#compareSettingsForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    state.compare.fromYear = clampYear(Number(form.get("fromYear")));
+    state.compare.metric = String(form.get("metric"));
+    state.compare.smooth = Number(form.get("smooth"));
+    closeSubscreen();
+    renderCompare();
+    updateUrl();
+  });
 }
 
-function buildReviewDeck(render = true) {
-  state.review.source = els.reviewSource.value;
-  state.review.shuffle = els.reviewShuffle.checked;
-  state.review.autoBuild = true;
-  let items = [];
-  if (state.review.source === "matches") items = state.matches;
-  if (state.review.source === "candidates") items = state.candidate.rows.map((row) => row.item);
-  if (state.review.source === "topn") items = lastTopNItems();
-  if (state.review.source === "similar") items = state.similar.rows.map((row) => row.item);
-  if (state.review.source === "random") items = state.data.names;
-  items = uniqueItems(items).filter((item) => statusOf(item.id) === "neutral");
-  if (state.review.shuffle) items = shuffle(items);
-  setReviewDeck(items, reviewSourceLabel(state.review.source, items.length), reviewSourceNote(state.review.source, items.length), render);
+function openCompareTable() {
+  const years = [1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010, 2024, state.latestYear].filter((year, index, arr) => state.years.includes(year) && arr.indexOf(year) === index);
+  const items = compareItems();
+  openSubscreen("Tabellvisning", `
+    <div class="tableScroller">
+      <table class="dataTable">
+        <thead><tr><th>År</th>${items.map((item) => `<th>${escapeHtml(item.name)}</th>`).join("")}</tr></thead>
+        <tbody>${years.map((year) => `<tr><td>${year}</td>${items.map((item) => `<td>${formatNumber(pointInYear(item, year)?.[1] ?? 0)}</td>`).join("")}</tr>`).join("")}</tbody>
+      </table>
+    </div>
+  `);
 }
 
-function setReviewDeck(items, label, note, render = true) {
-  state.review.autoBuild = false;
-  state.review.deck = items.map((item) => item.id);
+function renderReview() {
+  ensureReviewDeck();
+  const item = currentReviewItem();
+  $("#reviewCounter").textContent = state.review.deck.length ? `${Math.min(state.review.index + 1, state.review.deck.length)} av ${state.review.deck.length}` : "0 av 0";
+  const card = $("#reviewCard");
+  if (!item) {
+    card.innerHTML = `<div class="emptyState"><h2>Ingen navn å vurdere</h2><p>Legg navn i arbeidsutvalget fra Utforsk eller Mine navn.</p></div>`;
+    return;
+  }
+  const latest = pointInYear(item, state.latestYear);
+  card.innerHTML = `
+    <button class="heartRound" data-status="${item.id}" data-next="shortlist" type="button"><svg><use href="#icon-heart"></use></svg></button>
+    <p class="cardMeta">${state.review.index + 1} av ${state.review.deck.length}</p>
+    <h2>${escapeHtml(item.name)} <span class="${item.sex}">${sexSymbol(item)}</span></h2>
+    <span class="trendPill">${trendLabel(item)}</span>
+    <div class="reviewSpark">${sparklineSvg(item, 420, 120)}</div>
+    <div class="reviewStats">
+      <span><small>Antall</small><b>${formatNumber(latest?.[1] ?? 0)}</b><em>${item.sex}r i ${state.latestYear}</em></span>
+      <span><small>Rang</small><b>${latest?.[2] ? formatNumber(latest[2]) : "-"}</b><em>i ${state.latestYear}</em></span>
+      <span><small>Andel</small><b>${formatPercent(latest?.[3])}</b><em>av ${item.sex}r</em></span>
+      <span><small>Toppår</small><b>${item.peakYear}</b><em>${formatNumber(item.peakCount)} fødte</em></span>
+    </div>
+    <section class="schoolCard"><span><strong>Skolekontekst</strong><small>Estimat i relevant skoleløp</small></span><b>${formatDecimal(schoolEstimate(item, state.latestYear, 100, 7), 2)}</b></section>
+  `;
+  bindSubscreenButtons(card);
+}
+
+function ensureReviewDeck() {
+  if (state.review.deck.length && state.review.index < state.review.deck.length) return;
+  const work = [...state.selected].map((id) => state.itemsById.get(id)).filter((item) => item && !state.status[item.id]);
+  const fallback = state.data ? popularRows("jente", 40).concat(popularRows("gutt", 40)).filter((item) => !state.status[item.id]) : [];
+  state.review.deck = (work.length ? work : fallback).map((item) => item.id);
   state.review.index = 0;
-  state.review.history = [];
-  state.review.sourceLabel = label;
-  state.review.sourceNote = note;
-  state.review.sourceCount = items.length;
-  if (render) renderReviewCard();
-}
-
-function reviewSelectedItems() {
-  const items = selectedItems();
-  const deck = items.filter((item) => statusOf(item.id) === "neutral");
-  const reviewedCount = items.length - deck.length;
-  const note = reviewedCount
-    ? `${reviewedCount} navn var allerede vurdert og ble hoppet over.`
-    : "Laget fra navnene du valgte i Finn.";
-  state.review.source = "selected";
-  setReviewDeck(deck, `Valgte navn i Finn (${items.length})`, note);
-  setActiveView("vurder");
 }
 
 function currentReviewItem() {
-  while (state.review.index < state.review.deck.length && statusOf(state.review.deck[state.review.index]) !== "neutral") {
-    state.review.index += 1;
-  }
-  return itemById(state.review.deck[state.review.index]);
+  return state.itemsById.get(state.review.deck[state.review.index]) ?? null;
 }
 
-function renderReviewCard() {
-  if (!els.reviewCard || !state.data) return;
-  const item = currentReviewItem();
-  const total = state.review.deck.length;
-  const remaining = Math.max(0, total - state.review.index);
-  const currentNumber = item ? state.review.index + 1 : total;
-  if (els.reviewProgress) {
-    els.reviewProgress.textContent = total
-      ? item
-        ? `${currentNumber} av ${total} · ${remaining - 1} igjen`
-        : `${total} navn gjennomgått`
-      : "0 navn";
-  }
-  if (els.reviewDeckMeta) {
-    const parts = [state.review.sourceLabel || reviewSourceLabel(state.review.source, total)];
-    if (state.review.sourceNote) parts.push(state.review.sourceNote);
-    els.reviewDeckMeta.textContent = parts.filter(Boolean).join(" · ");
-  }
-  if (!item) {
-    els.reviewCard.className = "reviewCard reviewEmpty";
-    els.reviewCard.innerHTML = `
-      <p class="emptyState">Ingen nøytrale navn igjen i denne vurderingslisten.</p>
-      <p class="reviewEmptyHint">${escapeHtml(reviewEmptyHint())}</p>
-      <div class="reviewEmptyActions">
-        <button id="reviewEmptyExplore" type="button">Til Finn</button>
-        <button id="reviewEmptyRebuild" type="button" class="primary">Lag ny liste</button>
-      </div>
-    `;
-    const explore = els.reviewCard.querySelector("#reviewEmptyExplore");
-    const rebuild = els.reviewCard.querySelector("#reviewEmptyRebuild");
-    explore?.addEventListener("click", () => setActiveView("finn"));
-    rebuild?.addEventListener("click", () => buildReviewDeck(true));
-    updateReviewActionState(false);
-    return;
-  }
-  const school = schoolEstimate(item, schoolScopeForGrade(state.childGrade));
-  const latestCount = countInYear(item, state.nameToYear);
-  const latestPoint = pointInYear(item, state.nameToYear);
-  const latestRank = latestPoint?.[2] ?? null;
-  els.reviewCard.className = "reviewCard";
-  els.reviewCard.innerHTML = `
-    <div class="reviewMeta">${reviewProgressLabel(currentNumber, total, remaining)}</div>
-    <button type="button" class="reviewHeart" aria-label="Legg i arbeidsutvalg"><svg class="buttonIcon"><use href="#icon-heart"></use></svg></button>
-    <h3>${escapeHtml(item.name)} <span class="sexMark ${item.sex}">${item.sex === "jente" ? "♀" : "♂"}</span></h3>
-    <p class="trendPill"><svg class="inlineIcon"><use href="#icon-arrow-up-right"></use></svg>${trendCopy(item)}</p>
-    <div class="reviewSpark">${sparklineSvg(item)}</div>
-    <dl>
-      <div><dt>Antall</dt><dd>${latestCount ? formatNumber(latestCount) : "–"}<small>${item.sex === "jente" ? "jenter" : "gutter"} i ${state.nameToYear}</small></dd></div>
-      <div><dt>Rang</dt><dd>${latestRank ? formatNumber(latestRank) : bestRankLabel(item)}<small>i ${state.nameToYear}</small></dd></div>
-      <div><dt>Andel</dt><dd>${formatLatestShare(item)}<small>av ${item.sex === "jente" ? "jenter" : "gutter"}</small></dd></div>
-      <div><dt>Toppår</dt><dd>${item.peakYear}<small>${formatNumber(item.peakCount)} fødte</small></dd></div>
-    </dl>
-    <div class="schoolContext"><strong>Skolekontekst</strong><span>${formatEstimate(school.scope)}</span><small>Estimat i relevant skoleløp</small></div>
-    <button type="button" class="reviewDetails">Se detaljer og statistikk ›</button>
-  `;
-  els.reviewCard.querySelector(".reviewHeart")?.addEventListener("click", () => {
-    state.selected.add(item.id);
-    renderAll();
-  });
-  els.reviewCard.querySelector(".reviewDetails")?.addEventListener("click", () => {
-    state.selected.add(item.id);
-    setActiveView("graf");
-    renderAll();
-  });
-  attachReviewSwipe();
-  updateReviewActionState(true);
-}
-
-function trendCopy(item) {
-  const latest = countInYear(item, state.nameToYear);
-  const prior = hasNameDataYear(state.nameToYear - 10) ? countInYear(item, state.nameToYear - 10) : null;
-  if (prior != null && latest > prior) return "Popularitet på vei opp";
-  if (prior != null && latest < prior) return "Roligere utvikling siste år";
-  return "Historisk utvikling tilgjengelig";
-}
-
-function formatLatestShare(item) {
-  const point = allPoints(item).find((row) => row.year === state.nameToYear);
-  if (!point?.shareSex) return "–";
-  return `${formatDecimal(point.shareSex, 2)} %`;
-}
-
-function updateReviewActionState(enabled) {
-  [els.reviewReject, els.reviewSkip, els.reviewShortlist].forEach((button) => {
-    button.disabled = !enabled;
-  });
-}
-
-function reviewProgressLabel(currentNumber, total, remaining) {
-  if (!total) return "0 navn";
-  return `${currentNumber} av ${total} · ${Math.max(0, remaining - 1)} igjen`;
-}
-
-function reviewSourceLabel(source, count) {
-  const labels = {
-    random: "Tilfeldige nøytrale",
-    matches: "Fra søkeresultat",
-    candidates: "Fra filterliste",
-    topn: "Fra topp/intervall",
-    similar: "Fra lignende kurver",
-  };
-  const label = labels[source] ?? "Vurderingsliste";
-  return count ? `${label} (${count})` : label;
-}
-
-function reviewSourceNote(source, count) {
-  if (!count) {
-    return source === "selected" ? "Vurderingslisten er tom etter filtrering av vurderte navn." : "Ingen nøytrale navn matcher denne kilden.";
-  }
-  return source === "selected" ? "Kjørt fra navnene du valgte i Finn." : "Nøytrale navn fra valgt kilde.";
-}
-
-function reviewEmptyHint() {
-  if (state.review.source === "selected") {
-    return `Denne vurderingslisten kom fra ${state.review.sourceLabel || "navnene du valgte i Finn"}. Du kan gå tilbake og justere utvalget, eller bygge en ny liste fra en annen kilde.`;
-  }
-  return "Gå tilbake til Finn for å justere utvalget, eller lag en ny vurderingsliste fra en annen kilde.";
-}
-
-function reviewSetStatus(status) {
-  if (state.review.swiping) return;
+function decideCurrent(status) {
   const item = currentReviewItem();
   if (!item) return;
-  const from = statusOf(item.id);
-  setNameStatus(item.id, status, false);
-  state.review.history.push({ id: item.id, from, to: status });
+  state.review.undo.unshift({ id: item.id, previous: state.status[item.id] ?? "neutral", index: state.review.index });
+  setNameStatus(item.id, status);
   state.review.index += 1;
-  saveNameStatus();
-  updateMatches();
+  ensureReviewDeck();
+  renderReview();
 }
 
-function commitReviewSwipe(status, direction) {
-  if (state.review.swiping) return;
-  const item = currentReviewItem();
-  if (!item) return;
-  state.review.swiping = true;
-  els.reviewCard.classList.add(status === "shortlist" ? "swipeShortlist" : "swipeReject");
-  els.reviewCard.style.transform = `translate(${direction * 120}vw, -4vh) rotate(${direction * 18}deg)`;
-  els.reviewCard.style.opacity = "0";
-  setTimeout(() => {
-    state.review.swiping = false;
-    els.reviewCard.style.transform = "";
-    els.reviewCard.style.opacity = "";
-    reviewSetStatus(status);
-  }, 180);
-}
-
-function attachReviewSwipe() {
-  const card = els.reviewCard;
-  let startX = 0;
-  let startY = 0;
-  let currentX = 0;
-  let currentY = 0;
-  let dragging = false;
-
-  card.onpointerdown = (event) => {
-    if (state.review.swiping || !currentReviewItem()) return;
-    dragging = true;
-    startX = event.clientX;
-    startY = event.clientY;
-    currentX = 0;
-    currentY = 0;
-    card.setPointerCapture(event.pointerId);
-    card.classList.add("dragging");
-  };
-
-  card.onpointermove = (event) => {
-    if (!dragging) return;
-    currentX = event.clientX - startX;
-    currentY = event.clientY - startY;
-    const rotation = Math.max(-16, Math.min(16, currentX / 14));
-    card.style.transform = `translate(${currentX}px, ${currentY}px) rotate(${rotation}deg)`;
-    card.classList.toggle("hintShortlist", currentX > 70);
-    card.classList.toggle("hintReject", currentX < -70);
-  };
-
-  card.onpointerup = (event) => {
-    if (!dragging) return;
-    dragging = false;
-    card.releasePointerCapture(event.pointerId);
-    card.classList.remove("dragging", "hintShortlist", "hintReject");
-    const shouldCommit = Math.abs(currentX) > 110 || Math.abs(currentX) > card.clientWidth * 0.28;
-    if (shouldCommit) {
-      commitReviewSwipe(currentX > 0 ? "shortlist" : "rejected", currentX > 0 ? 1 : -1);
-      return;
-    }
-    card.style.transform = "";
-  };
-
-  card.onpointercancel = () => {
-    dragging = false;
-    card.classList.remove("dragging", "hintShortlist", "hintReject");
-    card.style.transform = "";
-  };
-}
-
-function handleReviewKeyboard(event) {
-  if (state.activeView !== "vurder" || event.target.closest("input, select, textarea, button")) return;
-  if (event.key === "ArrowLeft") {
-    event.preventDefault();
-    commitReviewSwipe("rejected", -1);
-  }
-  if (event.key === "ArrowRight") {
-    event.preventDefault();
-    commitReviewSwipe("shortlist", 1);
-  }
-  if (event.key === "ArrowDown" || event.key === " ") {
-    event.preventDefault();
-    reviewSkip();
-  }
-  if (event.key === "Backspace") {
-    event.preventDefault();
-    reviewUndo();
-  }
-}
-
-function reviewSkip() {
-  if (state.review.swiping) return;
-  const item = currentReviewItem();
-  if (!item) return;
-  state.review.deck.push(item.id);
+function skipCurrent() {
   state.review.index += 1;
-  renderReviewCard();
+  ensureReviewDeck();
+  renderReview();
 }
 
-function reviewUndo() {
-  if (state.review.swiping) return;
-  const last = state.review.history.pop();
+function undoDecision() {
+  const last = state.review.undo.shift();
   if (!last) return;
-  setNameStatus(last.id, last.from, false);
-  state.review.index = Math.max(0, state.review.index - 1);
-  if (!state.review.deck.includes(last.id)) state.review.deck.splice(state.review.index, 0, last.id);
-  saveNameStatus();
-  updateMatches();
-}
-
-function shuffle(items) {
-  const copy = [...items];
-  for (let index = copy.length - 1; index > 0; index -= 1) {
-    const other = Math.floor(Math.random() * (index + 1));
-    [copy[index], copy[other]] = [copy[other], copy[index]];
-  }
-  return copy;
-}
-
-function bestRankLabel(item) {
-  const ranks = item.series.map((point) => point[2]).filter(Boolean);
-  return ranks.length ? `#${Math.min(...ranks)}` : "–";
-}
-
-function selectTopN() {
-  if (!state.data) return;
-  readTopNControls(true);
-  const n = Number(els.topNCount.value);
-  const mode = els.topNMode.value;
-  const rows = state.matches
-    .map((item) => {
-      const value = mode === "year" ? topNValueInYear(item, state.topNYear) : topNValueInPeriod(item, state.topNFromYear, state.topNToYear);
-      return { item, value };
-    })
-    .filter((row) => row.value > 0)
-    .sort((a, b) => b.value - a.value || a.item.name.localeCompare(b.item.name, "no"));
-  const selectedRows = state.topNSelectionMode === "range" ? topNRowsInRange(rows) : rows.slice(0, n);
-  state.lastTopNRows = selectedRows;
-  state.selected = new Set(selectedRows.map((row) => row.item.id));
+  if (last.previous === "neutral") delete state.status[last.id];
+  else state.status[last.id] = last.previous;
+  state.review.index = last.index;
+  saveStatus();
   renderAll();
 }
 
-function readTopNControls(commit = false) {
-  const topNYear = parseIntegerInput(els.topNYear.value);
-  const topNFromYear = parseIntegerInput(els.topNFromYear.value);
-  const topNToYear = parseIntegerInput(els.topNToYear.value);
-  const topNRangeFrom = parseNumberInput(els.topNRangeFrom.value);
-  const topNRangeTo = parseNumberInput(els.topNRangeTo.value);
-  const topNRangeLimit = parseIntegerInput(els.topNRangeLimit.value);
-  if (!commit) return;
-  state.topNSelectionMode = els.topNSelectionMode.value;
-  state.topNRangePreset = els.topNRangePreset.value;
-  if (topNYear != null) state.topNYear = clampNameYear(topNYear);
-  if (topNFromYear != null) state.topNFromYear = clampNameYear(topNFromYear);
-  if (topNToYear != null) state.topNToYear = clampNameYear(topNToYear);
-  if (state.topNFromYear > state.topNToYear) [state.topNFromYear, state.topNToYear] = [state.topNToYear, state.topNFromYear];
-  if (topNRangeFrom != null) state.topNRangeFrom = clampPercent(topNRangeFrom);
-  if (topNRangeTo != null) state.topNRangeTo = clampPercent(topNRangeTo);
-  if (state.topNRangeFrom > state.topNRangeTo) [state.topNRangeFrom, state.topNRangeTo] = [state.topNRangeTo, state.topNRangeFrom];
-  state.topNRangePreset = matchingTopNRangePreset(state.topNRangeFrom, state.topNRangeTo) ?? "custom";
-  if (topNRangeLimit != null) state.topNRangeLimit = Math.max(1, Math.min(250, topNRangeLimit));
-  writeTopNControls();
+function renderMine() {
+  const work = [...state.selected].map((id) => state.itemsById.get(id)).filter(Boolean);
+  const shortlist = itemsWithStatus("shortlist");
+  const rejected = itemsWithStatus("rejected");
+  $("#workCount").textContent = `${formatNumber(work.length)} navn`;
+  $("#shortlistCount").textContent = `${formatNumber(shortlist.length)} navn`;
+  $("#rejectedCount").textContent = `${formatNumber(rejected.length)} navn`;
+  const recent = $("#recentDecisions");
+  recent.replaceChildren(...state.history.slice(0, 6).map((entry) => decisionRow(entry)));
+  if (!state.history.length) recent.innerHTML = `<p class="mutedEmpty">Ingen vurderinger ennå.</p>`;
 }
 
-function writeTopNControls() {
-  const periodMode = els.topNMode.value === "period";
-  const rangeMode = state.topNSelectionMode === "range";
-  els.topNSelectionMode.value = state.topNSelectionMode;
-  els.topNCountControl.hidden = rangeMode;
-  els.topNRangeControls.hidden = !rangeMode;
-  els.selectTopN.textContent = rangeMode ? "Velg intervall" : "Velg topp";
-  els.topNYearControl.hidden = periodMode;
-  els.topNPeriodControls.hidden = !periodMode;
-  els.syncTopNYears.hidden = !periodMode;
-  els.topNRangePreset.value = state.topNRangePreset;
-  els.topNRangeFrom.value = state.topNRangeFrom;
-  els.topNRangeTo.value = state.topNRangeTo;
-  els.topNRangeLimit.value = state.topNRangeLimit;
-  els.topNYear.value = state.topNYear;
-  els.topNFromYear.value = state.topNFromYear;
-  els.topNToYear.value = state.topNToYear;
+function decisionRow(entry) {
+  const item = state.itemsById.get(entry.id);
+  const row = document.createElement("button");
+  row.type = "button";
+  row.className = "decisionRow";
+  row.innerHTML = `
+    <span class="miniIcon ${entry.status === "shortlist" ? "green" : "red"}"><svg><use href="#icon-${entry.status === "shortlist" ? "heart" : "x"}"></use></svg></span>
+    <span><strong>${escapeHtml(item?.name ?? "Ukjent")}</strong><small>${entry.status === "shortlist" ? "Aktuelt" : "Uaktuelt"}</small></span>
+    <em>${entry.status === "shortlist" ? "Aktuelt" : "Uaktuelt"}</em>
+  `;
+  if (item) row.addEventListener("click", () => openNameDetail(item));
+  return row;
 }
 
-function applyTopNRangePreset() {
-  const preset = els.topNRangePreset.value;
-  const ranges = topNRangePresets();
-  state.topNRangePreset = preset;
-  if (ranges[preset]) {
-    [state.topNRangeFrom, state.topNRangeTo] = ranges[preset];
-  } else {
-    readTopNControls(true);
-    return;
+function openNameList(kind) {
+  const title = kind === "work" ? "Arbeidsutvalg" : kind === "shortlist" ? "Aktuelle" : "Uaktuelle";
+  const rows = kind === "work" ? [...state.selected].map((id) => state.itemsById.get(id)).filter(Boolean) : itemsWithStatus(kind);
+  openSubscreen(title, `
+    <div class="sectionRow"><h3>${formatNumber(rows.length)} navn</h3><button id="listPrimaryAction" type="button">${kind === "work" ? "Sammenlign" : "Del liste"}</button></div>
+    <div id="mineListRows" class="nameRows"></div>
+  `);
+  $("#mineListRows").replaceChildren(...rows.map((item) => listManageRow(item, kind)));
+  $("#listPrimaryAction").addEventListener("click", () => {
+    if (kind === "work") {
+      closeSubscreen();
+      setTab("compare");
+    } else {
+      copyShareLink();
+    }
+  });
+}
+
+function listManageRow(item, kind) {
+  const row = nameRow(item);
+  $(".addButton", row).remove();
+  const menu = document.createElement("button");
+  menu.type = "button";
+  menu.className = "moreButton";
+  menu.textContent = "⋯";
+  menu.addEventListener("click", (event) => {
+    event.stopPropagation();
+    openSubscreen(item.name, `
+      <div class="listMenu">
+        <button data-add="${item.id}" type="button"><span class="miniIcon blue"><svg><use href="#icon-list"></use></svg></span><span><strong>Legg i arbeidsutvalg</strong><small>Sammenlign eller vurder senere</small></span><em>›</em></button>
+        <button data-status="${item.id}" data-next="shortlist" type="button"><span class="miniIcon green"><svg><use href="#icon-heart"></use></svg></span><span><strong>Marker aktuell</strong><small>Flytt til favoritter</small></span><em>›</em></button>
+        <button data-status="${item.id}" data-next="rejected" type="button"><span class="miniIcon red"><svg><use href="#icon-x"></use></svg></span><span><strong>Marker uaktuell</strong><small>Skjul fra vanlige forslag</small></span><em>›</em></button>
+        <button data-remove="${item.id}" type="button"><span class="miniIcon"><svg><use href="#icon-x"></use></svg></span><span><strong>Fjern fra arbeidsutvalg</strong><small>Påvirker ikke vurderingen</small></span><em>›</em></button>
+      </div>
+    `);
+    bindSubscreenButtons();
+  });
+  row.append(menu);
+  return row;
+}
+
+function openHistory() {
+  openSubscreen("Vurderingshistorikk", `<div class="decisionRows">${state.history.map((entry) => decisionRow(entry).outerHTML).join("") || '<p class="mutedEmpty">Ingen vurderinger ennå.</p>'}</div>`);
+}
+
+function openBackup() {
+  openSubscreen("Sikkerhetskopi", `
+    <div class="listMenu">
+      <button id="exportJson" type="button"><span class="miniIcon blue"><svg><use href="#icon-share"></use></svg></span><span><strong>Eksporter beslutninger</strong><small>JSON-fil for import senere</small></span><em>›</em></button>
+      <button id="exportStatusCsv" type="button"><span class="miniIcon green"><svg><use href="#icon-list"></use></svg></span><span><strong>Eksporter CSV</strong><small>Aktuelle og uaktuelle navn</small></span><em>›</em></button>
+      <button id="importJson" type="button"><span class="miniIcon yellow"><svg><use href="#icon-gear"></use></svg></span><span><strong>Importer beslutninger</strong><small>Slår sammen med lokale valg</small></span><em>›</em></button>
+    </div>
+  `);
+  $("#exportJson").addEventListener("click", exportDecisionsJson);
+  $("#exportStatusCsv").addEventListener("click", exportDecisionsCsv);
+  $("#importJson").addEventListener("click", () => $("#importInput").click());
+}
+
+function openSubscreen(title, html, action) {
+  $("#subTitle").textContent = title;
+  $("#subContent").innerHTML = html;
+  $("#subscreen").classList.add("open");
+  $("#subscreen").setAttribute("aria-hidden", "false");
+  $("#subAction").onclick = action || null;
+  if (!action) $("#subAction").textContent = "";
+  bindSubscreenButtons();
+}
+
+function closeSubscreen(render = true) {
+  $("#subscreen")?.classList.remove("open");
+  $("#subscreen")?.setAttribute("aria-hidden", "true");
+  if (render) renderAll();
+}
+
+function bindSubscreenButtons(root = document) {
+  $$("[data-add]", root).forEach((button) => button.addEventListener("click", () => addToWork(state.itemsById.get(button.dataset.add))));
+  $$("[data-status]", root).forEach((button) => button.addEventListener("click", () => setNameStatus(button.dataset.status, button.dataset.next)));
+  $$("[data-remove]", root).forEach((button) => button.addEventListener("click", () => removeFromWork(button.dataset.remove)));
+  $$("[data-similar]", root).forEach((button) => button.addEventListener("click", () => openSimilar(state.itemsById.get(button.dataset.similar))));
+}
+
+function filteredRows() {
+  let rows = state.query ? searchRows(state.query) : state.data.names.slice();
+  if (state.filters.pattern) {
+    try {
+      const regex = new RegExp(state.filters.pattern, "i");
+      rows = rows.filter((item) => regex.test(item.name));
+    } catch {
+      rows = [];
+    }
   }
-  writeTopNControls();
+  if (state.filters.sex !== "alle") rows = rows.filter((item) => item.sex === state.filters.sex);
+  if (state.filters.popularity === "top50") rows = rows.filter((item) => (pointInYear(item, state.latestYear)?.[2] ?? 9999) <= 50);
+  if (state.filters.popularity === "rising") rows = rows.filter((item) => trendScore(item) > 0);
+  if (state.filters.popularity === "rare") rows = rows.filter((item) => latestCount(item) < 25);
+  if (state.filters.schoolMax !== "") rows = rows.filter((item) => schoolEstimate(item, state.latestYear, 100, 7) <= Number(state.filters.schoolMax));
+  return rows.sort((a, b) => latestCount(b) - latestCount(a) || a.name.localeCompare(b.name, "no"));
 }
 
-function topNRowsInRange(rows) {
-  if (!rows.length) return [];
-  const from = Math.min(state.topNRangeFrom, state.topNRangeTo);
-  const to = Math.max(state.topNRangeFrom, state.topNRangeTo);
-  const maxRows = Math.max(1, Math.min(250, state.topNRangeLimit));
-  return rows
-    .map((row, index) => ({ ...row, percentile: rows.length === 1 ? 0 : (index / (rows.length - 1)) * 100 }))
-    .filter((row) => row.percentile >= from && row.percentile <= to)
-    .slice(0, maxRows);
+function similarRows(reference, mode) {
+  return state.data.names
+    .filter((item) => item.id !== reference.id && item.sex === reference.sex && state.status[item.id] !== "rejected")
+    .map((item) => {
+      if (mode === "text") {
+        const distance = levenshtein(normalize(reference.name), normalize(item.name));
+        return { item, similarity: 1 / (1 + distance), reason: "tekstlikhet" };
+      }
+      if (mode === "popularity") {
+        const rankDiff = Math.abs((pointInYear(reference, state.latestYear)?.[2] ?? 999) - (pointInYear(item, state.latestYear)?.[2] ?? 999));
+        const peakDiff = Math.abs(reference.peakCount - item.peakCount);
+        return { item, similarity: 1 / (1 + rankDiff / 15 + peakDiff / 500), reason: "lik popularitet" };
+      }
+      const similarity = curveSimilarity(reference, item);
+      return { item, similarity, reason: "lignende kurve" };
+    })
+    .filter((row) => Number.isFinite(row.similarity))
+    .sort((a, b) => b.similarity - a.similarity || a.item.name.localeCompare(b.item.name, "no"));
 }
 
-function topNRangePresets() {
-  return {
-    top10: [0, 10],
-    top25: [0, 25],
-    middle50: [25, 75],
-    bottom25: [75, 100],
-    bottom10: [90, 100],
+function curveSimilarity(a, b) {
+  const left = allPoints(a).filter((p) => p.year >= 1900).map((p) => p.shareSex ?? 0);
+  const right = allPoints(b).filter((p) => p.year >= 1900).map((p) => p.shareSex ?? 0);
+  const n = Math.min(left.length, right.length);
+  if (n < 3) return 0;
+  return Math.max(0, Math.min(1, (pearson(zScore(left.slice(-n)), zScore(right.slice(-n))) + 1) / 2));
+}
+
+function lineChartSvg(items, metric, fromYear, toYear, width, height, options = {}) {
+  const pad = options.compact ? { top: 10, right: 8, bottom: 24, left: 34 } : { top: 14, right: 12, bottom: 34, left: 44 };
+  const series = items.map((item) => {
+    const points = allPoints(item)
+      .filter((point) => point.year >= fromYear && point.year <= toYear)
+      .map((point) => ({ year: point.year, value: metricValue(point, item, metric) }));
+    const values = smooth(points.map((point) => point.value), state.compare.smooth);
+    return { item, points: points.map((point, index) => ({ year: point.year, value: values[index] })).filter((point) => point.value != null && Number.isFinite(point.value)) };
+  });
+  const values = series.flatMap((line) => line.points.map((point) => point.value));
+  if (!values.length) {
+    return `<svg class="lineChart" viewBox="0 0 ${width} ${height}" role="img"><text x="${width / 2}" y="${height / 2}" text-anchor="middle" fill="#7a8494" font-size="13">Ingen grafdata</text></svg>`;
+  }
+  let minY = metric === "rank" ? Math.min(...values) : Math.min(0, Math.min(...values));
+  let maxY = Math.max(...values);
+  if (metric === "rank") {
+    minY = Math.min(...values);
+    maxY = Math.max(...values);
+  }
+  if (maxY === minY) maxY += 1;
+  const plotW = width - pad.left - pad.right;
+  const plotH = height - pad.top - pad.bottom;
+  const x = (year) => pad.left + ((year - fromYear) / Math.max(1, toYear - fromYear)) * plotW;
+  const y = (value) => {
+    const normalized = (value - minY) / (maxY - minY);
+    return metric === "rank" ? pad.top + normalized * plotH : pad.top + (1 - normalized) * plotH;
   };
+  const ticks = [fromYear, Math.round((fromYear + toYear) / 2), toYear];
+  const grid = [0, 0.25, 0.5, 0.75, 1]
+    .map((t) => {
+      const yy = pad.top + t * plotH;
+      return `<line x1="${pad.left}" x2="${width - pad.right}" y1="${yy.toFixed(1)}" y2="${yy.toFixed(1)}" stroke="#edf0f4" stroke-width="1"/>`;
+    })
+    .join("");
+  const xTicks = ticks
+    .map((year, index) => {
+      const anchor = index === 0 ? "start" : index === ticks.length - 1 ? "end" : "middle";
+      return `<text x="${x(year).toFixed(1)}" y="${height - 9}" text-anchor="${anchor}" fill="#6f7888" font-size="10">${year}</text>`;
+    })
+    .join("");
+  const yTop = metric === "rank" ? minY : maxY;
+  const yBottom = metric === "rank" ? maxY : minY;
+  const yLabels = `
+    <text x="${pad.left - 8}" y="${pad.top + 4}" text-anchor="end" fill="#6f7888" font-size="10">${shortNumber(yTop)}</text>
+    <text x="${pad.left - 8}" y="${pad.top + plotH}" text-anchor="end" fill="#6f7888" font-size="10">${shortNumber(yBottom)}</text>
+  `;
+  const lines = series
+    .map((line, index) => {
+      const points = line.points.map((point) => `${x(point.year).toFixed(1)},${y(point.value).toFixed(1)}`).join(" ");
+      return `<polyline class="chartLine" points="${points}" fill="none" stroke="${chartColor(index, line.item)}" stroke-width="${options.compact ? 3 : 3.4}" stroke-linecap="round" stroke-linejoin="round"/>`;
+    })
+    .join("");
+  return `<svg class="lineChart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Historisk navneutvikling">
+    <rect width="${width}" height="${height}" rx="14" fill="#fff"/>
+    ${grid}
+    <line x1="${pad.left}" x2="${width - pad.right}" y1="${pad.top + plotH}" y2="${pad.top + plotH}" stroke="#d8dde5"/>
+    ${xTicks}
+    ${options.compact ? "" : yLabels}
+    ${lines}
+  </svg>`;
 }
 
-function matchingTopNRangePreset(from, to) {
-  return Object.entries(topNRangePresets()).find(([, range]) => range[0] === from && range[1] === to)?.[0] ?? null;
+function chartColor(index, item) {
+  const palette = ["#ef5d93", "#2e7bcf", "#4aa36f", "#8b68d9", "#e59b3c", "#42a6a1"];
+  if (item?.sex === "gutt" && index === 0) return "#2e7bcf";
+  if (item?.sex === "jente" && index === 0) return "#ef5d93";
+  return palette[index % palette.length];
 }
 
-function countInYear(item, year) {
-  const point = pointInYear(item, year);
-  return point ? point[1] : 0;
-}
-
-function shareInYear(item, year) {
-  const point = pointInYear(item, year);
-  return point ? point[3] : null;
-}
-
-function pointInYear(item, year) {
-  const yearIndex = state.data.years.indexOf(year);
-  if (yearIndex < 0) return null;
-  return item.series.find(([yi]) => yi === yearIndex) ?? null;
-}
-
-function topNValueInYear(item, year) {
-  const point = pointInYear(item, year);
-  if (!point) return 0;
-  return point[1] ?? point[3] ?? 0;
-}
-
-function topNValueInPeriod(item, fromYear, toYear) {
-  return item.series.reduce((sum, [yearIndex, count, , share]) => {
-    const year = state.data.years[yearIndex];
-    return year >= fromYear && year <= toYear ? sum + (count ?? share ?? 0) : sum;
-  }, 0);
-}
-
-function countInPeriod(item, fromYear, toYear) {
-  return item.series.reduce((sum, [yearIndex, count]) => {
-    const year = state.data.years[yearIndex];
-    return year >= fromYear && year <= toYear ? sum + (count ?? 0) : sum;
-  }, 0);
-}
-
-function nameYearRange() {
-  let minIndex = Infinity;
-  let maxIndex = -Infinity;
-  state.data.names.forEach((item) => {
-    item.series.forEach(([yearIndex]) => {
-      minIndex = Math.min(minIndex, yearIndex);
-      maxIndex = Math.max(maxIndex, yearIndex);
-    });
-  });
-  return [state.data.years[minIndex], state.data.years[maxIndex]];
-}
-
-function firstCountYear() {
-  let minIndex = Infinity;
-  state.data.names.forEach((item) => {
-    item.series.forEach(([yearIndex, count]) => {
-      if (count != null) minIndex = Math.min(minIndex, yearIndex);
-    });
-  });
-  return Number.isFinite(minIndex) ? state.data.years[minIndex] : state.nameToYear;
-}
-
-function readSchoolControls(commit = false) {
-  state.schoolBirthYear = parseIntegerInput(els.schoolBirthYear.value);
-  state.childGrade = parseIntegerInput(els.childGrade.value);
-  state.gradeSize = parseNumberInput(els.gradeSize.value);
-  if (!commit) return;
-  if (state.schoolBirthYear != null && hasNameDataYear(state.schoolBirthYear)) els.schoolBirthYear.value = state.schoolBirthYear;
-  if (state.childGrade != null && isValidGrade(state.childGrade)) els.childGrade.value = state.childGrade;
-  if (state.gradeSize != null && state.gradeSize > 0) els.gradeSize.value = state.gradeSize;
-}
-
-function readCandidateControls(commit = false) {
-  state.candidate.regex = els.candidateRegex.value.trim() || ".*";
-  state.candidate.sex = els.candidateSex.value;
-  state.candidate.birthYear = parseIntegerInput(els.candidateBirthYear.value);
-  state.candidate.grade = parseIntegerInput(els.candidateGrade.value);
-  state.candidate.gradeSize = parseNumberInput(els.candidateGradeSize.value);
-  state.candidate.maxSchoolmates = parseNumberInput(els.candidateMaxSchool.value);
-  state.candidate.sort = els.candidateSort.value;
-  if (!commit) return;
-  if (state.candidate.birthYear != null && hasNameDataYear(state.candidate.birthYear)) els.candidateBirthYear.value = state.candidate.birthYear;
-  if (state.candidate.grade != null && isValidGrade(state.candidate.grade)) els.candidateGrade.value = state.candidate.grade;
-  if (state.candidate.gradeSize != null && state.candidate.gradeSize > 0) els.candidateGradeSize.value = state.candidate.gradeSize;
-  if (state.candidate.maxSchoolmates != null && state.candidate.maxSchoolmates >= 0) els.candidateMaxSchool.value = state.candidate.maxSchoolmates;
-}
-
-function writeCandidateControls() {
-  els.candidateRegex.value = state.candidate.regex;
-  els.candidateSex.value = state.candidate.sex;
-  els.candidateBirthYear.value = state.candidate.birthYear;
-  els.candidateGrade.value = state.candidate.grade;
-  els.candidateGradeSize.value = state.candidate.gradeSize;
-  els.candidateMaxSchool.value = state.candidate.maxSchoolmates;
-  els.candidateSort.value = state.candidate.sort;
-}
-
-function copyExploreToCandidates() {
-  readSchoolControls(false);
-  state.candidate.regex = state.regex;
-  state.candidate.sex = state.sex;
-  state.candidate.birthYear = state.schoolBirthYear;
-  state.candidate.grade = state.childGrade;
-  state.candidate.gradeSize = state.gradeSize;
-  writeCandidateControls();
-}
-
-function readSimilarControls(commit = false) {
-  state.similar.referenceId = els.similarReference.value || state.similar.referenceId;
-  state.similar.method = normalizeSimilarMethod(els.similarMethod.value);
-  state.similar.metric = els.similarMetric.value;
-  state.similar.smooth = Number(els.similarSmooth.value) || 1;
-  state.similar.fromYear = parseIntegerInput(els.similarFromYear.value);
-  state.similar.toYear = parseIntegerInput(els.similarToYear.value);
-  if (!commit) return;
-  if (state.similar.fromYear != null) state.similar.fromYear = clampNameYear(state.similar.fromYear);
-  if (state.similar.toYear != null) state.similar.toYear = clampNameYear(state.similar.toYear);
-  if (state.similar.fromYear > state.similar.toYear) [state.similar.fromYear, state.similar.toYear] = [state.similar.toYear, state.similar.fromYear];
-  els.similarFromYear.value = state.similar.fromYear;
-  els.similarToYear.value = state.similar.toYear;
-}
-
-function writeSimilarControls() {
-  els.similarMethod.value = state.similar.method;
-  els.similarMetric.value = state.similar.metric;
-  els.similarSmooth.value = String(state.similar.smooth);
-  els.similarFromYear.value = state.similar.fromYear;
-  els.similarToYear.value = state.similar.toYear;
-}
-
-function renderSelected() {
-  const items = selectedItems();
-  els.selectedCount.textContent = `${items.length} navn`;
-  if (els.selectedShortlist) els.selectedShortlist.disabled = !items.length;
-  if (els.selectedReject) els.selectedReject.disabled = !items.length;
-  if (els.selectedReview) els.selectedReview.disabled = !items.length;
-  if (els.selectedClear) els.selectedClear.disabled = !items.length;
-  els.selectedNames.innerHTML = "";
-  items.forEach((item) => {
-    const pill = document.createElement("span");
-    pill.className = "pill";
-    pill.textContent = `${item.name} (${item.sex})`;
-    const reference = document.createElement("button");
-    reference.type = "button";
-    reference.textContent = "Referanse";
-    reference.setAttribute("aria-label", `Bruk ${item.name} som referanse`);
-    reference.addEventListener("click", () => {
-      state.similar.referenceId = item.id;
-      renderAll();
-    });
-    const remove = document.createElement("button");
-    remove.type = "button";
-    remove.textContent = "×";
-    remove.setAttribute("aria-label", `Fjern ${item.name}`);
-    remove.addEventListener("click", () => {
-      state.selected.delete(item.id);
-      renderAll();
-    });
-    pill.append(reference, remove);
-    els.selectedNames.append(pill);
-  });
-  renderSimilarReferenceOptions(items);
-}
-
-function renderSimilarReferenceOptions(items) {
-  const previous = state.similar.referenceId;
-  els.similarReference.innerHTML = "";
-  if (!items.length) {
-    const option = document.createElement("option");
-    option.value = "";
-    option.textContent = "Velg navn i Utforsk først";
-    els.similarReference.append(option);
-    state.similar.referenceId = "";
-    return;
-  }
-  items.forEach((item) => {
-    const option = document.createElement("option");
-    option.value = item.id;
-    option.textContent = `${item.name} (${item.sex})`;
-    els.similarReference.append(option);
-  });
-  if (items.some((item) => item.id === previous)) {
-    state.similar.referenceId = previous;
-  } else {
-    state.similar.referenceId = items[0]?.id ?? "";
-  }
-  els.similarReference.value = state.similar.referenceId;
-}
-
-function renderChart() {
-  if (!state.data || !window.Plotly) return;
-  const effectiveMetric = effectiveChartMetric();
-  const traces = selectedItems().map((item) => {
-    const points = visiblePoints(item);
-    const values = points.map((p) => metricValue(p, item, effectiveMetric));
-    return {
-      x: points.map((p) => p.year),
-      y: smoothSeries(values, state.chartSmooth),
-      mode: state.markers ? "lines+markers" : "lines",
-      name: `${item.name} (${item.sex})`,
-      line: { width: 2.5 },
-      hovertemplate: hoverTemplate(effectiveMetric),
-      customdata: points.map((p) => [p.count, p.rank, p.shareAll, p.shareSex, p.year]),
-    };
-  });
-  const layout = {
-    margin: { l: 64, r: 24, t: 26, b: 56 },
-    paper_bgcolor: "#ffffff",
-    plot_bgcolor: "#ffffff",
-    hovermode: "x unified",
-    legend: { orientation: "h", y: -0.2 },
-    xaxis: { title: "År", range: [state.fromYear, state.toYear] },
-    yaxis: yAxisConfig(effectiveMetric),
-  };
-  const config = { responsive: true, displaylogo: false };
-  Plotly.react(els.chart, traces, layout, config);
-}
-
-function renderCompareInsight() {
-  if (!els.compareInsightText || !state.data) return;
-  const items = selectedItems();
-  if (items.length < 2) {
-    els.compareInsightText.textContent = items.length
-      ? "Legg til ett navn til for å se forskjellen tydeligere."
-      : "Velg minst to navn fra Utforsk eller Oppdag for å få en enkel sammenligning.";
-    return;
-  }
-  const latestRows = items
-    .map((item) => ({ item, count: countInYear(item, state.nameToYear), rank: pointInYear(item, state.nameToYear)?.[2] ?? null }))
-    .sort((a, b) => b.count - a.count || a.item.name.localeCompare(b.item.name, "no"));
-  const peakRows = [...items].sort((a, b) => b.peakCount - a.peakCount || a.name.localeCompare(b.name, "no"));
-  const newest = latestRows[0];
-  const peak = peakRows[0];
-  const latestCopy = newest.count
-    ? `${newest.item.name} er mest brukt i ${state.nameToYear} med ${formatNumber(newest.count)} fødte`
-    : "Ingen av navnene har registrerte fødte i siste dataår";
-  const rankCopy = newest.rank ? ` og rang ${formatNumber(newest.rank)}` : "";
-  const peakCopy =
-    newest.item.id === peak.id
-      ? `Det er også navnet med sterkest toppår: ${peak.peakYear} med ${formatNumber(peak.peakCount)} fødte.`
-      : `${peak.name} har det sterkeste toppåret: ${peak.peakYear} med ${formatNumber(peak.peakCount)} fødte.`;
-  els.compareInsightText.textContent = `${latestCopy}${rankCopy}. ${peakCopy}`;
-}
-
-function visiblePoints(item) {
-  return allPoints(item).filter((p) => p.year >= state.fromYear && p.year <= state.toYear);
-}
-
-function smoothSeries(values, width) {
-  if (Math.max(1, Number(width) || 1) <= 1) return values;
-  const smoothed = [];
-  const size = Math.max(1, Math.round(width));
-  const radius = Math.floor(size / 2);
-  values.forEach((_, index) => {
-    const windowValues = values.slice(Math.max(0, index - radius), index + radius + 1).filter((value) => value != null && Number.isFinite(value));
-    smoothed.push(windowValues.length ? mean(windowValues) : null);
-  });
-  return smoothed;
+function shortNumber(value) {
+  if (value == null || Number.isNaN(Number(value))) return "-";
+  const abs = Math.abs(value);
+  if (abs >= 1000) return `${formatDecimal(value / 1000, 1)}k`;
+  if (abs < 10 && abs !== Math.round(abs)) return formatDecimal(value, 1);
+  return formatNumber(Math.round(value));
 }
 
 function allPoints(item) {
-  return item.series
-    .map(([yearIndex, count, rank, sourceShareSex]) => {
-      const year = state.data.years[yearIndex];
-      const total = state.data.totalBirths[yearIndex];
-      const sexTotal = state.data.sexBirths[item.sex]?.[String(year)] ?? null;
-      return {
-        year,
-        yearIndex,
-        count,
-        rank,
-        shareAll: total && count != null ? (count / total) * 100 : null,
-        shareSex: sourceShareSex ?? (sexTotal && count != null ? (count / sexTotal) * 100 : null),
-      };
-    });
+  return item.series.map(([yearIndex, count, rank, shareSex]) => {
+    const year = state.years[yearIndex];
+    const total = state.data.totalBirths[yearIndex];
+    return {
+      year,
+      count,
+      rank,
+      shareSex,
+      shareAll: total && count != null ? (count / total) * 100 : null,
+    };
+  });
 }
 
-function metricValue(point, item, metric = state.metric) {
-  if (metric === "shareAll") return point.shareAll;
+function pointInYear(item, year) {
+  const index = state.years.indexOf(year);
+  if (index < 0) return null;
+  return item.series.find(([yearIndex]) => yearIndex === index) ?? null;
+}
+
+function latestCount(item) {
+  return pointInYear(item, state.latestYear)?.[1] ?? 0;
+}
+
+function effectiveMetric() {
+  return state.compare.metric === "count" && state.compare.fromYear < 1945 ? "shareSex" : state.compare.metric;
+}
+
+function metricValue(point, item, metric) {
   if (metric === "shareSex") return point.shareSex;
   if (metric === "rank") return point.rank;
   if (metric === "index") {
-    const base = visiblePoints(item).find((p) => p.count > 0)?.count;
-    return base ? (point.count / base) * 100 : null;
+    const base = allPoints(item).find((p) => p.year >= state.compare.fromYear && p.count)?.count;
+    return base && point.count != null ? (point.count / base) * 100 : null;
   }
   return point.count;
 }
 
-function effectiveChartMetric() {
-  if (state.metric === "count" && state.fromYear < firstCountYear()) return "shareSex";
-  return state.metric;
-}
-
-function yAxisConfig(metric = state.metric) {
-  const titles = {
-    count: "Antall fødte",
-    shareAll: "Andel av alle levendefødte (%)",
-    shareSex: "Andel av levendefødte samme kjønn (%)",
-    rank: "Rang innen kjønn",
-    index: "Indeks (første punkt = 100)",
-  };
-  const axis = { title: titles[metric], rangemode: "tozero" };
-  if (metric === "rank") {
-    axis.autorange = "reversed";
-    axis.rangemode = undefined;
-  } else if (state.scale === "log") {
-    axis.type = "log";
-  }
+function yAxis(metric) {
+  const title = { count: "Antall", shareSex: "Andel (%)", rank: "Rang", index: "Indeks" }[metric] || "Antall";
+  const axis = { title, gridcolor: "#edf0f4", zeroline: false, rangemode: "tozero" };
+  if (metric === "rank") axis.autorange = "reversed";
   return axis;
 }
 
-function hoverTemplate(metric = state.metric) {
-  if (metric === "rank") return "%{x}<br>Rang: %{y}<br>Antall: %{customdata[0]}<extra>%{fullData.name}</extra>";
-  if (metric === "shareAll") return "%{x}<br>Andel: %{y:.3f}%<br>Antall: %{customdata[0]}<br>Rang: %{customdata[1]}<extra>%{fullData.name}</extra>";
-  if (metric === "shareSex") return "%{x}<br>Andel: %{y:.3f}%<br>Antall: %{customdata[0]}<br>Rang: %{customdata[1]}<extra>%{fullData.name}</extra>";
-  if (metric === "index") return "%{x}<br>Indeks: %{y:.1f}<br>Antall: %{customdata[0]}<br>Rang: %{customdata[1]}<extra>%{fullData.name}</extra>";
-  return "%{x}<br>Antall: %{y}<br>Rang: %{customdata[1]}<br>Andel: %{customdata[2]:.3f}%<extra>%{fullData.name}</extra>";
-}
-
-function renderSimilar() {
-  if (!state.data) return;
-  readSimilarControls(false);
-  const reference = selectedItems().find((item) => item.id === state.similar.referenceId);
-  const methodLabel = SIMILAR_METHOD_LABELS[state.similar.method] ?? SIMILAR_METHOD_LABELS.pearson;
-  els.similarBasis.textContent = methodLabel;
-  if (!reference) {
-    state.similar.rows = [];
-    els.similarCount.textContent = "0 navn";
-    els.similarTable.innerHTML = '<tr><td colspan="6">Velg et referansenavn</td></tr>';
-    return;
-  }
-  const referenceSeries = comparableSeries(reference, state.similar.metric);
-  const rows = state.data.names
-    .filter((item) => item.id !== reference.id)
-    .filter((item) => state.sex === "alle" || item.sex === state.sex)
-    .filter((item) => state.showRejected || statusOf(item.id) !== "rejected")
-    .map((item) => similarityRow(referenceSeries, item))
-    .filter(Boolean)
-    .sort((a, b) => b.similarity - a.similarity || a.item.name.localeCompare(b.item.name, "no"));
-  state.similar.rows = rows;
-  els.similarCount.textContent = `${formatNumber(rows.length)} navn`;
-  if (!rows.length) {
-    els.similarTable.innerHTML = '<tr><td colspan="6">Ingen lignende kurver</td></tr>';
-    return;
-  }
-  els.similarTable.innerHTML = "";
-  const fragment = document.createDocumentFragment();
-  rows.slice(0, 50).forEach((row) => {
-    const tr = document.createElement("tr");
-    const nameCell = document.createElement("td");
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "linkButton";
-    button.textContent = row.item.name;
-    button.addEventListener("click", () => {
-      state.selected.add(row.item.id);
-      renderAll();
-    });
-    nameCell.append(button);
-    [
-      nameCell,
-      cell(row.item.sex),
-      cell(formatDecimal(row.similarity * 100, 0)),
-      cell(formatScore(row.score)),
-      cell(`${row.item.peakYear} (${formatNumber(row.item.peakCount)})`),
-      actionCell(row.item),
-    ].forEach((td) => tr.append(td));
-    fragment.append(tr);
-  });
-  els.similarTable.append(fragment);
-}
-
-function similarityRow(referenceSeries, item) {
-  const candidateSeries = comparableSeries(item, state.similar.metric);
-  const pairs = [];
-  referenceSeries.forEach((refValue, year) => {
-    const candidateValue = candidateSeries.get(year);
-    if (refValue != null && candidateValue != null) pairs.push([refValue, candidateValue]);
-  });
-  if (pairs.length < 3) return null;
-  const left = smoothValues(pairs.map(([value]) => value), state.similar.smooth);
-  const right = smoothValues(pairs.map(([, value]) => value), state.similar.smooth);
-  const score = similarityScore(left, right, state.similar.method);
-  if (score == null) return null;
-  return {
-    item,
-    score,
-    similarity: normalizedSimilarity(score, state.similar.method),
-  };
-}
-
-function comparableSeries(item, metric) {
-  const points = allPoints(item).filter((point) => point.year >= state.similar.fromYear && point.year <= state.similar.toYear);
-  const values = points.map((point) => [point.year, comparableValue(point, item, metric)]);
-  if (metric !== "index") return new Map(values.filter(([, value]) => value != null));
-  const base = values.find(([, value]) => value != null && value > 0)?.[1];
-  if (!base) return new Map();
-  return new Map(values.map(([year, value]) => [year, value == null ? null : (value / base) * 100]).filter(([, value]) => value != null));
-}
-
-function comparableValue(point, item, metric) {
-  if (metric === "rank") return point.rank;
-  if (metric === "index") return point.shareSex;
-  return point.shareSex;
-}
-
-function similarityScore(left, right, method) {
-  if (method === "euclidean") return euclidean(zScores(left), zScores(right));
-  if (method === "unscaled") return meanAbsoluteDistance(left, right);
-  return pearson(zScores(left), zScores(right));
-}
-
-function normalizedSimilarity(score, method) {
-  if (method === "euclidean" || method === "unscaled") return 1 / (1 + score);
-  return Math.max(0, Math.min(1, (score + 1) / 2));
-}
-
-function pearson(left, right) {
-  if (left.length !== right.length || left.length < 3) return null;
-  const leftMean = mean(left);
-  const rightMean = mean(right);
-  let numerator = 0;
-  let leftSum = 0;
-  let rightSum = 0;
-  for (let i = 0; i < left.length; i += 1) {
-    const lx = left[i] - leftMean;
-    const ry = right[i] - rightMean;
-    numerator += lx * ry;
-    leftSum += lx * lx;
-    rightSum += ry * ry;
-  }
-  const denominator = Math.sqrt(leftSum * rightSum);
-  return denominator ? numerator / denominator : null;
-}
-
-function euclidean(left, right) {
-  if (left.length !== right.length || left.length < 3) return null;
-  return Math.sqrt(left.reduce((sum, value, index) => sum + (value - right[index]) ** 2, 0));
-}
-
-function meanAbsoluteDistance(left, right) {
-  if (left.length !== right.length || left.length < 3) return null;
-  return mean(left.map((value, index) => Math.abs(value - right[index])));
-}
-
-function zScores(values) {
-  const avg = mean(values);
-  const variance = mean(values.map((value) => (value - avg) ** 2));
-  const sd = Math.sqrt(variance);
-  return sd ? values.map((value) => (value - avg) / sd) : values.map(() => 0);
-}
-
-function smoothValues(values, width) {
-  const size = Math.max(1, Math.round(width || 1));
+function smooth(values, width) {
+  const size = Math.max(1, Math.round(width));
   if (size <= 1) return values;
   const radius = Math.floor(size / 2);
   return values.map((_, index) => {
-    const from = Math.max(0, index - radius);
-    const to = Math.min(values.length, index + radius + 1);
-    return mean(values.slice(from, to));
+    const windowValues = values.slice(Math.max(0, index - radius), index + radius + 1).filter((value) => value != null && Number.isFinite(value));
+    return windowValues.length ? mean(windowValues) : null;
   });
 }
 
-function mean(values) {
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
-}
-
-function normalizeSimilarMethod(method) {
-  return SIMILAR_METHODS.has(method) ? method : "pearson";
-}
-
-function renderSummary() {
-  const items = selectedItems();
-  const visible = items.flatMap((item) => visiblePoints(item).map((point) => ({ item, point })));
-  const bestRank = visible.filter((row) => row.point.rank).sort((a, b) => a.point.rank - b.point.rank)[0];
-  const largest = visible.sort((a, b) => b.point.count - a.point.count)[0];
-  const totals = items.reduce((sum, item) => sum + item.total, 0);
-  els.summaryGrid.innerHTML = "";
-  [
-    ["Valgte navn", String(items.length)],
-    ["Samlet fødte", formatNumber(totals)],
-    ["Største årspunkt", largest ? `${largest.item.name}: ${formatNumber(largest.point.count)} (${largest.point.year})` : "–"],
-    ["Beste rang", bestRank ? `${bestRank.item.name}: #${bestRank.point.rank} (${bestRank.point.year})` : "–"],
-  ].forEach(([label, value]) => {
-    const div = document.createElement("div");
-    div.className = "stat";
-    div.innerHTML = `<span>${label}</span><strong>${value}</strong>`;
-    els.summaryGrid.append(div);
+function sparklineSvg(item, width = 118, height = 32) {
+  const points = allPoints(item).filter((point) => point.year >= 1950);
+  const values = points.map((point) => point.count ?? point.shareSex ?? 0);
+  const max = Math.max(...values, 1);
+  const coords = values.map((value, index) => {
+    const x = (index / Math.max(1, values.length - 1)) * width;
+    const y = height - (value / max) * (height - 4) - 2;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
   });
+  const color = item.sex === "jente" ? "#ef5d93" : "#2e7bcf";
+  return `<svg viewBox="0 0 ${width} ${height}" aria-hidden="true"><polyline points="${coords.join(" ")}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 }
 
-function renderSchoolEstimate() {
-  if (!state.data) return;
-  readSchoolControls(false);
-  const scope = schoolScopeForGrade(state.childGrade);
-  els.schoolScopeHeader.textContent = scope.label;
-  const rows = selectedItems().map((item) => schoolEstimate(item, scope));
-  rows.sort((a, b) => b.own.expected - a.own.expected || a.item.name.localeCompare(b.item.name, "no"));
-  if (!rows.length) {
-    els.schoolTable.innerHTML = '<tr><td colspan="3">Ingen valgte navn</td></tr>';
-    return;
-  }
-  els.schoolTable.innerHTML = rows.map((row) => `
-    <tr>
-      <td>${escapeHtml(row.item.name)}</td>
-      <td>${formatEstimate(row.own)}</td>
-      <td>${formatEstimate(row.scope)}</td>
-    </tr>
-  `).join("");
+function trendScore(item) {
+  const points = allPoints(item).filter((point) => point.year >= state.latestYear - 10);
+  const first = points[0]?.count ?? 0;
+  const last = points.at(-1)?.count ?? 0;
+  return last - first;
 }
 
-function renderCandidates() {
-  if (!state.data) return;
-  readCandidateControls(false);
-  let pattern;
-  try {
-    pattern = new RegExp(state.candidate.regex, "iu");
-    els.candidateError.textContent = "";
-  } catch (error) {
-    els.candidateError.textContent = error.message;
-    state.candidate.rows = [];
-    els.candidateCount.textContent = "0 navn";
-    els.candidateTable.innerHTML = "";
-    return;
-  }
-  const scope = schoolScopeForGrade(state.candidate.grade);
-  els.candidateScope.textContent = scope.label;
-  const maxSchoolmates = state.candidate.maxSchoolmates;
-  const rows = state.data.names
-    .filter((item) => state.candidate.sex === "alle" || item.sex === state.candidate.sex)
-    .filter((item) => state.showRejected || statusOf(item.id) !== "rejected")
-    .filter((item) => pattern.test(item.name) || pattern.test(item.key.replaceAll("_", " ")))
-    .map((item) => candidateRow(item, scope))
-    .filter((row) => maxSchoolmates == null || (row.school.complete && row.schoolmates <= maxSchoolmates));
-  rows.sort(candidateSorter);
-  state.candidate.rows = rows;
-  els.candidateCount.textContent = `${formatNumber(rows.length)} navn`;
-  if (!rows.length) {
-    els.candidateTable.innerHTML = '<tr><td colspan="7">Ingen navn i filterlisten</td></tr>';
-    return;
-  }
-  els.candidateTable.innerHTML = "";
-  const fragment = document.createDocumentFragment();
-  rows.slice(0, 300).forEach((row) => {
-    const tr = document.createElement("tr");
-    const nameCell = document.createElement("td");
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "linkButton";
-    button.textContent = row.item.name;
-    button.addEventListener("click", () => {
-      state.selected.add(row.item.id);
-      renderAll();
-    });
-    nameCell.append(button);
-    [
-      nameCell,
-      cell(row.item.sex),
-      cell(formatNumber(row.birthCount)),
-      cell(row.school.complete ? formatDecimal(row.schoolmates, 2) : "–"),
-      cell(`${row.item.peakYear} (${formatNumber(row.item.peakCount)})`),
-      cell(formatSigned(row.trend)),
-      actionCell(row.item),
-    ].forEach((td) => tr.append(td));
-    fragment.append(tr);
-  });
-  els.candidateTable.append(fragment);
+function trendLabel(item) {
+  const score = trendScore(item);
+  if (score > 20) return "Stigende trend siste år";
+  if (score < -20) return "Roligere utvikling siste år";
+  return "Historisk utvikling tilgjengelig";
 }
 
-function candidateRow(item, scope) {
-  const school = estimateForGradesWithControls(
-    item,
-    scope.from,
-    scope.to,
-    state.candidate.birthYear,
-    state.candidate.grade,
-    state.candidate.gradeSize,
-  );
-  const birthCount = hasNameDataYear(state.candidate.birthYear) ? countInYear(item, state.candidate.birthYear) : 0;
-  const priorYear = hasNameDataYear(state.candidate.birthYear - 5) ? countInYear(item, state.candidate.birthYear - 5) : null;
-  return {
-    item,
-    birthCount,
-    school,
-    schoolmates: school.complete ? Math.max(0, school.expected - 1) : 0,
-    similarity: state.similar.rows.find((row) => row.item.id === item.id)?.similarity ?? null,
-    trend: priorYear == null ? null : birthCount - priorYear,
-  };
+function schoolEstimate(item, birthYear, gradeSize, grades) {
+  const point = pointInYear(item, birthYear);
+  const share = point?.[3] ?? 0;
+  return (share / 100) * gradeSize * grades;
 }
 
-function candidateSorter(a, b) {
-  if (state.candidate.sort === "birthYear") {
-    return b.birthCount - a.birthCount || a.item.name.localeCompare(b.item.name, "no");
-  }
-  if (state.candidate.sort === "trend") {
-    return (b.trend ?? -Infinity) - (a.trend ?? -Infinity) || b.birthCount - a.birthCount || a.item.name.localeCompare(b.item.name, "no");
-  }
-  if (state.candidate.sort === "similar") {
-    return (b.similarity ?? -Infinity) - (a.similarity ?? -Infinity) || a.item.name.localeCompare(b.item.name, "no");
-  }
-  if (state.candidate.sort === "name") {
-    return a.item.name.localeCompare(b.item.name, "no") || a.item.sex.localeCompare(b.item.sex, "no");
-  }
-  return a.schoolmates - b.schoolmates || b.birthCount - a.birthCount || a.item.name.localeCompare(b.item.name, "no");
+function renderMiniChart(id, items, metric = "shareSex", fromYear = 1900, smoothWidth = 3) {
+  const chart = document.getElementById(id);
+  if (!chart) return;
+  const originalSmooth = state.compare.smooth;
+  state.compare.smooth = smoothWidth;
+  chart.innerHTML = lineChartSvg(items, metric, fromYear, state.latestYear, 330, 170, { compact: true });
+  state.compare.smooth = originalSmooth;
 }
 
-function cell(value) {
-  const td = document.createElement("td");
-  td.textContent = value;
-  return td;
+function itemsWithStatus(status) {
+  return Object.entries(state.status)
+    .filter(([, value]) => value === status)
+    .map(([id]) => state.itemsById.get(id))
+    .filter(Boolean)
+    .sort((a, b) => a.name.localeCompare(b.name, "no"));
 }
 
-function schoolEstimate(item, scope) {
-  return {
-    item,
-    own: estimateForGrades(item, state.childGrade, state.childGrade),
-    scope: estimateForGrades(item, scope.from, scope.to),
-  };
-}
-
-function schoolScopeForGrade(grade) {
-  if (!isValidGrade(grade)) return { from: null, to: null, label: "Relevant skole" };
-  if (grade <= 7) return { from: 1, to: 7, label: "Barneskole 1.-7." };
-  if (grade <= 10) return { from: 8, to: 10, label: "Ungdomsskole 8.-10." };
-  return { from: 11, to: 13, label: "VGS 1.-3." };
-}
-
-function estimateForGrades(item, fromGrade, toGrade) {
-  return estimateForGradesWithControls(item, fromGrade, toGrade, state.schoolBirthYear, state.childGrade, state.gradeSize);
-}
-
-function estimateForGradesWithControls(item, fromGrade, toGrade, birthYear, grade, gradeSize) {
-  if (!hasNameDataYear(birthYear) || !isValidGrade(grade) || !gradeSize || gradeSize <= 0 || fromGrade == null || toGrade == null) {
-    return { expected: 0, share: 0, years: [], complete: false };
-  }
-  const years = [];
-  let expected = 0;
-  let usedPupils = 0;
-  for (let currentGrade = fromGrade; currentGrade <= toGrade; currentGrade += 1) {
-    const year = birthYear - (currentGrade - grade);
-    const yearIndex = state.data.years.indexOf(year);
-    if (yearIndex < 0 || !hasNameDataYear(year)) return { expected: 0, share: 0, years, complete: false };
-    const totalBirths = state.data.totalBirths[yearIndex];
-    if (!totalBirths) return { expected: 0, share: 0, years, complete: false };
-    const count = countInYear(item, year);
-    expected += (count / totalBirths) * gradeSize;
-    usedPupils += gradeSize;
-    years.push(year);
-  }
-  return {
-    expected,
-    share: usedPupils ? (expected / usedPupils) * 100 : 0,
-    years,
-    complete: true,
-  };
-}
-
-function renderTable() {
-  els.dataTable.innerHTML = "";
-  selectedItems().forEach((item) => {
-    const ranks = item.series.map((p) => p[2]).filter(Boolean);
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>${escapeHtml(item.name)}</td>
-      <td>${item.sex}</td>
-      <td>${formatNumber(item.total)}</td>
-      <td>${item.peakYear}</td>
-      <td>${formatNumber(item.peakCount)}</td>
-      <td>${item.firstYear}</td>
-      <td>${item.lastYear}</td>
-      <td>${ranks.length ? Math.min(...ranks) : "–"}</td>
-    `;
-    els.dataTable.append(row);
-  });
-}
-
-function updateUrl() {
-  if (!state.data) return;
-  const params = new URLSearchParams();
-  params.set("q", state.regex);
-  params.set("sex", state.sex);
-  params.set("metric", state.metric);
-  params.set("smooth", String(state.chartSmooth));
-  params.set("from", String(state.fromYear));
-  params.set("to", String(state.toYear));
-  params.set("topSelect", state.topNSelectionMode);
-  params.set("topMode", els.topNMode.value);
-  params.set("topYear", String(state.topNYear));
-  params.set("topFrom", String(state.topNFromYear));
-  params.set("topTo", String(state.topNToYear));
-  params.set("topRange", state.topNRangePreset);
-  params.set("topRangeFrom", String(state.topNRangeFrom));
-  params.set("topRangeTo", String(state.topNRangeTo));
-  params.set("topLimit", String(state.topNRangeLimit));
-  if (state.schoolBirthYear != null) params.set("schoolYear", String(state.schoolBirthYear));
-  if (state.childGrade != null) params.set("grade", String(state.childGrade));
-  if (state.gradeSize != null) params.set("gradeSize", String(state.gradeSize));
-  params.set("candidateQ", state.candidate.regex);
-  params.set("candidateSex", state.candidate.sex);
-  if (state.candidate.birthYear != null) params.set("candidateYear", String(state.candidate.birthYear));
-  if (state.candidate.grade != null) params.set("candidateGrade", String(state.candidate.grade));
-  if (state.candidate.gradeSize != null) params.set("candidateSize", String(state.candidate.gradeSize));
-  if (state.candidate.maxSchoolmates != null) params.set("candidateMax", String(state.candidate.maxSchoolmates));
-  params.set("candidateSort", state.candidate.sort);
-  if (state.similar.referenceId) params.set("similarReference", state.similar.referenceId);
-  params.set("similarMethod", state.similar.method);
-  params.set("similarMetric", state.similar.metric);
-  params.set("similarSmooth", String(state.similar.smooth));
-  params.set("similarFrom", String(state.similar.fromYear));
-  params.set("similarTo", String(state.similar.toYear));
-  if (state.selected.size) params.set("names", [...state.selected].join(","));
-  history.replaceState(null, "", `${location.pathname}?${params.toString()}`);
-}
-
-async function copyShareLink() {
-  await navigator.clipboard.writeText(location.href);
-  els.copyLink.textContent = "Kopiert";
-  setTimeout(() => (els.copyLink.textContent = "Kopier lenke"), 1100);
+function copyShareLink() {
+  updateUrl();
+  navigator.clipboard?.writeText(location.href).then(() => toast("Lenke kopiert"));
 }
 
 function downloadCsv() {
-  const rows = [["name", "sex", "year", "count", "rank", "share_all_births_pct", "share_same_sex_births_pct"]];
-  selectedItems().forEach((item) => {
-    visiblePoints(item).forEach((p) => {
-      rows.push([item.name, item.sex, p.year, p.count, p.rank, round(p.shareAll), round(p.shareSex)]);
-    });
-  });
-  const csv = rows.map((row) => row.map(csvCell).join(",")).join("\n");
-  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "navnestatistikk.csv";
-  link.click();
-  URL.revokeObjectURL(url);
+  const items = compareItems();
+  const rows = [["name", "sex", "year", "count", "rank", "share_same_sex_pct"]];
+  items.forEach((item) => allPoints(item).filter((p) => p.year >= state.compare.fromYear).forEach((p) => rows.push([item.name, item.sex, p.year, p.count ?? "", p.rank ?? "", p.shareSex ?? ""])));
+  downloadBlob("navnestatistikk.csv", rows.map((row) => row.map(csvCell).join(",")).join("\n"), "text/csv;charset=utf-8");
 }
 
-function exportNameStatusBackup() {
-  const payload = {
-    schema: "navnestatistikk-name-status",
-    version: 1,
-    exportedAt: new Date().toISOString(),
-    decisions: state.nameStatus,
-  };
-  const blob = new Blob([`${JSON.stringify(payload, null, 2)}\n`], { type: "application/json;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  const stamp = new Date().toISOString().slice(0, 10);
-  link.href = url;
-  link.download = `navnestatistikk-navnevalg-${stamp}.json`;
-  link.click();
-  URL.revokeObjectURL(url);
-  setBackupMessage(`Eksportert ${formatNumber(Object.keys(state.nameStatus).length)} valg.`, "success");
+function downloadChartSvg() {
+  const chart = $("#compareChart svg");
+  if (!chart) return;
+  downloadBlob("navnestatistikk-graf.svg", chart.outerHTML, "image/svg+xml;charset=utf-8");
 }
 
-function exportNameStatusCsv() {
-  const byId = new Map(state.data.names.map((item) => [item.id, item]));
+function exportDecisionsJson() {
+  downloadBlob("navnestatistikk-navnevalg.json", JSON.stringify({ schema: "navnestatistikk-name-status", version: 1, exportedAt: new Date().toISOString(), decisions: state.status }, null, 2), "application/json;charset=utf-8");
+}
+
+function exportDecisionsCsv() {
   const rows = [["status", "name", "sex", "peak_year", "peak_count", "total"]];
-  const statusOrder = { shortlist: 0, rejected: 1 };
-  Object.entries(state.nameStatus)
-    .filter(([, status]) => status === "shortlist" || status === "rejected")
-    .sort(([idA, statusA], [idB, statusB]) => statusOrder[statusA] - statusOrder[statusB] || byId.get(idA)?.name.localeCompare(byId.get(idB)?.name ?? "", "no"))
-    .forEach(([id, status]) => {
-      const item = byId.get(id);
-      if (!item) return;
-      rows.push([status === "shortlist" ? "aktuell" : "uaktuell", item.name, item.sex, item.peakYear, item.peakCount, item.total]);
-    });
-  const csv = rows.map((row) => row.map(csvCell).join(",")).join("\n");
-  const blob = new Blob([`${csv}\n`], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
+  Object.entries(state.status).forEach(([id, status]) => {
+    const item = state.itemsById.get(id);
+    if (item) rows.push([status === "shortlist" ? "aktuell" : "uaktuell", item.name, item.sex, item.peakYear, item.peakCount, item.total]);
+  });
+  downloadBlob("navnestatistikk-navnevalg.csv", rows.map((row) => row.map(csvCell).join(",")).join("\n"), "text/csv;charset=utf-8");
+}
+
+async function importDecisions(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  const payload = JSON.parse(await file.text());
+  Object.entries(payload.decisions || {}).forEach(([id, value]) => {
+    if (state.itemsById.has(id) && (value === "shortlist" || value === "rejected")) state.status[id] = value;
+  });
+  saveStatus();
+  renderAll();
+  toast("Beslutninger importert");
+}
+
+function downloadBlob(filename, content, type) {
+  const url = URL.createObjectURL(new Blob([`${content}\n`], { type }));
   const link = document.createElement("a");
-  const stamp = new Date().toISOString().slice(0, 10);
   link.href = url;
-  link.download = `navnestatistikk-navnevalg-${stamp}.csv`;
+  link.download = filename;
   link.click();
   URL.revokeObjectURL(url);
-  setBackupMessage(`Eksportert ${formatNumber(rows.length - 1)} valg som CSV.`, "success");
-}
-
-async function handleNameStatusImport(event) {
-  const [file] = event.target.files || [];
-  event.target.value = "";
-  if (!file) return;
-  try {
-    const parsed = JSON.parse(await file.text());
-    const payload = validateNameStatusBackup(parsed);
-    if (!payload.ok) {
-      setBackupMessage(payload.error, "error");
-      return;
-    }
-    const imported = payload.decisions;
-    const importedEntries = Object.entries(imported);
-    const importedShortlist = importedEntries.filter(([, value]) => value === "shortlist").length;
-    const importedRejected = importedEntries.filter(([, value]) => value === "rejected").length;
-    const overwrites = importedEntries.filter(([id, value]) => state.nameStatus[id] && state.nameStatus[id] !== value).length;
-    const mergeSummary = `${importedShortlist} aktuelle og ${importedRejected} uaktuelle`;
-    const overwriteSummary = overwrites ? ` ${overwrites} eksisterende valg blir erstattet.` : "";
-    if (!confirm(`Importere ${mergeSummary}?${overwriteSummary}`)) {
-      setBackupMessage("Import avbrutt.", "info");
-      return;
-    }
-    state.nameStatus = { ...state.nameStatus, ...imported };
-    state.selected = new Set([...state.selected].filter((id) => statusOf(id) !== "rejected"));
-    saveNameStatus();
-    updateMatches();
-    setBackupMessage(`Importerte ${mergeSummary}.`, "success");
-  } catch (error) {
-    setBackupMessage(`Kunne ikke lese filen: ${error.message}`, "error");
-  }
-}
-
-function validateNameStatusBackup(parsed) {
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    return { ok: false, error: "Ugyldig JSON-fil." };
-  }
-  if (parsed.schema !== "navnestatistikk-name-status") {
-    return { ok: false, error: "Ukjent eksportformat." };
-  }
-  if (parsed.version !== 1 || typeof parsed.exportedAt !== "string") {
-    return { ok: false, error: "Eksportfilen mangler gyldige metadata." };
-  }
-  if (!parsed.decisions || typeof parsed.decisions !== "object" || Array.isArray(parsed.decisions)) {
-    return { ok: false, error: "Eksportfilen mangler navnevalg." };
-  }
-  const decisions = {};
-  for (const [id, value] of Object.entries(parsed.decisions)) {
-    if (typeof id !== "string" || !id.trim()) {
-      return { ok: false, error: "Eksportfilen inneholder ugyldige navn." };
-    }
-    if (value !== "shortlist" && value !== "rejected") {
-      return { ok: false, error: "Eksportfilen inneholder ukjente statusverdier." };
-    }
-    decisions[id] = value;
-  }
-  return { ok: true, decisions };
-}
-
-function clampYear(year) {
-  if (!state.data) return year;
-  return Math.max(state.data.years[0], Math.min(state.data.years.at(-1), year));
-}
-
-function clampNameYear(year) {
-  if (!state.data) return year;
-  const fallback = Number.isFinite(year) ? year : state.nameToYear;
-  return Math.max(state.nameFromYear, Math.min(state.nameToYear, fallback));
-}
-
-function clampGrade(grade) {
-  return Math.max(1, Math.min(13, Number.isFinite(grade) ? Math.round(grade) : 1));
-}
-
-function clampPercent(percent) {
-  return Math.max(0, Math.min(100, Number.isFinite(percent) ? Math.round(percent) : 0));
-}
-
-function parseIntegerInput(value) {
-  if (String(value).trim() === "") return null;
-  const number = Number(value);
-  return Number.isFinite(number) ? Math.round(number) : null;
-}
-
-function parseNumberInput(value) {
-  if (String(value).trim() === "") return null;
-  const number = Number(value);
-  return Number.isFinite(number) ? number : null;
-}
-
-function isValidYear(year) {
-  return Number.isInteger(year) && state.data && state.data.years.includes(year);
-}
-
-function hasNameDataYear(year) {
-  return Number.isInteger(year) && state.data && year >= state.nameFromYear && year <= state.nameToYear;
-}
-
-function isValidGrade(grade) {
-  return Number.isInteger(grade) && grade >= 1 && grade <= 13;
-}
-
-function formatNumber(value) {
-  return new Intl.NumberFormat("no-NO").format(value);
-}
-
-function formatDecimal(value, digits) {
-  return new Intl.NumberFormat("no-NO", { maximumFractionDigits: digits }).format(value);
-}
-
-function formatSigned(value) {
-  if (value == null) return "–";
-  return value > 0 ? `+${formatNumber(value)}` : formatNumber(value);
-}
-
-function formatEstimate(value) {
-  if (!value.complete) return "–";
-  return `${formatDecimal(value.expected, 2)} (${formatDecimal(value.share, 3)} %)`;
-}
-
-function formatScore(value) {
-  if (value == null) return "–";
-  return state.similar.method === "euclidean" ? formatDecimal(value, 3) : formatDecimal(value, 3);
-}
-
-function round(value) {
-  return value == null ? "" : Math.round(value * 10000) / 10000;
 }
 
 function csvCell(value) {
@@ -2424,6 +992,78 @@ function csvCell(value) {
   return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 
+function clampYear(year) {
+  return Math.max(state.firstYear, Math.min(state.latestYear, Number.isFinite(year) ? year : state.latestYear));
+}
+
+function normalize(value) {
+  return String(value).trim().toLocaleLowerCase("nb-NO");
+}
+
+function sexSymbol(item) {
+  return item.sex === "jente" ? "♀" : "♂";
+}
+
+function formatNumber(value) {
+  return value == null || Number.isNaN(Number(value)) ? "-" : nf.format(Number(value));
+}
+
+function formatPercent(value) {
+  return value == null || Number.isNaN(Number(value)) ? "-" : `${formatDecimal(value, 2)} %`;
+}
+
+function formatDecimal(value, digits = 1) {
+  return value == null || Number.isNaN(Number(value)) ? "-" : nf.format(Number(value.toFixed(digits)));
+}
+
+function mean(values) {
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function zScore(values) {
+  const avg = mean(values);
+  const variance = mean(values.map((value) => (value - avg) ** 2));
+  const sd = Math.sqrt(variance) || 1;
+  return values.map((value) => (value - avg) / sd);
+}
+
+function pearson(left, right) {
+  const n = Math.min(left.length, right.length);
+  if (n < 3) return 0;
+  const a = left.slice(0, n);
+  const b = right.slice(0, n);
+  const ma = mean(a);
+  const mb = mean(b);
+  let num = 0;
+  let da = 0;
+  let db = 0;
+  for (let i = 0; i < n; i += 1) {
+    num += (a[i] - ma) * (b[i] - mb);
+    da += (a[i] - ma) ** 2;
+    db += (b[i] - mb) ** 2;
+  }
+  return num / (Math.sqrt(da * db) || 1);
+}
+
+function levenshtein(a, b) {
+  const dp = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j += 1) dp[0][j] = j;
+  for (let i = 1; i <= a.length; i += 1) {
+    for (let j = 1; j <= b.length; j += 1) {
+      dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+  }
+  return dp[a.length][b.length];
+}
+
 function escapeHtml(value) {
-  return String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[char]);
+  return String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
+}
+
+function toast(message) {
+  const el = $("#toast");
+  el.textContent = message;
+  el.classList.add("show");
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => el.classList.remove("show"), 1600);
 }

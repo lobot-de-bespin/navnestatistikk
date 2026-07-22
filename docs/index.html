@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Norsk navnestatistikk</title>
-    <meta name="theme-color" content="#11675a" />
+    <title>Navnestatistikk</title>
+    <meta name="theme-color" content="#fbf8f3" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Navnestatistikk" />
@@ -20,797 +20,192 @@
   </head>
   <body>
     <svg class="iconSprite" aria-hidden="true" focusable="false">
-      <symbol id="icon-home" viewBox="0 0 24 24">
-        <path d="m3 10 9-7 9 7" />
-        <path d="M5 9.5V21h5v-6h4v6h5V9.5" />
-      </symbol>
-      <symbol id="icon-search" viewBox="0 0 24 24">
-        <circle cx="11" cy="11" r="7" />
-        <path d="m16.5 16.5 4 4" />
-      </symbol>
-      <symbol id="icon-grid" viewBox="0 0 24 24">
-        <rect x="4" y="4" width="6" height="6" rx="2" />
-        <rect x="14" y="4" width="6" height="6" rx="2" />
-        <rect x="4" y="14" width="6" height="6" rx="2" />
-        <rect x="14" y="14" width="6" height="6" rx="2" />
-      </symbol>
-      <symbol id="icon-chart" viewBox="0 0 24 24">
-        <path d="M4 20V10" />
-        <path d="M10 20V4" />
-        <path d="M16 20v-8" />
-        <path d="M22 20H2" />
-      </symbol>
-      <symbol id="icon-heart" viewBox="0 0 24 24">
-        <path d="M20.8 5.7a5.4 5.4 0 0 0-7.7 0L12 6.8l-1.1-1.1a5.4 5.4 0 0 0-7.7 7.7L12 22l8.8-8.6a5.4 5.4 0 0 0 0-7.7Z" />
-      </symbol>
-      <symbol id="icon-bookmark" viewBox="0 0 24 24">
-        <path d="M6 4h12v17l-6-4-6 4V4Z" />
-      </symbol>
-      <symbol id="icon-arrow-up-right" viewBox="0 0 24 24">
-        <path d="M7 17 17 7" />
-        <path d="M9 7h8v8" />
-      </symbol>
-      <symbol id="icon-undo" viewBox="0 0 24 24">
-        <path d="M9 14 4 9l5-5" />
-        <path d="M4 9h10a6 6 0 1 1 0 12h-4" />
-      </symbol>
-      <symbol id="icon-sparkle" viewBox="0 0 24 24">
-        <path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2Z" />
-      </symbol>
+      <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m16.5 16.5 4 4" /></symbol>
+      <symbol id="icon-chart" viewBox="0 0 24 24"><path d="M4 18c4-10 7 4 10-6 2-6 4-4 6-2" /><path d="M4 21h16" /></symbol>
+      <symbol id="icon-heart" viewBox="0 0 24 24"><path d="M20.8 5.9a5.2 5.2 0 0 0-7.4 0L12 7.3l-1.4-1.4a5.2 5.2 0 0 0-7.4 7.4L12 22l8.8-8.7a5.2 5.2 0 0 0 0-7.4Z" /></symbol>
+      <symbol id="icon-star" viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z" /></symbol>
+      <symbol id="icon-filter" viewBox="0 0 24 24"><path d="M4 6h16" /><path d="M7 12h10" /><path d="M10 18h4" /></symbol>
+      <symbol id="icon-plus" viewBox="0 0 24 24"><path d="M12 5v14" /><path d="M5 12h14" /></symbol>
+      <symbol id="icon-x" viewBox="0 0 24 24"><path d="m6 6 12 12" /><path d="m18 6-12 12" /></symbol>
+      <symbol id="icon-back" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6" /></symbol>
+      <symbol id="icon-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5" /><path d="M4 9h10a6 6 0 1 1 0 12h-4" /></symbol>
+      <symbol id="icon-list" viewBox="0 0 24 24"><path d="M8 6h12" /><path d="M8 12h12" /><path d="M8 18h12" /><path d="M4 6h.01" /><path d="M4 12h.01" /><path d="M4 18h.01" /></symbol>
+      <symbol id="icon-share" viewBox="0 0 24 24"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7" /><path d="m16 6-4-4-4 4" /><path d="M12 2v14" /></symbol>
+      <symbol id="icon-gear" viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2 3.4-.2-.1a1.7 1.7 0 0 0-1.9.3 1.7 1.7 0 0 0-.8 1.6v.3H9.1v-.3a1.7 1.7 0 0 0-.8-1.6 1.7 1.7 0 0 0-1.9-.3l-.2.1-2-3.4.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.3-1.2H3v-3.6h.3A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.9l-.1-.1 2-3.4.2.1a1.7 1.7 0 0 0 1.9-.3 1.7 1.7 0 0 0 .8-1.6v-.3h5.8v.3a1.7 1.7 0 0 0 .8 1.6 1.7 1.7 0 0 0 1.9.3l.2-.1 2 3.4-.1.1A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 1.3 1.2h.3v3.6h-.3a1.7 1.7 0 0 0-1.3 1.2Z" /></symbol>
     </svg>
-    <header class="topbar">
-      <div>
-        <h1>Norsk navnestatistikk</h1>
-        <p>Finn navn, utforsk tallene og flytt dem videre til vurdering eller beslutning.</p>
-      </div>
-      <div class="source">
-        <span id="dataStatus">Laster data</span>
-        <a href="https://www.ssb.no/statbank/table/10467" target="_blank" rel="noreferrer">SSB 10467</a>
-      </div>
-    </header>
 
-    <main class="layout">
-      <section class="content">
-        <nav class="tabs" aria-label="Arbeidsflater">
-          <button type="button" class="active" data-view="hjem"><svg class="tabIcon"><use href="#icon-home"></use></svg>Hjem</button>
-          <button type="button" data-view="finn"><svg class="tabIcon"><use href="#icon-grid"></use></svg>Utforsk</button>
-          <button type="button" data-view="graf"><svg class="tabIcon"><use href="#icon-chart"></use></svg>Sammenlign</button>
-          <button type="button" data-view="vurder"><svg class="tabIcon"><use href="#icon-bookmark"></use></svg>Vurder</button>
-        </nav>
-
-        <div id="statusStrip" class="statusStrip" aria-label="Statusoversikt" hidden>
-          <div class="statusStripItem">
-            <span class="statusStripLabel">Uavklarte</span>
-            <span id="statusUavklarteCount" class="statusStripCount">0</span>
-          </div>
-          <div class="statusStripItem">
-            <span class="statusStripLabel">Aktuelle</span>
-            <span id="statusAktuelleCount" class="statusStripCount">0</span>
-          </div>
-          <div class="statusStripItem">
-            <span class="statusStripLabel">Uaktuelle</span>
-            <span id="statusUaktuelleCount" class="statusStripCount">0</span>
-          </div>
-        </div>
-
-        <section id="hjemView" class="viewPanel homeView" hidden>
-          <div class="mobileScreenHead homeScreenHead" aria-hidden="true">
-            <div class="screenMascot exploreMascot"></div>
+    <div class="appFrame">
+      <main class="screenStack">
+        <section id="view-explore" class="screen active" data-view="explore">
+          <header class="screenHeader">
+            <div class="iconBubble blue"><svg><use href="#icon-search"></use></svg></div>
             <div>
-              <h2>Navnestatistikk</h2>
-              <p>Finn det perfekte navnet med data og innsikt</p>
+              <h1>Utforsk</h1>
+              <p>Finn og utforsk navn. Søk, filtrer, oppdag populære navn og lignende navn.</p>
             </div>
-            <button type="button" data-view="finn" aria-label="Søk"><svg class="buttonIcon"><use href="#icon-search"></use></svg></button>
-          </div>
-          <section class="module homeHero">
-            <div class="appMascot" aria-hidden="true"></div>
-            <div>
-              <p class="eyebrow">Navnestatistikk</p>
-              <h2>Finn navn med data i ryggen.</h2>
-              <p>Utforsk norske fornavn, samle kandidater og snevre inn listen i ditt eget tempo.</p>
-            </div>
-            <div class="homeActionGrid" aria-label="Snarveier">
-              <button type="button" data-view="finn">
-                <svg class="actionIcon"><use href="#icon-search"></use></svg>
-                <span>Utforsk</span>
-                <small>Finn navn</small>
-              </button>
-              <button type="button" data-view="graf">
-                <svg class="actionIcon"><use href="#icon-chart"></use></svg>
-                <span>Sammenlign</span>
-                <small>Se kurver</small>
-              </button>
-              <button type="button" data-view="vurder">
-                <svg class="actionIcon"><use href="#icon-heart"></use></svg>
-                <span>Vurder</span>
-                <small>Ett navn av gangen</small>
-              </button>
-            </div>
-          </section>
+          </header>
 
-          <section class="module homeJourney">
-            <div class="moduleHead">
-              <h2>Reisen din</h2>
-              <p id="homeJourneyText">Start med å finne noen navn du liker.</p>
-            </div>
-            <div class="journeyTrack" aria-label="Arbeidsflyt">
-              <span id="journeyExplore" class="active">Utforsk</span>
-              <span id="journeyDiscover">Oppdag</span>
-              <span id="journeyCompare">Sammenlign</span>
-              <span id="journeyReview">Vurder</span>
-              <span id="journeyChoose">Velg</span>
-            </div>
-            <button id="homeNextAction" type="button" class="wideLink" data-view="finn">Fortsett</button>
-          </section>
-
-          <section class="module homePopular">
-            <div class="sectionHead">
-              <div class="moduleHead">
-                <h2>Populære navn i nyeste år</h2>
-                <p>De vanligste navnene i siste tilgjengelige SSB-år.</p>
-              </div>
-              <span id="homePopularYear">-</span>
-            </div>
-            <div class="homePopularGrid">
-              <div>
-                <h3>Jentenavn</h3>
-                <div id="homePopularGirls" class="homePopularList"></div>
-              </div>
-              <div>
-                <h3>Guttenavn</h3>
-                <div id="homePopularBoys" class="homePopularList"></div>
-              </div>
-            </div>
-            <button type="button" class="wideLink" data-view="finn">Se flere navn</button>
-          </section>
-
-          <section class="module homeLists">
-            <div class="moduleHead">
-              <h2>Dine lister</h2>
-              <p>Fortsett der du slapp, eller gå rett til vurdering.</p>
-            </div>
-            <div class="homeListCards">
-              <button type="button" data-view="graf">
-                <span>Arbeidsutvalg</span>
-                <strong id="homeSelectedCount">0</strong>
-              </button>
-              <button type="button" data-view="vurder">
-                <span>Aktuelle</span>
-                <strong id="homeShortlistCount">0</strong>
-              </button>
-              <button type="button" data-view="vurder">
-                <span>Uaktuelle</span>
-                <strong id="homeRejectedCount">0</strong>
-              </button>
-            </div>
-          </section>
-        </section>
-
-        <section id="finnView" class="viewPanel" hidden>
-          <div class="mobileScreenHead exploreScreenHead" aria-hidden="true">
-            <div class="screenMascot cloudMascot"></div>
-            <div>
+          <section class="phoneSurface">
+            <div class="phoneTop"><span>09:41</span><span>•••</span></div>
+            <div class="navTitle">
               <h2>Utforsk</h2>
-              <p>Søk, filtrer og oppdag navn</p>
+              <button id="openFilter" class="iconButton" type="button" aria-label="Søk og filtre"><svg><use href="#icon-filter"></use></svg></button>
             </div>
-            <button type="button" data-focus="regexInput" aria-label="Søk"><svg class="buttonIcon"><use href="#icon-search"></use></svg></button>
-          </div>
-          <section class="mobileInfoBanner" aria-hidden="true">
-            <span><svg class="bannerIcon"><use href="#icon-sparkle"></use></svg></span>
-            <div>
-              <strong><span id="mobileNameCount">0</span> fornavn</strong>
-              <small>Basert på lokale SSB-data</small>
+            <div class="searchBar">
+              <svg><use href="#icon-search"></use></svg>
+              <input id="searchInput" type="search" placeholder="Søk etter navn..." autocomplete="off" />
             </div>
-            <span class="bannerBear">ʕ•ᴥ•ʔ</span>
+
+            <div class="sectionRow">
+              <h3>Populære navn</h3>
+              <button id="openCandidateList" type="button">Se alle</button>
+            </div>
+            <div class="segmented small" role="tablist" aria-label="Kjønn for populære navn">
+              <button class="active" type="button" data-popular-sex="jente">Jenter</button>
+              <button type="button" data-popular-sex="gutt">Gutter</button>
+            </div>
+            <div id="popularList" class="nameRows"></div>
+
+            <button id="candidateCard" class="softCallout" type="button">
+              <span class="miniIcon"><svg><use href="#icon-list"></use></svg></span>
+              <span><strong>Lag kandidatliste</strong><small>Bruk filtre og regler for å finne navn som passer for dere.</small></span>
+              <em>Start</em>
+            </button>
+
+            <div class="sectionRow">
+              <h3>Siste søk</h3>
+            </div>
+            <div id="recentSearches" class="chipRail"></div>
           </section>
-          <div class="functionGrid finGrid">
-            <aside class="functionColumn finColumn" aria-label="Finn navn">
-              <section class="module sidebarModule">
-                <div class="moduleHead">
-                  <label for="regexInput">Søk etter navn</label>
-                  <p>Bruk vanlig tekst eller regex for å finne navn før du sender dem til Utforsk eller vurdering.</p>
-                </div>
-                <div class="searchRow">
-                  <input id="regexInput" type="text" spellcheck="false" placeholder="Søk etter navn, f.eks. Emma" />
-                  <button id="applyRegex" type="button">Søk</button>
-                </div>
-                <div class="quickFilters" aria-label="Raske regex-filtre">
-                  <button type="button" data-template="^ann">starter ann</button>
-                  <button type="button" data-template="a$">slutter a</button>
-                  <button type="button" data-template=".*mar.*">inneholder mar</button>
-                  <button type="button" data-template=".* .*">dobbeltnavn</button>
-                </div>
-                <label class="check subtleCheck"><input id="showRejectedToggle" type="checkbox" /> vis uaktuelle</label>
-                <p id="regexError" class="error" role="alert"></p>
-              </section>
-
-              <section class="module sidebarModule">
-                <div class="moduleHead">
-                  <label>Kjønn</label>
-                  <p>Avgrens både søkeresultatet og toppnavn til jente-, gutte- eller alle navn.</p>
-                </div>
-                <div class="segmented" role="group" aria-label="Kjønn">
-                  <button type="button" class="active" data-sex="alle">Alle</button>
-                  <button type="button" data-sex="jente">Jente</button>
-                  <button type="button" data-sex="gutt">Gutt</button>
-                </div>
-              </section>
-
-              <section class="module sidebarModule discoverModule">
-                <div class="sectionHead">
-                  <div class="moduleHead">
-                    <h2>Oppdag lignende navn</h2>
-                    <p>Forslag basert på historisk navneutvikling og popularitet.</p>
-                  </div>
-                  <span id="discoverCount">0 forslag</span>
-                </div>
-                <div class="discoverReference">
-                  <span>Tar utgangspunkt i</span>
-                  <strong id="discoverReferenceName">første treff</strong>
-                </div>
-                <div id="discoverCards" class="discoverCards" aria-label="Lignende navn"></div>
-              </section>
-
-              <section class="module sidebarModule">
-                <div class="sectionHead">
-                  <div class="moduleHead">
-                    <label for="resultList">Søkeresultat</label>
-                    <p>Navn som matcher søk og filter. Haken velger navn til Utforsk; den gjør dem ikke aktuelle.</p>
-                  </div>
-                  <span id="resultCount">0 navn</span>
-                </div>
-                <div class="listActions">
-                  <button id="selectVisible" type="button">Velg synlige</button>
-                  <button id="clearSelected" type="button">Tøm</button>
-                  <button id="shortlistVisible" type="button">Merk aktuelle</button>
-                  <button id="rejectVisible" type="button">Avvis synlige</button>
-                </div>
-                <div id="resultList" class="resultList" role="listbox" aria-label="Søkeresultat"></div>
-              </section>
-
-              <details class="module sidebarModule topNModule">
-                <summary>
-                  <span>Topp N og intervaller</span>
-                  <small>Finn navn etter popularitet, periode eller kvantil</small>
-                </summary>
-                <div class="moduleHead">
-                  <label>Topp N</label>
-                  <p>Velg de vanligste navnene, eller et rangintervall som topp 10 %, midtre 50 % eller nederste kvartil.</p>
-                </div>
-                <div class="topNGrid">
-                  <select id="topNSelectionMode" aria-label="Utvalgstype">
-                    <option value="top" selected>Topp N</option>
-                    <option value="range">Intervall</option>
-                  </select>
-                  <select id="topNMode" aria-label="Grunnlag">
-                    <option value="year">År</option>
-                    <option value="period">Tidsrom</option>
-                  </select>
-                  <div id="topNCountControl" class="topNFullControl">
-                    <label for="topNCount">Antall navn</label>
-                    <select id="topNCount">
-                      <option value="5">5</option>
-                      <option value="10" selected>10</option>
-                      <option value="15">15</option>
-                      <option value="20">20</option>
-                    </select>
-                  </div>
-                  <div id="topNRangeControls" class="topNRangeControls" hidden>
-                    <div class="topNFullControl">
-                      <label for="topNRangePreset">Intervall</label>
-                      <select id="topNRangePreset">
-                        <option value="top10">Topp 10 %</option>
-                        <option value="top25">Øvre kvartil</option>
-                        <option value="middle50">Midtre 50 %</option>
-                        <option value="bottom25">Nederste kvartil</option>
-                        <option value="bottom10">Nederste 10 %</option>
-                        <option value="custom">Egendefinert</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label for="topNRangeFrom">Fra %</label>
-                      <input id="topNRangeFrom" type="number" min="0" max="100" step="1" value="0" />
-                    </div>
-                    <div>
-                      <label for="topNRangeTo">Til %</label>
-                      <input id="topNRangeTo" type="number" min="0" max="100" step="1" value="10" />
-                    </div>
-                    <div>
-                      <label for="topNRangeLimit">Maks navn</label>
-                      <input id="topNRangeLimit" type="number" min="1" max="250" step="1" value="50" />
-                    </div>
-                  </div>
-                  <div id="topNYearControl" class="topNYearControl">
-                    <label for="topNYear">År</label>
-                    <input id="topNYear" type="number" min="1880" max="2025" value="2025" />
-                  </div>
-                  <div id="topNPeriodControls" class="topNPeriodControls" hidden>
-                    <div>
-                      <label for="topNFromYear">Fra</label>
-                      <input id="topNFromYear" type="number" min="1880" max="2025" value="1880" />
-                    </div>
-                    <div>
-                      <label for="topNToYear">Til</label>
-                      <input id="topNToYear" type="number" min="1880" max="2025" value="2025" />
-                    </div>
-                  </div>
-                  <button id="syncTopNYears" type="button" hidden>Samme periode som kurver</button>
-                  <button id="selectTopN" type="button">Velg topp</button>
-                  <div class="topNBulkActions">
-                    <button id="shortlistTopN" type="button">Merk aktuelle</button>
-                    <button id="rejectTopN" type="button">Avvis utvalg</button>
-                  </div>
-                </div>
-              </details>
-            </aside>
-          </div>
         </section>
 
-        <section id="grafView" class="viewPanel" hidden>
-          <div class="mobileScreenHead compareScreenHead" aria-hidden="true">
-            <div class="screenMascot chartMascot"></div>
+        <section id="view-compare" class="screen" data-view="compare">
+          <header class="screenHeader">
+            <div class="iconBubble green"><svg><use href="#icon-chart"></use></svg></div>
             <div>
+              <h1>Sammenlign</h1>
+              <p>Sammenlign flere navn og se hvordan de har utviklet seg over tid.</p>
+            </div>
+          </header>
+
+          <section class="phoneSurface">
+            <div class="phoneTop"><span>09:41</span><span>•••</span></div>
+            <div class="navTitle">
               <h2>Sammenlign</h2>
-              <p>Se flere navn opp mot hverandre</p>
+              <button id="shareCompare" class="iconButton" type="button" aria-label="Del visning"><svg><use href="#icon-share"></use></svg></button>
             </div>
-            <button id="mobileCopyLink" type="button" aria-label="Kopier lenke"><svg class="buttonIcon"><use href="#icon-arrow-up-right"></use></svg></button>
-          </div>
-          <section class="module chartControls" aria-label="Utforskingsinnstillinger">
-            <div class="moduleHead">
-              <h2>Utforskingsvalg</h2>
-              <p>Velg metrikk, skala og tidsrom for kurvene. Nedlastingene bruker samme utvalg.</p>
+            <div id="compareChips" class="chipRail"></div>
+            <div class="segmented" aria-label="Mål">
+              <button class="active" type="button" data-metric="count">Antall</button>
+              <button type="button" data-metric="shareSex">Andel (%)</button>
+              <button type="button" data-metric="rank">Rang</button>
+              <button type="button" data-metric="index">Indeks</button>
             </div>
-            <div class="toolbar">
-              <div class="control">
-                <label for="metricSelect">Metrikk</label>
-                <select id="metricSelect">
-                  <option value="count">Antall fødte</option>
-                  <option value="shareAll">Andel av alle levendefødte</option>
-                  <option value="shareSex">Andel av levendefødte samme kjønn</option>
-                  <option value="rank">Rang innen kjønn</option>
-                  <option value="index">Indeks fra første valgte år</option>
-                </select>
-              </div>
-              <div class="control">
-                <label for="scaleSelect">Skala</label>
-                <select id="scaleSelect">
-                  <option value="linear">Lineær</option>
-                  <option value="log">Logaritmisk</option>
-                </select>
-              </div>
-              <div class="control years">
-                <label>Tidsrom</label>
-                <div>
-                  <input id="fromYear" type="number" min="1880" max="2025" value="1880" />
-                  <span>til</span>
-                  <input id="toYear" type="number" min="1880" max="2025" value="2025" />
-                </div>
-              </div>
-              <div class="control">
-                <label for="chartSmooth">Glatting</label>
-                <select id="chartSmooth">
-                  <option value="1">Av</option>
-                  <option value="3" selected>3 år</option>
-                  <option value="5">5 år</option>
-                  <option value="7">7 år</option>
-                </select>
-              </div>
-              <div class="control toggles">
-                <label>Visning</label>
-                <label class="check"><input id="markersToggle" type="checkbox" /> punkter</label>
-              </div>
-              <div class="actions">
-                <button id="copyLink" type="button">Kopier lenke</button>
-                <button id="downloadCsv" type="button">CSV</button>
-                <button id="downloadPng" type="button">PNG</button>
-              </div>
+            <div class="inlineControls">
+              <select id="compareYears" aria-label="Tidsperiode">
+                <option value="1900">1900 - 2025</option>
+                <option value="1950">1950 - 2025</option>
+                <option value="1980">1980 - 2025</option>
+                <option value="2000">2000 - 2025</option>
+              </select>
+              <select id="compareSmooth" aria-label="Glatting">
+                <option value="1">Glatting: av</option>
+                <option value="3" selected>Glatting: 3 år</option>
+                <option value="5">Glatting: 5 år</option>
+                <option value="7">Glatting: 7 år</option>
+              </select>
             </div>
-          </section>
-
-          <section class="module selectedPanel">
-            <div class="sectionHead">
-              <div class="moduleHead">
-                <h2>Valgte navn</h2>
-                <p>Dette er arbeidsutvalget fra Finn. Bruk hurtigvalgene her for å sende navn videre som aktuelle, uaktuelle eller til vurdering.</p>
-              </div>
-              <span id="selectedCount">0 navn</span>
-            </div>
-            <div class="decisionBar" aria-label="Hurtigvalg for valgte navn">
-              <button id="selectedShortlist" type="button" class="primary">Aktuell</button>
-              <button id="selectedReject" type="button">Uaktuell</button>
-              <button id="selectedReview" type="button">Vurder</button>
-              <button id="selectedClear" type="button">Tøm utvalg</button>
-            </div>
-            <div id="selectedNames" class="selectedNames" aria-label="Valgte navn"></div>
-          </section>
-
-          <section class="module chartModule">
-            <div class="moduleHead">
-              <h2>Navnekurver</h2>
-              <p>Historiske kurver for de valgte navnene. Data før 1945 bruker prosent når antall mangler.</p>
-            </div>
-            <div id="chart" class="chart" role="img" aria-label="Trendkurver"></div>
-          </section>
-
-          <section class="module compareInsight">
-            <div class="moduleHead">
-              <h2>Kort vurdering</h2>
-              <p id="compareInsightText">Velg minst to navn for å få en enkel sammenligning.</p>
-            </div>
-          </section>
-
-          <details class="module secondaryModule similarPanel">
-            <summary class="secondarySummary">
-              <div class="moduleHead">
-                <h2>Lignende kurver</h2>
-                <p>Finn navn som ligner på et valgt referansenavn. Form bruker Pearson-korrelasjon for å sammenligne kurveform. Skalert avstand bruker euklidsk avstand etter normalisering. Uskalert avstand bruker gjennomsnittlig absolutt avstand mellom kurvene.</p>
-              </div>
-              <span class="secondaryHint">Avansert</span>
-            </summary>
-            <div class="secondaryBody">
-              <div class="candidateHead">
-                <div class="moduleHead">
-                  <p>Velg referanse, metode og tidsrom før du søker. Resultatene kan deretter legges i utvalget eller masselukkes som aktuelle/uaktuelle.</p>
-                </div>
-                <button id="addSimilarTop" type="button">Legg topp 5 i utvalg</button>
-                <div class="inlineActions">
-                  <button id="shortlistSimilarTop" type="button">Merk topp 50</button>
-                  <button id="rejectSimilarTop" type="button">Avvis topp 50</button>
-                </div>
-              </div>
-              <div class="similarControls">
-                <div>
-                  <label for="similarReference">Referansenavn</label>
-                  <select id="similarReference"></select>
-                </div>
-                <div>
-                  <label for="similarMethod">Metode</label>
-                  <select id="similarMethod">
-                    <option value="pearson">Form</option>
-                    <option value="euclidean">Skalert avstand</option>
-                    <option value="unscaled">Uskalert avstand</option>
-                  </select>
-                </div>
-                <div>
-                  <label for="similarMetric">Serie</label>
-                  <select id="similarMetric">
-                    <option value="shareSex">Andel samme kjønn</option>
-                    <option value="rank">Rang</option>
-                    <option value="index">Indeks</option>
-                  </select>
-                </div>
-                <div>
-                  <label for="similarSmooth">Glatting</label>
-                  <select id="similarSmooth">
-                    <option value="1">Av</option>
-                    <option value="3" selected>3 år</option>
-                    <option value="5">5 år</option>
-                  </select>
-                </div>
-                <div>
-                  <label for="similarFromYear">Fra</label>
-                  <input id="similarFromYear" type="number" min="1880" max="2025" value="1880" />
-                </div>
-                <div>
-                  <label for="similarToYear">Til</label>
-                  <input id="similarToYear" type="number" min="1880" max="2025" value="2025" />
-                </div>
-                <div class="candidateAction">
-                  <button id="syncSimilarYears" type="button">Samme periode som kurver</button>
-                </div>
-                <div class="candidateAction">
-                  <button id="findSimilar" type="button" class="primary">Finn lignende</button>
-                </div>
-              </div>
-              <div class="sectionHead">
-                <span id="similarCount">0 navn</span>
-                <span id="similarBasis">Form</span>
-              </div>
-              <div class="tableWrap similarWrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Navn</th>
-                      <th>Kjønn</th>
-                      <th>Likhet</th>
-                      <th>Rå score</th>
-                      <th>Toppår</th>
-                      <th>Handling</th>
-                    </tr>
-                  </thead>
-                  <tbody id="similarTable"></tbody>
-                </table>
-              </div>
-            </div>
-          </details>
-
-          <details class="module secondaryModule candidatePanel">
-            <summary class="secondarySummary">
-              <div class="moduleHead">
-                <h2>Filterliste</h2>
-                <p>Bruk denne når du vil snevre inn, sortere og ta en beslutning. Den er bevisst mindre dominerende enn Finn-flaten.</p>
-              </div>
-              <span class="secondaryHint">Avansert</span>
-            </summary>
-            <div class="secondaryBody">
-              <div class="candidateHead">
-                <div class="moduleHead">
-                  <p>Ta med valget fra Finn hvis det er en god start, eller bygg en ny liste med egne regler og skolekontekst.</p>
-                </div>
-                <button id="copyExploreToCandidates" type="button">Hent fra Finn</button>
-                <div class="inlineActions">
-                  <button id="shortlistCandidates" type="button">Merk filtrerte</button>
-                  <button id="rejectCandidates" type="button">Avvis filtrerte</button>
-                </div>
-              </div>
-              <div class="candidateFilters">
-                <div>
-                  <label for="candidateRegex">Regex</label>
-                  <input id="candidateRegex" type="text" spellcheck="false" value=".*" />
-                </div>
-                <div>
-                  <label for="candidateSex">Kjønn</label>
-                  <select id="candidateSex">
-                    <option value="alle">Alle</option>
-                    <option value="jente">Jente</option>
-                    <option value="gutt">Gutt</option>
-                  </select>
-                </div>
-                <div>
-                  <label for="candidateBirthYear">Fødselsår</label>
-                  <input id="candidateBirthYear" type="number" min="1880" max="2025" value="2023" />
-                </div>
-                <div>
-                  <label for="candidateGrade">Trinn</label>
-                  <input id="candidateGrade" type="number" min="1" max="13" value="3" />
-                </div>
-                <div>
-                  <label for="candidateGradeSize">Elever per trinn</label>
-                  <input id="candidateGradeSize" type="number" min="1" max="10000" value="100" />
-                </div>
-                <div>
-                  <label for="candidateMaxSchool">Maks navnesøsken</label>
-                  <input id="candidateMaxSchool" type="number" min="0" step="0.1" value="1" />
-                </div>
-                <div>
-                  <label for="candidateSort">Sorter</label>
-                  <select id="candidateSort">
-                    <option value="school">Færrest i skoleløpet</option>
-                    <option value="birthYear">Flest i fødselsåret</option>
-                    <option value="trend">Sterkest trend</option>
-                    <option value="similar">Mest lik kurve</option>
-                    <option value="name">Navn A-Å</option>
-                  </select>
-                </div>
-                <div class="candidateAction">
-                  <button id="applyCandidateFilters" type="button" class="primary">Oppdater</button>
-                </div>
-              </div>
-              <p id="candidateError" class="error" role="alert"></p>
-              <div class="sectionHead">
-                <span id="candidateCount">0 navn</span>
-                <span id="candidateScope">Barneskole 1.-7.</span>
-              </div>
-              <div class="tableWrap candidateWrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Navn</th>
-                      <th>Kjønn</th>
-                      <th>Fødselsår</th>
-                      <th>Navnesøsken</th>
-                      <th>Toppår</th>
-                      <th>Trend</th>
-                      <th>Handling</th>
-                    </tr>
-                  </thead>
-                  <tbody id="candidateTable"></tbody>
-                </table>
-              </div>
-            </div>
-          </details>
-
-          <div class="below">
-            <section class="module summary">
-              <div class="moduleHead">
-                <h2>Oppsummering</h2>
-                <p>Nøkkeltall for navnene som ligger i utvalget akkurat nå.</p>
-              </div>
-              <div id="summaryGrid" class="summaryGrid"></div>
+            <div id="compareChart" class="chartBox" role="img" aria-label="Navnekurver"></div>
+            <div id="compareLegend" class="legend"></div>
+            <section class="metricPanel">
+              <h3>Nøkkeltall <span id="compareYearLabel">2025</span></h3>
+              <div id="compareStats" class="statTable"></div>
             </section>
-            <section class="module schoolPanel">
-              <div class="moduleHead">
-                <h2>Skoletrinn</h2>
-                <p>Estimer hvor mange med samme navn barnet kan møte på eget trinn og relevant skoleløp.</p>
-              </div>
-              <div class="schoolControls">
-                <div>
-                  <label for="schoolBirthYear">Barnets fødselsår</label>
-                  <input id="schoolBirthYear" type="number" min="1880" max="2025" value="2018" />
-                </div>
-                <div>
-                  <label for="childGrade">Barnets trinn</label>
-                  <input id="childGrade" type="number" min="1" max="13" value="1" />
-                </div>
-                <div>
-                  <label for="gradeSize">Elever per trinn</label>
-                  <input id="gradeSize" type="number" min="1" max="10000" value="100" />
-                </div>
-              </div>
-              <div class="tableWrap compact">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Navn</th>
-                      <th>Eget trinn</th>
-                      <th id="schoolScopeHeader">Relevant skole</th>
-                    </tr>
-                  </thead>
-                  <tbody id="schoolTable"></tbody>
-                </table>
-              </div>
-            </section>
-            <section class="module tablePanel">
-              <div class="moduleHead">
-                <h2>Data</h2>
-                <p>Detaljert tabell for valgte navn, nyttig for kontroll og sammenligning.</p>
-              </div>
-              <div class="tableWrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Navn</th>
-                      <th>Kjønn</th>
-                      <th>Total</th>
-                      <th>Toppår</th>
-                      <th>Maks</th>
-                      <th>Første</th>
-                      <th>Siste</th>
-                      <th>Beste rang</th>
-                    </tr>
-                  </thead>
-                  <tbody id="dataTable"></tbody>
-                </table>
-              </div>
-            </section>
-          </div>
+            <div class="actionRow">
+              <button id="openCompareSettings" type="button">Innstillinger</button>
+              <button id="openCompareTable" type="button">Tabellvisning</button>
+              <button id="downloadCsv" type="button">CSV</button>
+              <button id="downloadPng" type="button">Graf</button>
+            </div>
+          </section>
         </section>
 
-        <section id="vurderView" class="viewPanel reviewPanel" hidden>
-          <div class="mobileScreenHead reviewScreenHead" aria-hidden="true">
-            <div class="screenMascot heartMascot"></div>
+        <section id="view-review" class="screen" data-view="review">
+          <header class="screenHeader">
+            <div class="iconBubble pink"><svg><use href="#icon-heart"></use></svg></div>
             <div>
-              <h2>Vurder</h2>
-              <p>Ett navn om gangen</p>
+              <h1>Vurder</h1>
+              <p>Vurder navn ett og ett. Marker som aktuelt, uaktuelt eller hopp over.</p>
             </div>
-            <button id="mobileReviewUndo" type="button" aria-label="Angre"><svg class="buttonIcon"><use href="#icon-undo"></use></svg></button>
-          </div>
-          <div class="reviewModeShell">
-            <div class="reviewModeTop">
-              <div class="reviewHeading">
-                <div class="moduleHead">
-                  <h2>Vurder navn</h2>
-                  <p>Sveip til venstre for uaktuell og til høyre for å gjøre navnet aktuelt. Navn som allerede er vurdert hoppes over.</p>
-                </div>
-                <p id="reviewDeckMeta" class="reviewDeckMeta"></p>
-              </div>
-              <div class="reviewControls">
-                <div>
-                  <label for="reviewSource">Kilde</label>
-                  <select id="reviewSource">
-                    <option value="random">Tilfeldige nøytrale</option>
-                    <option value="matches">Fra søkeresultat</option>
-                    <option value="candidates">Fra filterliste</option>
-                    <option value="topn">Fra Topp/intervall</option>
-                    <option value="similar">Fra lignende kurver</option>
-                  </select>
-                </div>
-                <label class="check reviewShuffle"><input id="reviewShuffle" type="checkbox" checked /> bland</label>
-                <button id="buildReviewDeck" type="button" class="primary">Lag liste</button>
-                <div id="reviewProgress" class="reviewProgress" aria-live="polite">0 navn</div>
-              </div>
-            </div>
-            <div class="reviewStage" aria-live="polite" aria-label="Vurderingsområde for sveip">
-              <div class="swipeCue rejectCue">Uaktuell</div>
-              <div class="swipeCue shortlistCue">Aktuell</div>
-              <div id="reviewCard" class="reviewCard" aria-label="Aktivt vurderingskort"></div>
-            </div>
-            <div class="reviewActions" aria-label="Vurderingshandlinger">
-              <button id="reviewReject" type="button" aria-label="Marker som uaktuell" title="Marker som uaktuell">Uaktuell</button>
-              <button id="reviewSkip" type="button" aria-label="Hopp over dette navnet" title="Hopp over dette navnet">Hopp over</button>
-              <button id="reviewShortlist" type="button" class="primary" aria-label="Gjør navnet aktuelt" title="Gjør navnet aktuelt">Aktuell</button>
-              <button id="reviewUndo" type="button" aria-label="Angre siste vurdering" title="Angre siste vurdering">Angre</button>
-            </div>
-          </div>
+          </header>
 
-          <details class="module listPanel mineNavnPanel">
-            <summary class="mineSummary">
-              <span>Mine navn</span>
-              <small><span id="mineSummarySelected">0</span> i arbeid · <span id="mineSummaryShortlist">0</span> aktuelle</small>
-            </summary>
-            <div class="mineNavnBody">
-            <div class="candidateHead">
-              <div class="moduleHead">
-                <h2>Mine navn</h2>
-                <p>Arbeidsutvalg, aktuelle og uaktuelle navn samlet under vurderingsflyten.</p>
-              </div>
-              <div class="inlineActions">
-                <button id="showShortlistInChart" type="button">Sammenlign aktuelle</button>
-                <button id="clearShortlist" type="button">Tøm aktuelle</button>
-              </div>
+          <section class="phoneSurface reviewSurface">
+            <div class="phoneTop"><span>09:41</span><span>•••</span></div>
+            <div class="navTitle center">
+              <button id="reviewBack" class="ghostIcon" type="button" aria-label="Forrige"><svg><use href="#icon-back"></use></svg></button>
+              <div><h2>Vurder</h2><small id="reviewCounter">0 av 0</small></div>
+              <button id="reviewMenu" class="ghostIcon" type="button" aria-label="Mer">⋯</button>
             </div>
-            <div class="mineSegmented" aria-label="Mine navn oversikt">
-              <button type="button" class="active">Arbeidsutvalg <span id="mineSelectedSegmentCount">0</span></button>
-              <button type="button">Aktuelle <span id="shortlistSegmentCount">0</span></button>
-              <button type="button">Uaktuelle <span id="rejectedSegmentCount">0</span></button>
+            <article id="reviewCard" class="reviewCard"></article>
+            <div class="reviewActions">
+              <button id="reviewShortlist" class="reviewAction yes" type="button"><svg><use href="#icon-heart"></use></svg><span>Aktuelt</span></button>
+              <button id="reviewSkip" class="reviewAction skip" type="button"><svg><use href="#icon-undo"></use></svg><span>Hopp over</span></button>
+              <button id="reviewReject" class="reviewAction no" type="button"><svg><use href="#icon-x"></use></svg><span>Uaktuelt</span></button>
             </div>
-            <section class="backupPanel" aria-label="Sikkerhetskopi av navnevalg">
-              <div>
-                <h3>Sikkerhetskopi</h3>
-                <p>Eksporter aktuelle og uaktuelle navn som JSON eller CSV. Import slår sammen og overstyrer ved kollisjon.</p>
-              </div>
-              <div class="backupActions">
-                <button id="statusBackupExport" type="button">Eksporter JSON</button>
-                <button id="statusCsvExport" type="button">Eksporter CSV</button>
-                <button id="statusBackupImport" type="button">Importer JSON</button>
-                <input id="statusImportInput" type="file" accept="application/json,.json" hidden />
-              </div>
-              <p id="statusBackupMessage" class="backupMessage" role="status" aria-live="polite"></p>
-            </section>
-            <div class="mineNavnGrid">
-              <section>
-                <h3>Arbeidsutvalg <span id="mineSelectedCount">0</span></h3>
-                <div id="mineSelectedList" class="miniNameList"></div>
-              </section>
-              <section>
-                <h3>Aktuelle <span id="shortlistTabCount">0</span></h3>
-                <div class="tableWrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Navn</th>
-                        <th>Kjønn</th>
-                        <th>Toppår</th>
-                        <th>Maks</th>
-                        <th>Handling</th>
-                      </tr>
-                    </thead>
-                    <tbody id="shortlistTable"></tbody>
-                  </table>
-                </div>
-              </section>
-              <section>
-                <h3>Uaktuelle <span id="rejectedTabCount">0</span></h3>
-                <div class="tableWrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Navn</th>
-                        <th>Kjønn</th>
-                        <th>Toppår</th>
-                        <th>Maks</th>
-                        <th>Handling</th>
-                      </tr>
-                    </thead>
-                    <tbody id="rejectedTable"></tbody>
-                  </table>
-                </div>
-              </section>
-            </div>
-            </div>
-          </details>
+            <button id="reviewUndo" class="undoLink" type="button"><svg><use href="#icon-undo"></use></svg> Angre forrige</button>
+          </section>
         </section>
-      </section>
-    </main>
 
-    <dialog id="helpDialog" class="helpDialog" aria-labelledby="helpDialogTitle">
-      <div class="helpDialogPanel">
-        <div class="helpDialogHead">
-          <h2 id="helpDialogTitle">Info</h2>
-          <button id="helpDialogClose" type="button" aria-label="Lukk informasjon">Lukk</button>
-        </div>
-        <p id="helpDialogBody"></p>
-      </div>
-    </dialog>
+        <section id="view-mine" class="screen" data-view="mine">
+          <header class="screenHeader">
+            <div class="iconBubble yellow"><svg><use href="#icon-star"></use></svg></div>
+            <div>
+              <h1>Mine navn</h1>
+              <p>Se og organiser dine navn i arbeidsutvalg, aktuelle og uaktuelle.</p>
+            </div>
+          </header>
+
+          <section class="phoneSurface">
+            <div class="phoneTop"><span>09:41</span><span>•••</span></div>
+            <div class="navTitle">
+              <h2>Mine navn</h2>
+              <button id="openBackup" class="iconButton" type="button" aria-label="Innstillinger"><svg><use href="#icon-gear"></use></svg></button>
+            </div>
+            <div class="listMenu">
+              <button type="button" data-open-list="work"><span class="miniIcon blue"><svg><use href="#icon-list"></use></svg></span><span><strong>Arbeidsutvalg</strong><small id="workCount">0 navn</small></span><em>›</em></button>
+              <button type="button" data-open-list="shortlist"><span class="miniIcon green"><svg><use href="#icon-heart"></use></svg></span><span><strong>Aktuelle</strong><small id="shortlistCount">0 navn</small></span><em>›</em></button>
+              <button type="button" data-open-list="rejected"><span class="miniIcon red"><svg><use href="#icon-x"></use></svg></span><span><strong>Uaktuelle</strong><small id="rejectedCount">0 navn</small></span><em>›</em></button>
+            </div>
+            <div class="sectionRow">
+              <h3>Nylig vurderte</h3>
+              <button id="openHistory" type="button">Se alle</button>
+            </div>
+            <div id="recentDecisions" class="decisionRows"></div>
+          </section>
+        </section>
+
+        <section id="subscreen" class="subscreen" aria-hidden="true">
+          <div class="subscreenPanel">
+            <div class="phoneTop"><span>09:41</span><span>•••</span></div>
+            <div class="navTitle">
+              <button id="subBack" class="ghostIcon" type="button" aria-label="Tilbake"><svg><use href="#icon-back"></use></svg></button>
+              <h2 id="subTitle">Detaljer</h2>
+              <button id="subAction" class="ghostIcon" type="button" aria-label="Handling">⋯</button>
+            </div>
+            <div id="subContent" class="subContent"></div>
+          </div>
+        </section>
+      </main>
+
+      <nav class="tabBar" aria-label="Hovednavigasjon">
+        <button class="active" type="button" data-tab="explore"><svg><use href="#icon-search"></use></svg><span>Utforsk</span></button>
+        <button type="button" data-tab="compare"><svg><use href="#icon-chart"></use></svg><span>Sammenlign</span></button>
+        <button type="button" data-tab="review"><svg><use href="#icon-heart"></use></svg><span>Vurder</span></button>
+        <button type="button" data-tab="mine"><svg><use href="#icon-star"></use></svg><span>Mine navn</span></button>
+      </nav>
+
+      <p id="toast" class="toast" role="status" aria-live="polite"></p>
+      <input id="importInput" type="file" accept="application/json,.json" hidden />
+    </div>
   </body>
 </html>

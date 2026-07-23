@@ -3,7 +3,7 @@ const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
 const SCHOOL_STORAGE_KEY = "navnestatistikk:schoolSettings:v1";
-const SW_VERSION = "2026-07-23.3";
+const SW_VERSION = "2026-07-23.4";
 
 const state = {
   data: null,
@@ -37,7 +37,9 @@ const state = {
     gradeSize: 100,
     grades: 7,
   },
-  similarMode: "text",
+  similarMode: "curve",
+  similarReferenceId: "",
+  similarSex: "alle",
   review: {
     deck: [],
     index: 0,
@@ -284,7 +286,7 @@ function renderWorkflowCards() {
   const explore = $("#exploreWorkflow");
   if (explore) {
     explore.innerHTML = counts.work
-      ? `${workflowSummaryMarkup(counts)}<button class="workflowCta" data-go-tab="compare" type="button">Sammenlign valgte</button>`
+      ? `${workflowSummaryMarkup(counts)}<button class="workflowCta" data-go-tab="compare" type="button">Utforsk utvalg</button>`
       : `${workflowSummaryMarkup(counts)}<span class="workflowNote">Velg fra listen.</span>`;
   }
   const compare = $("#compareWorkflow");
@@ -320,9 +322,9 @@ function handleWorkflowNavigation(event) {
 }
 
 function nextMineStep(counts) {
-  if (counts.work >= 2) return { tab: "compare", label: "Sammenlign valgte" };
+  if (counts.work >= 2) return { tab: "compare", label: "Utforsk utvalg" };
   if (counts.work === 1) return { tab: "review", label: "Vurder navnet" };
-  if (counts.shortlist) return { tab: "compare", label: "Se aktuelle i graf" };
+  if (counts.shortlist) return { tab: "compare", label: "Utforsk aktuelle" };
   return { tab: "explore", label: "Finn navn" };
 }
 
@@ -366,7 +368,7 @@ function renderExploreStarter() {
         <small>${work.map((item) => escapeHtml(item.name)).join(", ")}${workItems().length > work.length ? " ..." : ""}</small>
       </div>
       <div class="lensActions">
-        <button data-go-tab="compare" type="button">Sammenlign</button>
+        <button data-go-tab="compare" type="button">Utforsk</button>
         <button data-go-tab="review" type="button">Vurder</button>
       </div>
     `;
@@ -405,7 +407,7 @@ function updateCandidateCard(rows = filteredRows(), isFiltered = hasActiveExplor
   card.disabled = count === 0;
   card.innerHTML = `
     <span class="miniIcon"><svg><use href="#icon-list"></use></svg></span>
-    <span><strong>Legg treff til valgte navn</strong><small>${count ? `${formatNumber(count)} navn fra gjeldende søk og filtre` : "Ingen treff å legge til"}</small></span>
+      <span><strong>Legg treff til utvalg</strong><small>${count ? `${formatNumber(count)} navn fra gjeldende søk og filtre` : "Ingen treff å legge til"}</small></span>
     <em>${count ? "Legg til" : "Tomt"}</em>
   `;
 }
@@ -588,6 +590,7 @@ function renderCompare() {
   }
   $("#compareYearLabel").textContent = state.compare.toYear;
   const items = compareItems();
+  ensureSimilarReference(items);
   renderCompareChips(items);
   renderCompareStats(items);
   renderChart(items);
@@ -646,6 +649,11 @@ function compareItems() {
   return selected;
 }
 
+function ensureSimilarReference(items = compareItems()) {
+  if (items.some((item) => item.id === state.similarReferenceId)) return;
+  state.similarReferenceId = items[0]?.id || "";
+}
+
 function renderCompareChips(items) {
   const rail = $("#compareChips");
   if (!items.length) {
@@ -687,44 +695,19 @@ function renderCompareSimilar(items) {
     return;
   }
   panel.hidden = false;
-  const reference = items[0];
-  const modes = [
-    ["text", "Tekst"],
-    ["curve", "Relativ kurve"],
-    ["curveCount", "Absolutt kurve"],
-    ["popularity", "Popularitet"],
-  ];
-  const rows = similarRows(reference, state.similarMode).slice(0, 5);
+  ensureSimilarReference(items);
+  const reference = state.itemsById.get(state.similarReferenceId) || items[0];
+  const rows = similarRows(reference, state.similarMode, state.similarSex).slice(0, 5);
   panel.innerHTML = `
     <div class="similarPanelHead">
-      <span><strong>Ligner på ${escapeHtml(reference.name)}</strong><small>Legg forslag rett til valgte navn</small></span>
+      <span><strong>Lignende navn</strong><small>Referanse: ${escapeHtml(reference.name)} · ${similarSexLabel(state.similarSex)}</small></span>
       <button type="button" data-similar="${reference.id}">Se alle</button>
     </div>
-    <div class="segmented small similarModes" aria-label="Likhetstype">
-      ${modes.map(([mode, label]) => `<button class="${mode === state.similarMode ? "active" : ""}" type="button" data-compare-sim-mode="${mode}">${label}</button>`).join("")}
-    </div>
+    ${similarControlsMarkup(items, reference)}
     <div class="similarMiniRows"></div>
   `;
-  $(".similarMiniRows", panel).replaceChildren(...rows.map((row) => {
-    const item = row.item;
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "similarMiniRow";
-    button.innerHTML = `
-      <span><strong>${escapeHtml(item.name)}</strong><small>${row.reason}</small></span>
-      <em>${formatDecimal(row.similarity * 100, 0)} %</em>
-      <i><svg><use href="#icon-plus"></use></svg></i>
-    `;
-    button.addEventListener("click", () => addToWork(item));
-    return button;
-  }));
-  $$("[data-compare-sim-mode]", panel).forEach((button) => {
-    button.addEventListener("click", () => {
-      state.similarMode = button.dataset.compareSimMode;
-      renderCompareSimilar(items);
-    });
-  });
-  bindSubscreenButtons(panel);
+  $(".similarMiniRows", panel).replaceChildren(...rows.map((row) => similarResultRow(row, { compact: true })));
+  bindSimilarControls(panel, items);
 }
 
 function renderChart(items) {
@@ -733,12 +716,12 @@ function renderChart(items) {
   if (!items.length) {
     chart.innerHTML = `
       <div class="emptyState">
-        <h2>Ingen navn å sammenligne</h2>
+        <h2>Ingen navn i utvalget</h2>
         <p>Start med et kjent navn eller åpne populære forslag.</p>
         <div class="emptyActions">
           <button data-quick-name="Nora" type="button">Nora</button>
           <button data-quick-name="Noah" type="button">Noah</button>
-          <button data-go-tab="explore" type="button">Utforsk</button>
+          <button data-go-tab="explore" type="button">Søk</button>
         </div>
         <button class="primaryWide" data-go-tab="explore" type="button">Finn navn</button>
       </div>
@@ -761,7 +744,7 @@ function renderChart(items) {
 function renderCompareStats(items) {
   const table = $("#compareStats");
   if (!items.length) {
-    table.innerHTML = `<p class="mutedEmpty">Sammenligningen er tom.</p>`;
+    table.innerHTML = `<p class="mutedEmpty">Utvalget er tomt.</p>`;
     return;
   }
   table.replaceChildren(...items.map((item) => {
@@ -779,6 +762,87 @@ function renderCompareStats(items) {
     row.addEventListener("click", () => openNameDetail(item));
     return row;
   }));
+}
+
+function similarControlsMarkup(items, reference) {
+  const modes = similarModes();
+  return `
+    <div class="similarControlGrid">
+      <label>Referanse<select data-sim-reference>${items.map((item) => `<option value="${item.id}" ${item.id === reference.id ? "selected" : ""}>${escapeHtml(item.name)}</option>`).join("")}</select></label>
+      <label>Finn<select data-sim-sex>
+        <option value="alle" ${state.similarSex === "alle" ? "selected" : ""}>Alle kjønn</option>
+        <option value="same" ${state.similarSex === "same" ? "selected" : ""}>Samme kjønn</option>
+        <option value="jente" ${state.similarSex === "jente" ? "selected" : ""}>Jentenavn</option>
+        <option value="gutt" ${state.similarSex === "gutt" ? "selected" : ""}>Guttenavn</option>
+      </select></label>
+    </div>
+    <div class="segmented small similarModes" aria-label="Likhetstype">
+      ${modes.map(([mode, label]) => `<button class="${mode === state.similarMode ? "active" : ""}" type="button" data-compare-sim-mode="${mode}">${label}</button>`).join("")}
+    </div>
+  `;
+}
+
+function similarModes() {
+  return [
+    ["curve", "Kurveform"],
+    ["curveCount", "Antall"],
+    ["shareLevel", "Andel"],
+    ["text", "Navnelikhet"],
+  ];
+}
+
+function bindSimilarControls(root, items = compareItems(), render = () => renderCompareSimilar(items)) {
+  $("[data-sim-reference]", root)?.addEventListener("change", (event) => {
+    state.similarReferenceId = event.target.value;
+    render();
+  });
+  $("[data-sim-sex]", root)?.addEventListener("change", (event) => {
+    state.similarSex = event.target.value;
+    render();
+  });
+  $$("[data-compare-sim-mode]", root).forEach((button) => {
+    button.addEventListener("click", () => {
+      state.similarMode = button.dataset.compareSimMode;
+      $$("[data-compare-sim-mode]", root).forEach((modeButton) => modeButton.classList.toggle("active", modeButton === button));
+      render();
+    });
+  });
+  bindSubscreenButtons(root);
+}
+
+function similarResultRow(row, options = {}) {
+  const item = row.item;
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = `similarMiniRow ${options.compact ? "" : "large"}`;
+  button.innerHTML = `
+    <span>
+      <strong>${escapeHtml(item.name)} <small class="sexTag ${item.sex}">${escapeHtml(item.sex)}</small></strong>
+      <small>${row.reason}</small>
+      ${options.compact ? `<b class="inlineSpark">${sparklineSvg(item, 96, 24)}</b>` : ""}
+    </span>
+    <em>${formatDecimal(row.similarity * 100, 0)} %</em>
+    <i><svg><use href="#icon-plus"></use></svg></i>
+  `;
+  button.addEventListener("click", () => addToWork(item));
+  return button;
+}
+
+function uniqueItems(items) {
+  const seen = new Set();
+  return items.filter((item) => {
+    if (!item || seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
+}
+
+function similarSexLabel(value) {
+  return { alle: "alle kjønn", same: "samme kjønn", jente: "jentenavn", gutt: "guttenavn" }[value] || "alle kjønn";
+}
+
+function peakShare(item) {
+  return allPoints(item).find((point) => point.year === item.peakYear)?.shareSex ?? null;
 }
 
 function openNameDetail(item) {
@@ -819,38 +883,25 @@ function detailMarkup(item) {
 }
 
 function openSimilar(item) {
-  const rows = similarRows(item, "text").slice(0, 40);
+  if (!item) return;
+  state.similarReferenceId = item.id;
+  const references = uniqueItems([item, ...compareItems()]);
   openSubscreen("Finn lignende navn", `
     <div class="similarHead">
       <span>Lignende navn: <b>${escapeHtml(item.name)}</b></span>
     </div>
-    <div class="segmented subMode" aria-label="Likhetstype">
-      <button class="active" type="button" data-sim-mode="text">Tekstlikhet</button>
-      <button type="button" data-sim-mode="curve">Utvikling</button>
-      <button type="button" data-sim-mode="popularity">Popularitet</button>
-    </div>
+    ${similarControlsMarkup(references, item)}
     <div id="similarList" class="nameRows"></div>
   `);
-  renderSimilarList(item, rows);
-  $$("[data-sim-mode]").forEach((button) => {
-    button.addEventListener("click", () => {
-      $$("[data-sim-mode]").forEach((b) => b.classList.toggle("active", b === button));
-      renderSimilarList(item, similarRows(item, button.dataset.simMode).slice(0, 40));
-    });
-  });
+  const render = () => renderSimilarList(state.itemsById.get(state.similarReferenceId) || item, similarRows(state.itemsById.get(state.similarReferenceId) || item, state.similarMode, state.similarSex).slice(0, 40));
+  render();
+  bindSimilarControls($("#subContent"), references, render);
 }
 
 function renderSimilarList(reference, rows) {
   const list = $("#similarList");
   if (!list) return;
-  list.replaceChildren(...rows.map((row) => {
-    const item = row.item;
-    const element = nameRow(item);
-    $(".rank", element).textContent = "";
-    $(".count", element).textContent = `${formatDecimal(row.similarity * 100, 0)} %`;
-    $(".nameMain small", element).textContent = `${row.reason}`;
-    return element;
-  }));
+  list.replaceChildren(...rows.map((row) => similarResultRow(row, { compact: false })));
 }
 
 function openFilters() {
@@ -911,7 +962,7 @@ function openCompareSettings() {
     <form id="compareSettingsForm" class="formStack">
       <label>Fra år<input name="fromYear" type="number" min="${state.firstYear}" max="${state.latestYear}" value="${state.compare.fromYear}" /></label>
       <label>Til år<input name="toYear" type="number" min="${state.firstYear}" max="${state.latestYear}" value="${state.compare.toYear}" /></label>
-      <label>Mål<select name="metric"><option value="count">Antall</option><option value="shareSex">Andel (%)</option><option value="rank">Rang</option><option value="index">Indeks</option></select></label>
+      <label>Mål<select name="metric"><option value="count">Antall</option><option value="shareSex">Andel (%)</option><option value="rank">Rang</option><option value="index">Start=100</option></select></label>
       <label>Glatting<select name="smooth"><option value="1">Av</option><option value="3">3 år</option><option value="5">5 år</option><option value="7">7 år</option></select></label>
       <button class="primaryWide" type="submit">Oppdater</button>
     </form>
@@ -1168,7 +1219,7 @@ function openNameList(kind) {
   const rows = kind === "work" ? workItems() : itemsWithStatus(kind);
   openSubscreen(title, `
     <p class="subLead">${kind === "work" ? "Navn som er valgt for sammenligning og vurdering." : kind === "shortlist" ? "Navn som er markert som aktuelle." : "Navn som er valgt bort."}</p>
-    <div class="sectionRow"><h3>${formatNumber(rows.length)} navn</h3><button id="listPrimaryAction" type="button">${kind === "work" ? "Sammenlign" : "Del liste"}</button></div>
+    <div class="sectionRow"><h3>${formatNumber(rows.length)} navn</h3><button id="listPrimaryAction" type="button">${kind === "work" ? "Utforsk" : "Del liste"}</button></div>
     <div id="mineListRows" class="nameRows"></div>
     ${rows.length ? `<button class="secondaryWide" data-clear-list="${kind}" type="button">${kind === "work" ? "Tøm valgte navn" : kind === "shortlist" ? "Tøm aktuelle" : "Tøm uaktuelle"}</button>` : ""}
   `);
@@ -1303,7 +1354,7 @@ function addQuickName(name) {
 }
 
 function metricLabel(metric) {
-  return { count: "Antall", shareSex: "Andel", rank: "Rang", index: "Indeks" }[metric] || "Antall";
+  return { count: "Antall", shareSex: "Andel", rank: "Rang", index: "Start=100" }[metric] || "Antall";
 }
 
 function smoothLabel(value) {
@@ -1329,13 +1380,19 @@ function filteredRows() {
   return rows.sort((a, b) => latestCount(b) - latestCount(a) || a.name.localeCompare(b.name, "no"));
 }
 
-function similarRows(reference, mode) {
+function similarRows(reference, mode, sexFilter = state.similarSex) {
+  const targetSex = sexFilter === "same" ? reference.sex : sexFilter;
   return state.data.names
-    .filter((item) => item.id !== reference.id && item.sex === reference.sex && state.status[item.id] !== "rejected")
+    .filter((item) => item.id !== reference.id && (targetSex === "alle" || item.sex === targetSex) && state.status[item.id] !== "rejected")
     .map((item) => {
       if (mode === "text") {
         const distance = levenshtein(normalize(reference.name), normalize(item.name));
         return { item, similarity: 1 / (1 + distance), reason: "tekstlikhet" };
+      }
+      if (mode === "shareLevel") {
+        const latestDiff = Math.abs((pointInYear(reference, state.latestYear)?.[3] ?? 0) - (pointInYear(item, state.latestYear)?.[3] ?? 0));
+        const peakDiff = Math.abs((peakShare(reference) ?? 0) - (peakShare(item) ?? 0));
+        return { item, similarity: 1 / (1 + latestDiff * 10 + peakDiff * 4), reason: "lik andel i årskullet" };
       }
       if (mode === "popularity") {
         const rankDiff = Math.abs((pointInYear(reference, state.latestYear)?.[2] ?? 999) - (pointInYear(item, state.latestYear)?.[2] ?? 999));
@@ -1343,18 +1400,20 @@ function similarRows(reference, mode) {
         return { item, similarity: 1 / (1 + rankDiff / 15 + peakDiff / 500), reason: "lik popularitet" };
       }
       const similarity = curveSimilarity(reference, item, mode === "curveCount" ? "count" : "shareSex");
-      return { item, similarity, reason: mode === "curveCount" ? "lignende antallskurve" : "lignende relativ kurve" };
+      return { item, similarity, reason: mode === "curveCount" ? "lik antallskurve" : "lik kurveform" };
     })
     .filter((row) => Number.isFinite(row.similarity))
     .sort((a, b) => b.similarity - a.similarity || a.item.name.localeCompare(b.item.name, "no"));
 }
 
 function curveSimilarity(a, b, metric = "shareSex") {
-  const left = allPoints(a).filter((p) => p.year >= state.compare.fromYear && p.year <= state.compare.toYear).map((p) => p[metric] ?? 0);
-  const right = allPoints(b).filter((p) => p.year >= state.compare.fromYear && p.year <= state.compare.toYear).map((p) => p[metric] ?? 0);
-  const n = Math.min(left.length, right.length);
-  if (n < 3) return 0;
-  return Math.max(0, Math.min(1, (pearson(zScore(left.slice(-n)), zScore(right.slice(-n))) + 1) / 2));
+  const leftByYear = new Map(allPoints(a).filter((p) => p.year >= state.compare.fromYear && p.year <= state.compare.toYear).map((p) => [p.year, p[metric]]));
+  const pairs = allPoints(b)
+    .filter((p) => p.year >= state.compare.fromYear && p.year <= state.compare.toYear)
+    .map((p) => [leftByYear.get(p.year), p[metric]])
+    .filter(([left, right]) => left != null && right != null && Number.isFinite(left) && Number.isFinite(right));
+  if (pairs.length < 3) return 0;
+  return Math.max(0, Math.min(1, (pearson(zScore(pairs.map(([left]) => left)), zScore(pairs.map(([, right]) => right))) + 1) / 2));
 }
 
 function lineChartSvg(items, metric, fromYear, toYear, width, height, options = {}) {
@@ -1420,9 +1479,7 @@ function lineChartSvg(items, metric, fromYear, toYear, width, height, options = 
 }
 
 function chartColor(index, item) {
-  const palette = ["#ef5d93", "#2e7bcf", "#4aa36f", "#8b68d9", "#e59b3c", "#42a6a1"];
-  if (item?.sex === "gutt" && index === 0) return "#2e7bcf";
-  if (item?.sex === "jente" && index === 0) return "#ef5d93";
+  const palette = ["#2e7bcf", "#ef5d93", "#2f9e78", "#8b68d9", "#d78324", "#1d9fb8", "#b44f8f", "#5968d8"];
   return palette[index % palette.length];
 }
 
@@ -1459,7 +1516,7 @@ function latestCount(item) {
 }
 
 function effectiveMetric() {
-  return state.compare.metric === "count" && state.compare.fromYear < 1945 ? "shareSex" : state.compare.metric;
+  return state.compare.metric;
 }
 
 function metricValue(point, item, metric) {
@@ -1473,7 +1530,7 @@ function metricValue(point, item, metric) {
 }
 
 function yAxis(metric) {
-  const title = { count: "Antall", shareSex: "Andel (%)", rank: "Rang", index: "Indeks" }[metric] || "Antall";
+  const title = { count: "Antall", shareSex: "Andel (%)", rank: "Rang", index: "Start=100" }[metric] || "Antall";
   const axis = { title, gridcolor: "#edf0f4", zeroline: false, rangemode: "tozero" };
   if (metric === "rank") axis.autorange = "reversed";
   return axis;

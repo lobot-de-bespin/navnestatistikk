@@ -1,4 +1,4 @@
-const CACHE_VERSION = "2026-07-22.22";
+const CACHE_VERSION = "2026-07-23.1";
 const CACHE_PREFIX = "navnestatistikk-pwa";
 const CACHE_NAME = `${CACHE_PREFIX}-${CACHE_VERSION}`;
 
@@ -21,6 +21,7 @@ const SHELL_PATHS = [
 
 const SHELL_URLS = new Set(SHELL_PATHS.map((path) => new URL(path, self.registration.scope).href));
 const INDEX_URL = new URL("./index.html", self.registration.scope).href;
+const NETWORK_FIRST_EXTENSIONS = new Set([".html", ".css", ".js"]);
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -71,6 +72,15 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     (async () => {
       const cache = await caches.open(CACHE_NAME);
+      if (shouldUseNetworkFirst(url)) {
+        try {
+          const response = await fetch(request);
+          if (response && response.ok) cache.put(request, response.clone());
+          return response;
+        } catch {
+          return (await cache.match(request)) || (await caches.match(INDEX_URL));
+        }
+      }
       const cached = await cache.match(request);
       const networkPromise = fetch(request)
         .then((response) => {
@@ -90,3 +100,8 @@ self.addEventListener("fetch", (event) => {
     })(),
   );
 });
+
+function shouldUseNetworkFirst(url) {
+  if (url.pathname.endsWith("/")) return true;
+  return [...NETWORK_FIRST_EXTENSIONS].some((extension) => url.pathname.endsWith(extension));
+}

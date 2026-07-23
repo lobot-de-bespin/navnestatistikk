@@ -3,7 +3,7 @@ const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
 const SCHOOL_STORAGE_KEY = "navnestatistikk:schoolSettings:v1";
-const SW_VERSION = "2026-07-22.22";
+const SW_VERSION = "2026-07-23.1";
 
 const state = {
   data: null,
@@ -134,7 +134,17 @@ function bindChrome() {
 
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register(`sw.js?v=${encodeURIComponent(SW_VERSION)}`, { scope: "./" }).catch(() => {});
+    let refreshed = false;
+    const hadController = Boolean(navigator.serviceWorker.controller);
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (!hadController || refreshed) return;
+      refreshed = true;
+      location.reload();
+    });
+    navigator.serviceWorker
+      .register(`sw.js?v=${encodeURIComponent(SW_VERSION)}`, { scope: "./" })
+      .then((registration) => registration.update())
+      .catch(() => {});
   }
 }
 
@@ -252,7 +262,7 @@ function workflowCounts() {
 function workflowSummaryMarkup(counts) {
   return `
     <div class="workflowCounts" aria-label="Status">
-      <span><b>${formatNumber(counts.work)}</b><small>Utvalg</small></span>
+      <span><b>${formatNumber(counts.work)}</b><small>Valgt</small></span>
       <span><b>${formatNumber(counts.shortlist)}</b><small>Akt.</small></span>
       <span><b>${formatNumber(counts.rejected)}</b><small>Ute</small></span>
     </div>
@@ -264,13 +274,13 @@ function renderWorkflowCards() {
   const explore = $("#exploreWorkflow");
   if (explore) {
     explore.innerHTML = counts.work
-      ? `${workflowSummaryMarkup(counts)}<button class="workflowCta" data-go-tab="compare" type="button">Sammenlign</button>`
-      : `${workflowSummaryMarkup(counts)}<span class="workflowNote">Start med et navn.</span>`;
+      ? `${workflowSummaryMarkup(counts)}<button class="workflowCta" data-go-tab="compare" type="button">Sammenlign valgte</button>`
+      : `${workflowSummaryMarkup(counts)}<span class="workflowNote">Trykk + på navn.</span>`;
   }
   const compare = $("#compareWorkflow");
   if (compare) {
     compare.innerHTML = counts.work
-      ? `${workflowSummaryMarkup(counts)}<button class="workflowCta" data-go-tab="review" type="button">Vurder ${formatNumber(counts.work)}</button>`
+      ? `${workflowSummaryMarkup(counts)}<button class="workflowCta" data-go-tab="review" type="button">Vurder valgte</button>`
       : `${workflowSummaryMarkup(counts)}<button class="workflowCta" data-go-tab="explore" type="button">Finn navn først</button>`;
   }
   const mine = $("#mineWorkflow");
@@ -288,7 +298,7 @@ function handleWorkflowNavigation(event) {
 }
 
 function nextMineStep(counts) {
-  if (counts.work >= 2) return { tab: "compare", label: "Sammenlign" };
+  if (counts.work >= 2) return { tab: "compare", label: "Sammenlign valgte" };
   if (counts.work === 1) return { tab: "review", label: "Vurder navnet" };
   if (counts.shortlist) return { tab: "compare", label: "Se aktuelle i graf" };
   return { tab: "explore", label: "Finn navn" };
@@ -332,7 +342,7 @@ function updateCandidateCard(rows = filteredRows()) {
   card.disabled = count === 0;
   card.innerHTML = `
     <span class="miniIcon"><svg><use href="#icon-list"></use></svg></span>
-    <span><strong>Legg treff i utvalg</strong><small>${count ? `${formatNumber(count)} navn fra gjeldende søk og filtre` : "Ingen treff å legge til"}</small></span>
+    <span><strong>Legg treff til valgte navn</strong><small>${count ? `${formatNumber(count)} navn fra gjeldende søk og filtre` : "Ingen treff å legge til"}</small></span>
     <em>${count ? "Legg til" : "Tomt"}</em>
   `;
 }
@@ -346,7 +356,7 @@ function addFilteredRowsToWork() {
   rows.forEach((item) => state.selected.add(item.id));
   resetReviewDeck();
   saveWorkSelection();
-  toast(`${formatNumber(rows.length)} navn lagt til i utvalg`);
+  toast(`${formatNumber(rows.length)} navn lagt til i valgte navn`);
   renderAll();
   updateUrl();
 }
@@ -409,16 +419,25 @@ function nameRow(item, options = {}) {
     </button>
     <span class="spark">${sparklineSvg(item)}</span>
     <span class="count">${formatNumber(latestCount(item))}</span>
-    <button class="addButton ${state.selected.has(item.id) ? "active" : ""}" type="button" aria-label="Legg til ${escapeHtml(item.name)}">
+    <button class="addButton ${state.selected.has(item.id) ? "active" : ""}" type="button" aria-label="${state.selected.has(item.id) ? "Fjern" : "Legg til"} ${escapeHtml(item.name)}">
       <svg><use href="#icon-plus"></use></svg>
     </button>
   `;
   $(".nameMain", row).addEventListener("click", () => openNameDetail(item));
   $(".addButton", row).addEventListener("click", (event) => {
     event.stopPropagation();
-    addToWork(item);
+    toggleWorkSelection(item);
   });
   return row;
+}
+
+function toggleWorkSelection(item) {
+  if (!item) return;
+  if (state.selected.has(item.id) && !state.status[item.id]) {
+    removeFromWork(item.id, `${item.name} fjernet fra valgte navn`);
+    return;
+  }
+  addToWork(item);
 }
 
 function addToWork(item) {
@@ -428,17 +447,20 @@ function addToWork(item) {
   resetReviewDeck();
   saveWorkSelection();
   saveStatus();
-  toast(`${item.name} lagt til i utvalg`);
+  toast(`${item.name} lagt til i valgte navn`);
   renderAll();
   updateUrl();
 }
 
-function removeFromWork(id) {
+function removeFromWork(id, message = "") {
+  const item = state.itemsById.get(id);
   state.selected.delete(id);
   resetReviewDeck();
   saveWorkSelection();
   renderAll();
   updateUrl();
+  if (message) toast(message);
+  else if (item) toast(`${item.name} fjernet fra valgte navn`);
 }
 
 function applyNameStatus(id, status) {
@@ -466,7 +488,7 @@ function setNameStatus(id, status) {
   const item = state.itemsById.get(id);
   if (item) {
     const messages = {
-      neutral: `${item.name} flyttet til utvalg`,
+      neutral: `${item.name} flyttet til valgte navn`,
       shortlist: `${item.name} markert som aktuell`,
       rejected: `${item.name} markert som uaktuell`,
     };
@@ -549,7 +571,6 @@ function renderCompareChips(items) {
     remove.addEventListener("click", (event) => {
       event.stopPropagation();
       removeFromWork(item.id);
-      toast(`${item.name} fjernet fra sammenligning`);
     });
 
     chip.append(open, remove);
@@ -576,7 +597,7 @@ function renderCompareSimilar(items) {
   const rows = similarRows(reference, state.similarMode).slice(0, 5);
   panel.innerHTML = `
     <div class="similarPanelHead">
-      <span><strong>Ligner på ${escapeHtml(reference.name)}</strong><small>Legg forslag rett i utvalg</small></span>
+      <span><strong>Ligner på ${escapeHtml(reference.name)}</strong><small>Legg forslag rett til valgte navn</small></span>
       <button type="button" data-similar="${reference.id}">Se alle</button>
     </div>
     <div class="segmented small similarModes" aria-label="Likhetstype">
@@ -613,7 +634,7 @@ function renderChart(items) {
     chart.innerHTML = `
       <div class="emptyState">
         <h2>Ingen navn å sammenligne</h2>
-        <p>Utvalget er tomt.</p>
+        <p>Ingen valgte navn ennå.</p>
         <button class="primaryWide" data-go-tab="explore" type="button">Finn navn</button>
       </div>
     `;
@@ -687,7 +708,7 @@ function detailMarkup(item) {
       <span><strong>Skolekontekst</strong><small>${formatNumber(state.school.gradeSize)} elever · ${formatNumber(state.school.grades)} trinn</small></span>
       <b>${formatDecimal(schoolEstimateForCurrentSettings(item), 2)}</b>
     </section>
-    <button class="primaryWide" data-add="${item.id}" type="button">Legg til utvalg</button>
+    <button class="primaryWide" data-add="${item.id}" type="button">Legg til valgte navn</button>
     <button class="secondaryWide" data-similar="${item.id}" type="button">Finn lignende navn</button>
   `;
 }
@@ -831,7 +852,7 @@ function renderReview() {
     card.innerHTML = `
       <div class="emptyState">
         <h2>Ingen navn å vurdere</h2>
-        <p>Utvalget er tomt.</p>
+        <p>Ingen valgte navn å vurdere.</p>
         <button class="primaryWide" data-go-tab="explore" type="button">Finn navn</button>
       </div>
     `;
@@ -1023,13 +1044,13 @@ function decisionRow(entry) {
 }
 
 function openNameList(kind) {
-  const title = kind === "work" ? "Utvalg" : kind === "shortlist" ? "Aktuelle" : "Uaktuelle";
+  const title = kind === "work" ? "Valgte navn" : kind === "shortlist" ? "Aktuelle" : "Uaktuelle";
   const rows = kind === "work" ? workItems() : itemsWithStatus(kind);
   openSubscreen(title, `
-    <p class="subLead">${kind === "work" ? "Navn som ikke er endelig vurdert ennå." : kind === "shortlist" ? "Navn som er markert som aktuelle." : "Navn som er valgt bort."}</p>
+    <p class="subLead">${kind === "work" ? "Navn som er valgt for sammenligning og vurdering." : kind === "shortlist" ? "Navn som er markert som aktuelle." : "Navn som er valgt bort."}</p>
     <div class="sectionRow"><h3>${formatNumber(rows.length)} navn</h3><button id="listPrimaryAction" type="button">${kind === "work" ? "Sammenlign" : "Del liste"}</button></div>
     <div id="mineListRows" class="nameRows"></div>
-    ${rows.length ? `<button class="secondaryWide" data-clear-list="${kind}" type="button">${kind === "work" ? "Tøm utvalg" : kind === "shortlist" ? "Tøm aktuelle" : "Tøm uaktuelle"}</button>` : ""}
+    ${rows.length ? `<button class="secondaryWide" data-clear-list="${kind}" type="button">${kind === "work" ? "Tøm valgte navn" : kind === "shortlist" ? "Tøm aktuelle" : "Tøm uaktuelle"}</button>` : ""}
   `);
   $("#mineListRows").replaceChildren(...rows.map((item) => listManageRow(item, kind)));
   $("#listPrimaryAction").addEventListener("click", () => {
@@ -1064,7 +1085,7 @@ function clearNameList(kind) {
   closeSubscreen();
   renderAll();
   updateUrl();
-  toast(kind === "work" ? "Utvalg tømt" : kind === "shortlist" ? "Aktuelle tømt" : "Uaktuelle tømt");
+  toast(kind === "work" ? "Valgte navn tømt" : kind === "shortlist" ? "Aktuelle tømt" : "Uaktuelle tømt");
 }
 
 function listManageRow(item, kind) {
@@ -1078,10 +1099,10 @@ function listManageRow(item, kind) {
     event.stopPropagation();
     openSubscreen(item.name, `
       <div class="listMenu">
-        <button data-status="${item.id}" data-next="neutral" data-close-after="true" type="button"><span class="miniIcon blue"><svg><use href="#icon-list"></use></svg></span><span><strong>Sett som ikke vurdert</strong><small>Flytt til utvalg uten aktuell/uaktuell-status</small></span><em>›</em></button>
+        <button data-status="${item.id}" data-next="neutral" data-close-after="true" type="button"><span class="miniIcon blue"><svg><use href="#icon-list"></use></svg></span><span><strong>Sett som ikke vurdert</strong><small>Flytt til valgte navn uten aktuell/uaktuell-status</small></span><em>›</em></button>
         <button data-status="${item.id}" data-next="shortlist" data-close-after="true" type="button"><span class="miniIcon green"><svg><use href="#icon-heart"></use></svg></span><span><strong>Marker aktuell</strong><small>Flytt til favoritter</small></span><em>›</em></button>
         <button data-status="${item.id}" data-next="rejected" data-close-after="true" type="button"><span class="miniIcon red"><svg><use href="#icon-x"></use></svg></span><span><strong>Marker uaktuell</strong><small>Skjul fra vanlige forslag</small></span><em>›</em></button>
-        <button data-remove="${item.id}" data-close-after="true" type="button"><span class="miniIcon"><svg><use href="#icon-x"></use></svg></span><span><strong>Fjern fra utvalg</strong><small>Påvirker ikke vurderingen</small></span><em>›</em></button>
+        <button data-remove="${item.id}" data-close-after="true" type="button"><span class="miniIcon"><svg><use href="#icon-x"></use></svg></span><span><strong>Fjern fra valgte navn</strong><small>Påvirker ikke vurderingen</small></span><em>›</em></button>
       </div>
     `);
     bindSubscreenButtons();

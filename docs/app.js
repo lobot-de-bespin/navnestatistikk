@@ -3,7 +3,7 @@ const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
 const SCHOOL_STORAGE_KEY = "navnestatistikk:schoolSettings:v1";
-const SW_VERSION = "2026-07-23.1";
+const SW_VERSION = "2026-07-23.2";
 
 const state = {
   data: null,
@@ -105,6 +105,7 @@ function bindChrome() {
     renderCompare();
     updateUrl();
   });
+  $("#compareRangeSummary")?.addEventListener("click", openCompareSettings);
   $("#shareCompare")?.addEventListener("click", copyShareLink);
   $("#downloadCsv")?.addEventListener("click", downloadCsv);
   $("#downloadPng")?.addEventListener("click", () => {
@@ -205,7 +206,7 @@ function restoreFromUrl() {
     params
       .get("names")
       .split(",")
-      .map((id) => state.itemsById.get(id))
+      .map((value) => findNameFromUrlToken(value))
       .filter(Boolean)
       .forEach((item) => state.selected.add(item.id));
     state.hasUserSelection = true;
@@ -216,6 +217,15 @@ function restoreFromUrl() {
   if (params.has("to")) state.compare.toYear = clampYear(Number(params.get("to")));
   if (params.has("smooth")) state.compare.smooth = Math.max(1, Number(params.get("smooth")) || 3);
   normalizeComparePeriod();
+}
+
+function findNameFromUrlToken(value) {
+  const token = String(value || "").trim();
+  if (!token) return null;
+  const direct = state.itemsById.get(token);
+  if (direct) return direct;
+  const normalized = normalize(token);
+  return state.data.names.find((item) => normalize(item.name) === normalized) || null;
 }
 
 function updateUrl() {
@@ -275,7 +285,7 @@ function renderWorkflowCards() {
   if (explore) {
     explore.innerHTML = counts.work
       ? `${workflowSummaryMarkup(counts)}<button class="workflowCta" data-go-tab="compare" type="button">Sammenlign valgte</button>`
-      : `${workflowSummaryMarkup(counts)}<span class="workflowNote">Trykk + på navn.</span>`;
+      : `${workflowSummaryMarkup(counts)}<span class="workflowNote">Velg fra listen.</span>`;
   }
   const compare = $("#compareWorkflow");
   if (compare) {
@@ -291,6 +301,12 @@ function renderWorkflowCards() {
 }
 
 function handleWorkflowNavigation(event) {
+  const quick = event.target.closest("[data-quick-name]");
+  if (quick) {
+    event.preventDefault();
+    addQuickName(quick.dataset.quickName);
+    return;
+  }
   const button = event.target.closest("[data-go-tab]");
   if (!button) return;
   event.preventDefault();
@@ -387,7 +403,7 @@ function popularRows(sex = "jente", limit = 10) {
 function renderRecentSearches() {
   const rail = $("#recentSearches");
   if (!rail) return;
-  const fallback = ["Nora", "Alma", "Eli", "Oline"];
+  const fallback = ["Nora", "Alma", "Olivia", "Elias"];
   rail.replaceChildren(...(state.recent.length ? state.recent : fallback).map((query) => {
     const button = document.createElement("button");
     button.type = "button";
@@ -409,8 +425,9 @@ function rememberSearch(query) {
 }
 
 function nameRow(item, options = {}) {
+  const selected = state.selected.has(item.id);
   const row = document.createElement("article");
-  row.className = "nameRow";
+  row.className = `nameRow ${selected ? "selected" : ""}`;
   row.innerHTML = `
     <span class="rank">${options.rank ?? ""}</span>
     <button class="nameMain" type="button">
@@ -419,8 +436,8 @@ function nameRow(item, options = {}) {
     </button>
     <span class="spark">${sparklineSvg(item)}</span>
     <span class="count">${formatNumber(latestCount(item))}</span>
-    <button class="addButton ${state.selected.has(item.id) ? "active" : ""}" type="button" aria-label="${state.selected.has(item.id) ? "Fjern" : "Legg til"} ${escapeHtml(item.name)}">
-      <svg><use href="#icon-plus"></use></svg>
+    <button class="addButton ${selected ? "active" : ""}" type="button" aria-label="${selected ? "Fjern" : "Legg til"} ${escapeHtml(item.name)}">
+      <svg><use href="#icon-${selected ? "x" : "plus"}"></use></svg>
     </button>
   `;
   $(".nameMain", row).addEventListener("click", () => openNameDetail(item));
@@ -502,13 +519,13 @@ function setNameStatus(id, status) {
 function renderCompare() {
   $$("[data-metric]").forEach((button) => button.classList.toggle("active", button.dataset.metric === state.compare.metric));
   normalizeComparePeriod();
-  $("#compareFromYear").value = String(state.compare.fromYear);
-  $("#compareToYear").value = String(state.compare.toYear);
-  $("#compareFromYear").min = String(state.firstYear);
-  $("#compareFromYear").max = String(state.latestYear);
-  $("#compareToYear").min = String(state.firstYear);
-  $("#compareToYear").max = String(state.latestYear);
-  $("#compareSmooth").value = String(state.compare.smooth);
+  const rangeSummary = $("#compareRangeSummary");
+  if (rangeSummary) {
+    rangeSummary.innerHTML = `
+      <span><strong>${state.compare.fromYear}-${state.compare.toYear}</strong><small>${metricLabel(state.compare.metric)} · ${smoothLabel(state.compare.smooth)}</small></span>
+      <em>Innst.</em>
+    `;
+  }
   $("#compareYearLabel").textContent = state.compare.toYear;
   const items = compareItems();
   renderCompareChips(items);
@@ -634,7 +651,12 @@ function renderChart(items) {
     chart.innerHTML = `
       <div class="emptyState">
         <h2>Ingen navn å sammenligne</h2>
-        <p>Ingen valgte navn ennå.</p>
+        <p>Start med et kjent navn eller åpne populære forslag.</p>
+        <div class="emptyActions">
+          <button data-quick-name="Nora" type="button">Nora</button>
+          <button data-quick-name="Noah" type="button">Noah</button>
+          <button data-go-tab="explore" type="button">Utforsk</button>
+        </div>
         <button class="primaryWide" data-go-tab="explore" type="button">Finn navn</button>
       </div>
     `;
@@ -807,11 +829,12 @@ function openCompareSettings() {
       <label>Fra år<input name="fromYear" type="number" min="${state.firstYear}" max="${state.latestYear}" value="${state.compare.fromYear}" /></label>
       <label>Til år<input name="toYear" type="number" min="${state.firstYear}" max="${state.latestYear}" value="${state.compare.toYear}" /></label>
       <label>Mål<select name="metric"><option value="count">Antall</option><option value="shareSex">Andel (%)</option><option value="rank">Rang</option><option value="index">Indeks</option></select></label>
-      <label>Glatting<input name="smooth" type="range" min="1" max="10" value="${state.compare.smooth}" /></label>
+      <label>Glatting<select name="smooth"><option value="1">Av</option><option value="3">3 år</option><option value="5">5 år</option><option value="7">7 år</option></select></label>
       <button class="primaryWide" type="submit">Oppdater</button>
     </form>
   `);
   $("#compareSettingsForm [name='metric']").value = state.compare.metric;
+  $("#compareSettingsForm [name='smooth']").value = String(state.compare.smooth);
   $("#compareSettingsForm").addEventListener("submit", (event) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -852,7 +875,11 @@ function renderReview() {
     card.innerHTML = `
       <div class="emptyState">
         <h2>Ingen navn å vurdere</h2>
-        <p>Ingen valgte navn å vurdere.</p>
+        <p>Velg noen navn først, eller start med et vanlig eksempel.</p>
+        <div class="emptyActions">
+          <button data-quick-name="Nora" type="button">Nora</button>
+          <button data-quick-name="Noah" type="button">Noah</button>
+        </div>
         <button class="primaryWide" data-go-tab="explore" type="button">Finn navn</button>
       </div>
     `;
@@ -1026,7 +1053,17 @@ function renderMine() {
   $("#rejectedCount").textContent = `${formatNumber(rejected.length)} navn`;
   const recent = $("#recentDecisions");
   recent.replaceChildren(...state.history.slice(0, 6).map((entry) => decisionRow(entry)));
-  if (!state.history.length) recent.innerHTML = `<p class="mutedEmpty">Ingen vurderinger ennå.</p>`;
+  if (!state.history.length) {
+    recent.innerHTML = `
+      <div class="emptyState compact">
+        <p>Ingen vurderinger ennå.</p>
+        <div class="emptyActions">
+          <button data-go-tab="review" type="button">Vurder navn</button>
+          <button data-go-tab="explore" type="button">Finn flere</button>
+        </div>
+      </div>
+    `;
+  }
 }
 
 function decisionRow(entry) {
@@ -1162,6 +1199,7 @@ function closeSubscreen(render = true) {
 }
 
 function bindSubscreenButtons(root = document) {
+  $$("[data-quick-name]", root).forEach((button) => button.addEventListener("click", () => addQuickName(button.dataset.quickName)));
   $$("[data-add]", root).forEach((button) => button.addEventListener("click", () => addToWork(state.itemsById.get(button.dataset.add))));
   $$("[data-status]", root).forEach((button) => button.addEventListener("click", () => {
     setNameStatus(button.dataset.status, button.dataset.next);
@@ -1173,6 +1211,20 @@ function bindSubscreenButtons(root = document) {
   }));
   $$("[data-clear-list]", root).forEach((button) => button.addEventListener("click", () => clearNameList(button.dataset.clearList)));
   $$("[data-similar]", root).forEach((button) => button.addEventListener("click", () => openSimilar(state.itemsById.get(button.dataset.similar))));
+}
+
+function addQuickName(name) {
+  const item = findNameFromUrlToken(name);
+  if (!item) return;
+  addToWork(item);
+}
+
+function metricLabel(metric) {
+  return { count: "Antall", shareSex: "Andel", rank: "Rang", index: "Indeks" }[metric] || "Antall";
+}
+
+function smoothLabel(value) {
+  return Number(value) === 1 ? "uten glatting" : `${formatNumber(value)} års glatting`;
 }
 
 function filteredRows() {

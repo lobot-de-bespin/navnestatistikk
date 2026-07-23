@@ -18,7 +18,7 @@
   --purple: #7a63d2;
   --purple-soft: #f2efff;
   --shadow: 0 16px 44px rgba(28, 35, 48, 0.08);
-  --tab-height: 78px;
+  --tab-height: 66px;
 }
 
 * {
@@ -96,11 +96,9 @@ svg {
   width: min(100%, 430px);
   min-height: 100vh;
   margin: 0 auto;
-  padding: max(14px, env(safe-area-inset-top)) 12px calc(var(--tab-height) + 76px + env(safe-area-inset-bottom));
-  background:
-    radial-gradient(circle at 10% 0%, rgba(232, 247, 255, 0.9), transparent 25%),
-    radial-gradient(circle at 90% 3%, rgba(255, 239, 245, 0.9), transparent 24%),
-    var(--bg);
+  padding: max(12px, env(safe-area-inset-top)) 12px calc(var(--tab-height) + 52px + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, #fbfdff 0%, var(--bg) 38%, #fff 100%);
+  overflow-x: hidden;
 }
 
 .screenStack {
@@ -109,7 +107,7 @@ svg {
 
 .screen {
   display: none;
-  gap: 16px;
+  gap: 12px;
 }
 
 .screen.active {
@@ -118,10 +116,10 @@ svg {
 
 .screenHeader {
   display: grid;
-  grid-template-columns: 52px minmax(0, 1fr) auto;
-  gap: 12px;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  gap: 11px;
   align-items: center;
-  padding: 5px 4px 10px;
+  padding: 4px 4px 7px;
 }
 
 .screenHeader > div:nth-child(2) {
@@ -153,7 +151,7 @@ svg {
   max-width: 31rem;
   margin: 5px 0 0;
   color: #5f6878;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   line-height: 1.38;
 }
 
@@ -166,8 +164,8 @@ svg {
 }
 
 .iconBubble {
-  width: 46px;
-  height: 46px;
+  width: 42px;
+  height: 42px;
   background: #eef6ff;
   color: var(--blue);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
@@ -191,14 +189,14 @@ svg {
 .phoneSurface,
 .subscreenPanel {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   align-content: start;
   min-height: calc(100vh - 110px - var(--tab-height));
-  padding: 12px 12px calc(var(--tab-height) + 24px + env(safe-area-inset-bottom));
-  border: 1px solid rgba(232, 225, 216, 0.86);
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.86);
-  box-shadow: var(--shadow);
+  padding: 10px 10px calc(var(--tab-height) + 20px + env(safe-area-inset-bottom));
+  border: 1px solid rgba(232, 225, 216, 0.72);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: 0 10px 26px rgba(28, 35, 48, 0.055);
 }
 
 .navTitle {
@@ -275,9 +273,9 @@ svg {
   grid-template-columns: minmax(0, 1fr) minmax(94px, auto);
   gap: 8px;
   align-items: center;
-  min-height: 58px;
-  padding: 10px;
-  border-radius: 18px;
+  min-height: 52px;
+  padding: 8px;
+  border-radius: 16px;
   background: #f7f9fc;
   box-shadow: inset 0 0 0 1px rgba(232, 225, 216, 0.72);
 }
@@ -421,6 +419,11 @@ svg {
   box-shadow: inset 0 0 0 1px rgba(232, 225, 216, 0.74);
 }
 
+.nameRow.selected {
+  background: #f7fbff;
+  box-shadow: inset 0 0 0 1.5px rgba(46, 123, 207, 0.28);
+}
+
 .rank {
   color: #556070;
   font-size: 0.72rem;
@@ -488,8 +491,8 @@ svg {
 }
 
 .addButton.active {
-  background: var(--blue-soft);
-  color: #195c9d;
+  background: #2e7bcf;
+  color: #fff;
 }
 
 .softCallout {
@@ -708,10 +711,48 @@ input[type="range"] {
   padding-inline: 10px;
 }
 
+.rangeSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 38px;
+  padding: 8px 11px;
+  border-radius: 13px;
+  background: #f4f6f9;
+  color: #29364e;
+  text-align: left;
+}
+
+.rangeSummary strong,
+.rangeSummary small {
+  display: block;
+}
+
+.rangeSummary strong {
+  font-size: 0.78rem;
+  line-height: 1.1;
+}
+
+.rangeSummary small {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+.rangeSummary em {
+  flex: 0 0 auto;
+  color: #2e70b3;
+  font-size: 0.66rem;
+  font-style: normal;
+  font-weight: 820;
+}
+
 .chartBox {
   width: 100%;
-  height: 198px;
-  border-radius: 18px;
+  height: 214px;
+  border-radius: 16px;
   background: #fff;
   box-shadow: inset 0 0 0 1px rgba(232, 225, 216, 0.74);
   overflow: hidden;
@@ -951,8 +992,9 @@ input[type="range"] {
 
 .reviewSurface {
   min-height: calc(100vh - 100px - var(--tab-height));
-  gap: 11px;
+  gap: 9px;
   background: linear-gradient(180deg, #fff7fb 0%, #fffefd 38%);
+  overflow: hidden;
 }
 
 .reviewProgressLine {
@@ -966,10 +1008,10 @@ input[type="range"] {
 .reviewCard {
   position: relative;
   display: grid;
-  gap: 10px;
-  min-height: 370px;
-  padding: 22px 18px 15px;
-  border-radius: 22px;
+  gap: 8px;
+  min-height: 326px;
+  padding: 18px 16px 13px;
+  border-radius: 20px;
   background: #fff;
   box-shadow: inset 0 0 0 1px rgba(232, 225, 216, 0.88), 0 10px 28px rgba(28, 35, 48, 0.06);
   cursor: grab;
@@ -1034,7 +1076,7 @@ input[type="range"] {
 .detailHero h2 {
   margin: 0;
   color: #13203a;
-  font-size: clamp(2.55rem, 15vw, 4rem);
+  font-size: 3.15rem;
   line-height: 0.96;
   font-weight: 840;
 }
@@ -1058,12 +1100,12 @@ input[type="range"] {
 
 .heartRound {
   position: absolute;
-  top: 22px;
-  right: 18px;
+  top: 18px;
+  right: 16px;
   display: grid;
   place-items: center;
-  width: 56px;
-  height: 56px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: #f9fcfb;
   color: #13203a;
@@ -1073,7 +1115,7 @@ input[type="range"] {
 .trendPill {
   justify-self: center;
   width: fit-content;
-  padding: 8px 15px;
+  padding: 7px 13px;
   border-radius: 999px;
   background: var(--green-soft);
   color: #2b7a4b;
@@ -1083,13 +1125,13 @@ input[type="range"] {
 
 .reviewSpark {
   width: 100%;
-  min-height: 92px;
-  padding: 8px 10px;
+  min-height: 78px;
+  padding: 6px 8px;
 }
 
 .reviewSpark svg {
   width: 100%;
-  height: 92px;
+  height: 78px;
 }
 
 .reviewStats,
@@ -1141,8 +1183,8 @@ input[type="range"] {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 13px;
-  border-radius: 18px;
+  padding: 11px;
+  border-radius: 16px;
   background: var(--purple-soft);
   color: #403488;
 }
@@ -1168,7 +1210,7 @@ input[type="range"] {
 .reviewActions {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 .reviewActions .reviewAction {
@@ -1176,9 +1218,9 @@ input[type="range"] {
   place-items: center;
   align-content: center;
   gap: 8px;
-  min-height: 78px;
+  min-height: 66px;
   padding: 10px 8px 12px;
-  border-radius: 18px;
+  border-radius: 16px;
   font-size: 0.74rem;
   font-weight: 800;
   line-height: 1.14;
@@ -1461,20 +1503,42 @@ input[type="range"] {
   margin-top: 14px;
 }
 
+.emptyState.compact {
+  padding: 16px;
+}
+
+.emptyActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.emptyActions button {
+  min-height: 30px;
+  padding: 0 11px;
+  border-radius: 999px;
+  background: #eaf2ff;
+  color: #1766a8;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
 .tabBar {
   position: fixed;
   right: max(10px, env(safe-area-inset-right));
-  bottom: calc(max(8px, env(safe-area-inset-bottom)) + var(--browser-bottom-offset, 0px));
+  bottom: calc(max(7px, env(safe-area-inset-bottom)) + var(--browser-bottom-offset, 0px));
   left: max(10px, env(safe-area-inset-left));
   z-index: 80;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  width: min(calc(100% - 20px), 410px);
+  width: min(calc(100% - 20px), 398px);
   height: var(--tab-height);
   margin: 0 auto;
-  padding: 8px;
+  padding: 6px;
   border: 1px solid rgba(226, 214, 199, 0.9);
-  border-radius: 24px;
+  border-radius: 21px;
   background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 14px 38px rgba(28, 35, 48, 0.16);
   backdrop-filter: blur(18px) saturate(1.12);
@@ -1485,32 +1549,33 @@ input[type="range"] {
   place-items: center;
   gap: 3px;
   min-width: 0;
-  border-radius: 18px;
+  border-radius: 15px;
   background: transparent;
   color: #7a828f;
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 780;
 }
 
 .tabBar button svg {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
 }
 
 .tabBar button.active {
-  background: #eaf2ff;
+  background: rgba(234, 242, 255, 0.82);
   color: #155f9f;
 }
 
 .toast {
   position: fixed;
-  right: 24px;
-  bottom: calc(var(--tab-height) + 22px + env(safe-area-inset-bottom));
-  left: 24px;
+  top: calc(max(10px, env(safe-area-inset-top)) + 6px);
+  right: 16px;
+  bottom: auto;
+  left: 16px;
   z-index: 120;
-  width: min(330px, calc(100% - 48px));
+  width: min(330px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 11px 14px;
+  padding: 9px 13px;
   border-radius: 999px;
   background: rgba(20, 32, 57, 0.92);
   color: #fff;
@@ -1518,7 +1583,7 @@ input[type="range"] {
   font-weight: 760;
   text-align: center;
   opacity: 0;
-  transform: translateY(10px);
+  transform: translateY(-8px);
   transition: opacity 160ms ease, transform 160ms ease;
   pointer-events: none;
 }
@@ -1561,11 +1626,11 @@ input[type="range"] {
   }
 
   .reviewCard {
-    min-height: 430px;
+    min-height: 330px;
     padding-inline: 14px;
   }
 
   .reviewCard h2 {
-    font-size: clamp(2.2rem, 15vw, 3.6rem);
+    font-size: 2.75rem;
   }
 }

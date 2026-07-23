@@ -99,16 +99,7 @@
               <button type="button" data-metric="rank">Rang</button>
               <button type="button" data-metric="index">Indeks</button>
             </div>
-            <div class="inlineControls periodControls">
-              <label class="compactField">Fra <input id="compareFromYear" type="number" inputmode="numeric" aria-label="Fra år" /></label>
-              <label class="compactField">Til <input id="compareToYear" type="number" inputmode="numeric" aria-label="Til år" /></label>
-              <select id="compareSmooth" aria-label="Glatting">
-                <option value="1">Glatting: av</option>
-                <option value="3" selected>Glatting: 3 år</option>
-                <option value="5">Glatting: 5 år</option>
-                <option value="7">Glatting: 7 år</option>
-              </select>
-            </div>
+            <button id="compareRangeSummary" class="rangeSummary" type="button" aria-label="Endre periode og glatting"></button>
             <div id="compareChart" class="chartBox" role="img" aria-label="Navnekurver"></div>
             <div id="compareLegend" class="legend"></div>
             <section id="compareSimilarPanel" class="similarPanelCompact" hidden></section>

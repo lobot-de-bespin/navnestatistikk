@@ -41,7 +41,7 @@
             <div class="iconBubble blue"><svg><use href="#icon-search"></use></svg></div>
             <div>
               <h1>Utforsk</h1>
-              <p>Finn og utforsk navn. Søk, filtrer, oppdag populære navn og lignende navn.</p>
+              <p>Finn navn med søk og filtre. Trefflisten oppdateres mens du snevrer inn.</p>
             </div>
             <div class="headerActions">
               <button id="openFilter" class="iconButton" type="button" aria-label="Søk og filtre"><svg><use href="#icon-filter"></use></svg></button>
@@ -56,8 +56,8 @@
             </div>
 
             <div class="sectionRow">
-              <h3 id="exploreListTitle">Populære navn</h3>
-              <button id="openCandidateList" type="button">Se alle</button>
+              <h3 id="exploreListTitle">Navn å utforske</h3>
+              <button id="openCandidateList" type="button">Filtre</button>
             </div>
             <div id="popularSexToggle" class="segmented small" role="tablist" aria-label="Kjønn for populære navn">
               <button class="active" type="button" data-popular-sex="jente">Jenter</button>
@@ -67,8 +67,8 @@
 
             <button id="candidateCard" class="softCallout" type="button">
               <span class="miniIcon"><svg><use href="#icon-list"></use></svg></span>
-              <span><strong>Lag kandidatliste</strong><small>Bruk filtre og regler for å finne navn som passer for dere.</small></span>
-              <em>Start</em>
+              <span><strong>Legg treff i utvalg</strong><small>Samle navnene som matcher søk og filtre.</small></span>
+              <em>Legg til</em>
             </button>
 
             <div class="sectionRow">
@@ -99,13 +99,9 @@
               <button type="button" data-metric="rank">Rang</button>
               <button type="button" data-metric="index">Indeks</button>
             </div>
-            <div class="inlineControls">
-              <select id="compareYears" aria-label="Tidsperiode">
-                <option value="1900">1900 - 2025</option>
-                <option value="1950">1950 - 2025</option>
-                <option value="1980">1980 - 2025</option>
-                <option value="2000">2000 - 2025</option>
-              </select>
+            <div class="inlineControls periodControls">
+              <label class="compactField">Fra <input id="compareFromYear" type="number" inputmode="numeric" aria-label="Fra år" /></label>
+              <label class="compactField">Til <input id="compareToYear" type="number" inputmode="numeric" aria-label="Til år" /></label>
               <select id="compareSmooth" aria-label="Glatting">
                 <option value="1">Glatting: av</option>
                 <option value="3" selected>Glatting: 3 år</option>
@@ -115,6 +111,7 @@
             </div>
             <div id="compareChart" class="chartBox" role="img" aria-label="Navnekurver"></div>
             <div id="compareLegend" class="legend"></div>
+            <section id="compareSimilarPanel" class="similarPanelCompact" hidden></section>
             <section class="metricPanel">
               <h3>Nøkkeltall <span id="compareYearLabel">2025</span></h3>
               <div id="compareStats" class="statTable"></div>
@@ -138,7 +135,7 @@
             </div>
             <div class="headerActions dual">
               <button id="reviewBack" class="ghostIcon" type="button" aria-label="Forrige"><svg><use href="#icon-back"></use></svg></button>
-              <button id="reviewMenu" class="ghostIcon" type="button" aria-label="Arbeidsutvalg"><svg><use href="#icon-list"></use></svg></button>
+              <button id="reviewMenu" class="ghostIcon" type="button" aria-label="Utvalg"><svg><use href="#icon-list"></use></svg></button>
             </div>
           </header>
 
@@ -159,7 +156,7 @@
             <div class="iconBubble yellow"><svg><use href="#icon-star"></use></svg></div>
             <div>
               <h1>Mine navn</h1>
-              <p>Se og organiser dine navn i arbeidsutvalg, aktuelle og uaktuelle.</p>
+              <p>Se og organiser navn i utvalg, aktuelle og uaktuelle.</p>
             </div>
             <div class="headerActions">
               <button id="openBackup" class="iconButton" type="button" aria-label="Innstillinger"><svg><use href="#icon-gear"></use></svg></button>
@@ -169,7 +166,7 @@
           <section class="phoneSurface">
             <section id="mineWorkflow" class="workflowCard"></section>
             <div class="listMenu">
-              <button type="button" data-open-list="work"><span class="miniIcon blue"><svg><use href="#icon-list"></use></svg></span><span><strong>Arbeidsutvalg</strong><small id="workCount">0 navn</small></span><em>›</em></button>
+              <button type="button" data-open-list="work"><span class="miniIcon blue"><svg><use href="#icon-list"></use></svg></span><span><strong>Utvalg</strong><small id="workCount">0 navn</small></span><em>›</em></button>
               <button type="button" data-open-list="shortlist"><span class="miniIcon green"><svg><use href="#icon-heart"></use></svg></span><span><strong>Aktuelle</strong><small id="shortlistCount">0 navn</small></span><em>›</em></button>
               <button type="button" data-open-list="rejected"><span class="miniIcon red"><svg><use href="#icon-x"></use></svg></span><span><strong>Uaktuelle</strong><small id="rejectedCount">0 navn</small></span><em>›</em></button>
             </div>

@@ -2,7 +2,8 @@ const STATUS_STORAGE_KEY = "navnestatistikk:nameStatus:v1";
 const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
-const SW_VERSION = "2026-07-22.21";
+const SCHOOL_STORAGE_KEY = "navnestatistikk:schoolSettings:v1";
+const SW_VERSION = "2026-07-22.22";
 
 const state = {
   data: null,
@@ -29,8 +30,14 @@ const state = {
   compare: {
     metric: "count",
     fromYear: 1900,
+    toYear: 2025,
     smooth: 3,
   },
+  school: {
+    gradeSize: 100,
+    grades: 7,
+  },
+  similarMode: "text",
   review: {
     deck: [],
     index: 0,
@@ -63,6 +70,7 @@ async function loadData() {
   state.latestYear = state.years.at(-1);
   state.filters.toYear = state.latestYear;
   state.compare.fromYear = Math.max(1900, state.firstYear);
+  state.compare.toYear = state.latestYear;
   state.itemsById = new Map(state.data.names.map((item) => [item.id, item]));
   state.selected = new Set([...state.selected].filter((id) => state.itemsById.has(id)));
   saveWorkSelection(false);
@@ -79,8 +87,8 @@ function bindChrome() {
     renderExplore();
   });
   $("#openFilter")?.addEventListener("click", openFilters);
-  $("#candidateCard")?.addEventListener("click", openCandidateBuilder);
-  $("#openCandidateList")?.addEventListener("click", openCandidateBuilder);
+  $("#candidateCard")?.addEventListener("click", addFilteredRowsToWork);
+  $("#openCandidateList")?.addEventListener("click", openFilters);
   $("[data-popular-sex='jente']")?.addEventListener("click", () => setPopularSex("jente"));
   $("[data-popular-sex='gutt']")?.addEventListener("click", () => setPopularSex("gutt"));
   $$("[data-metric]").forEach((button) => {
@@ -90,11 +98,8 @@ function bindChrome() {
       updateUrl();
     });
   });
-  $("#compareYears")?.addEventListener("change", (event) => {
-    state.compare.fromYear = Number(event.target.value);
-    renderCompare();
-    updateUrl();
-  });
+  $("#compareFromYear")?.addEventListener("change", (event) => setComparePeriod(Number(event.target.value), state.compare.toYear));
+  $("#compareToYear")?.addEventListener("change", (event) => setComparePeriod(state.compare.fromYear, Number(event.target.value)));
   $("#compareSmooth")?.addEventListener("change", (event) => {
     state.compare.smooth = Number(event.target.value);
     renderCompare();
@@ -157,6 +162,13 @@ function loadLocalState() {
   } catch {
     state.recent = [];
   }
+  try {
+    const school = JSON.parse(localStorage.getItem(SCHOOL_STORAGE_KEY) || "{}") || {};
+    state.school.gradeSize = Math.max(1, Number(school.gradeSize) || state.school.gradeSize);
+    state.school.grades = Math.max(1, Number(school.grades) || state.school.grades);
+  } catch {
+    state.school = { gradeSize: 100, grades: 7 };
+  }
 }
 
 function saveStatus() {
@@ -167,6 +179,10 @@ function saveStatus() {
 function saveWorkSelection(markUserSelection = true) {
   if (markUserSelection) state.hasUserSelection = true;
   localStorage.setItem(WORK_STORAGE_KEY, JSON.stringify([...state.selected]));
+}
+
+function saveSchoolSettings() {
+  localStorage.setItem(SCHOOL_STORAGE_KEY, JSON.stringify(state.school));
 }
 
 function restoreFromUrl() {
@@ -187,7 +203,9 @@ function restoreFromUrl() {
   }
   if (params.has("metric")) state.compare.metric = params.get("metric");
   if (params.has("from")) state.compare.fromYear = clampYear(Number(params.get("from")));
+  if (params.has("to")) state.compare.toYear = clampYear(Number(params.get("to")));
   if (params.has("smooth")) state.compare.smooth = Math.max(1, Number(params.get("smooth")) || 3);
+  normalizeComparePeriod();
 }
 
 function updateUrl() {
@@ -196,6 +214,7 @@ function updateUrl() {
   if (state.selected.size) params.set("names", [...state.selected].join(","));
   params.set("metric", state.compare.metric);
   params.set("from", String(state.compare.fromYear));
+  params.set("to", String(state.compare.toYear));
   params.set("smooth", String(state.compare.smooth));
   history.replaceState(null, "", `${location.pathname}?${params.toString()}`);
 }
@@ -281,16 +300,55 @@ function renderExplore() {
   $("[data-popular-sex='gutt']")?.classList.toggle("active", state.popularSex === "gutt");
   const list = $("#popularList");
   if (!list) return;
-  const hasQuery = state.query.length > 0;
-  const rows = hasQuery ? searchRows(state.query).slice(0, 10) : popularRows(state.popularSex, 4);
-  $("#exploreListTitle").textContent = hasQuery ? "Søkeresultater" : "Populære navn";
-  $("#popularSexToggle").hidden = hasQuery;
-  $("#openCandidateList").textContent = hasQuery ? "Filtrer" : "Se alle";
+  const rows = filteredRows();
+  const isFiltered = hasActiveExploreFilters();
+  $("#exploreListTitle").textContent = isFiltered ? `Treff (${formatNumber(rows.length)})` : "Navn å utforske";
+  $("#popularSexToggle").hidden = true;
+  $("#openCandidateList").textContent = "Filtre";
+  updateCandidateCard(rows);
   if (!rows.length) {
-    list.innerHTML = `<p class="mutedEmpty">Ingen navn matcher søket. Bruk Søk og filtre for mønstersøk.</p>`;
+    list.innerHTML = `<p class="mutedEmpty">Ingen navn matcher søk og filtre. Juster filtrene for å få flere treff.</p>`;
     return;
   }
-  list.replaceChildren(...rows.map((item, index) => nameRow(item, { rank: index + 1, detail: true })));
+  list.replaceChildren(...rows.slice(0, 24).map((item, index) => nameRow(item, { rank: index + 1, detail: true })));
+}
+
+function hasActiveExploreFilters() {
+  return Boolean(
+    state.query ||
+      state.filters.sex !== "alle" ||
+      state.filters.fromYear !== Math.max(1900, state.firstYear) ||
+      state.filters.toYear !== state.latestYear ||
+      state.filters.popularity !== "alle" ||
+      state.filters.pattern ||
+      state.filters.schoolMax !== "",
+  );
+}
+
+function updateCandidateCard(rows = filteredRows()) {
+  const card = $("#candidateCard");
+  if (!card) return;
+  const count = Math.min(rows.length, 80);
+  card.disabled = count === 0;
+  card.innerHTML = `
+    <span class="miniIcon"><svg><use href="#icon-list"></use></svg></span>
+    <span><strong>Legg treff i utvalg</strong><small>${count ? `${formatNumber(count)} navn fra gjeldende søk og filtre` : "Ingen treff å legge til"}</small></span>
+    <em>${count ? "Legg til" : "Tomt"}</em>
+  `;
+}
+
+function addFilteredRowsToWork() {
+  const rows = filteredRows().slice(0, 80);
+  if (!rows.length) {
+    toast("Ingen treff å legge til");
+    return;
+  }
+  rows.forEach((item) => state.selected.add(item.id));
+  resetReviewDeck();
+  saveWorkSelection();
+  toast(`${formatNumber(rows.length)} navn lagt til i utvalg`);
+  renderAll();
+  updateUrl();
 }
 
 function setPopularSex(sex) {
@@ -370,7 +428,7 @@ function addToWork(item) {
   resetReviewDeck();
   saveWorkSelection();
   saveStatus();
-  toast(`${item.name} lagt til i arbeidsutvalg`);
+  toast(`${item.name} lagt til i utvalg`);
   renderAll();
   updateUrl();
 }
@@ -408,7 +466,7 @@ function setNameStatus(id, status) {
   const item = state.itemsById.get(id);
   if (item) {
     const messages = {
-      neutral: `${item.name} flyttet til arbeidsutvalg`,
+      neutral: `${item.name} flyttet til utvalg`,
       shortlist: `${item.name} markert som aktuell`,
       rejected: `${item.name} markert som uaktuell`,
     };
@@ -421,18 +479,43 @@ function setNameStatus(id, status) {
 
 function renderCompare() {
   $$("[data-metric]").forEach((button) => button.classList.toggle("active", button.dataset.metric === state.compare.metric));
-  $("#compareYears").value = String(state.compare.fromYear);
+  normalizeComparePeriod();
+  $("#compareFromYear").value = String(state.compare.fromYear);
+  $("#compareToYear").value = String(state.compare.toYear);
+  $("#compareFromYear").min = String(state.firstYear);
+  $("#compareFromYear").max = String(state.latestYear);
+  $("#compareToYear").min = String(state.firstYear);
+  $("#compareToYear").max = String(state.latestYear);
   $("#compareSmooth").value = String(state.compare.smooth);
-  $("#compareYearLabel").textContent = state.latestYear;
+  $("#compareYearLabel").textContent = state.compare.toYear;
   const items = compareItems();
   renderCompareChips(items);
   renderCompareStats(items);
   renderChart(items);
+  renderCompareSimilar(items);
   const reviewButton = $("#compareReview");
   if (reviewButton) {
     const count = workItems().length;
     reviewButton.hidden = !count;
     reviewButton.textContent = count ? `Vurder ${formatNumber(count)}` : "Vurder";
+  }
+}
+
+function setComparePeriod(fromYear, toYear) {
+  state.compare.fromYear = clampYear(Number(fromYear));
+  state.compare.toYear = clampYear(Number(toYear));
+  normalizeComparePeriod();
+  renderCompare();
+  updateUrl();
+}
+
+function normalizeComparePeriod() {
+  state.compare.fromYear = clampYear(state.compare.fromYear);
+  state.compare.toYear = clampYear(state.compare.toYear || state.latestYear);
+  if (state.compare.fromYear > state.compare.toYear) {
+    const swap = state.compare.fromYear;
+    state.compare.fromYear = state.compare.toYear;
+    state.compare.toYear = swap;
   }
 }
 
@@ -474,6 +557,55 @@ function renderCompareChips(items) {
   }));
 }
 
+function renderCompareSimilar(items) {
+  const panel = $("#compareSimilarPanel");
+  if (!panel) return;
+  if (!items.length) {
+    panel.hidden = true;
+    panel.replaceChildren();
+    return;
+  }
+  panel.hidden = false;
+  const reference = items[0];
+  const modes = [
+    ["text", "Tekst"],
+    ["curve", "Relativ kurve"],
+    ["curveCount", "Absolutt kurve"],
+    ["popularity", "Popularitet"],
+  ];
+  const rows = similarRows(reference, state.similarMode).slice(0, 5);
+  panel.innerHTML = `
+    <div class="similarPanelHead">
+      <span><strong>Ligner på ${escapeHtml(reference.name)}</strong><small>Legg forslag rett i utvalg</small></span>
+      <button type="button" data-similar="${reference.id}">Se alle</button>
+    </div>
+    <div class="segmented small similarModes" aria-label="Likhetstype">
+      ${modes.map(([mode, label]) => `<button class="${mode === state.similarMode ? "active" : ""}" type="button" data-compare-sim-mode="${mode}">${label}</button>`).join("")}
+    </div>
+    <div class="similarMiniRows"></div>
+  `;
+  $(".similarMiniRows", panel).replaceChildren(...rows.map((row) => {
+    const item = row.item;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "similarMiniRow";
+    button.innerHTML = `
+      <span><strong>${escapeHtml(item.name)}</strong><small>${row.reason}</small></span>
+      <em>${formatDecimal(row.similarity * 100, 0)} %</em>
+      <i><svg><use href="#icon-plus"></use></svg></i>
+    `;
+    button.addEventListener("click", () => addToWork(item));
+    return button;
+  }));
+  $$("[data-compare-sim-mode]", panel).forEach((button) => {
+    button.addEventListener("click", () => {
+      state.similarMode = button.dataset.compareSimMode;
+      renderCompareSimilar(items);
+    });
+  });
+  bindSubscreenButtons(panel);
+}
+
 function renderChart(items) {
   const chart = $("#compareChart");
   if (!chart) return;
@@ -481,7 +613,7 @@ function renderChart(items) {
     chart.innerHTML = `
       <div class="emptyState">
         <h2>Ingen navn å sammenligne</h2>
-        <p>Arbeidsutvalget er tomt.</p>
+        <p>Utvalget er tomt.</p>
         <button class="primaryWide" data-go-tab="explore" type="button">Finn navn</button>
       </div>
     `;
@@ -490,7 +622,7 @@ function renderChart(items) {
     return;
   }
   const metric = effectiveMetric();
-  chart.innerHTML = lineChartSvg(items, metric, state.compare.fromYear, state.latestYear, 344, 250);
+  chart.innerHTML = lineChartSvg(items, metric, state.compare.fromYear, state.compare.toYear, 344, 250);
   chart.dataset.traces = String(items.length);
   const legend = $("#compareLegend");
   legend.replaceChildren(...items.map((item, index) => {
@@ -507,7 +639,7 @@ function renderCompareStats(items) {
     return;
   }
   table.replaceChildren(...items.map((item) => {
-    const point = pointInYear(item, state.latestYear);
+    const point = pointInYear(item, state.compare.toYear);
     const row = document.createElement("button");
     row.type = "button";
     row.className = "statRow";
@@ -552,10 +684,10 @@ function detailMarkup(item) {
       <span><small>Siste år</small><b>${item.lastYear ?? item.lastDataYear}</b></span>
     </section>
     <section class="subCard schoolCard">
-      <span><strong>Skolekontekst</strong><small>Estimat i relevant skoleløp</small></span>
-      <b>${formatDecimal(schoolEstimate(item, state.latestYear, 100, 7), 2)}</b>
+      <span><strong>Skolekontekst</strong><small>${formatNumber(state.school.gradeSize)} elever · ${formatNumber(state.school.grades)} trinn</small></span>
+      <b>${formatDecimal(schoolEstimateForCurrentSettings(item), 2)}</b>
     </section>
-    <button class="primaryWide" data-add="${item.id}" type="button">Legg til arbeidsutvalg</button>
+    <button class="primaryWide" data-add="${item.id}" type="button">Legg til utvalg</button>
     <button class="secondaryWide" data-similar="${item.id}" type="button">Finn lignende navn</button>
   `;
 }
@@ -651,7 +783,8 @@ function openCandidateBuilder() {
 function openCompareSettings() {
   openSubscreen("Innstillinger", `
     <form id="compareSettingsForm" class="formStack">
-      <label>Tidsperiode<input name="fromYear" type="range" min="${state.firstYear}" max="${state.latestYear}" value="${state.compare.fromYear}" /></label>
+      <label>Fra år<input name="fromYear" type="number" min="${state.firstYear}" max="${state.latestYear}" value="${state.compare.fromYear}" /></label>
+      <label>Til år<input name="toYear" type="number" min="${state.firstYear}" max="${state.latestYear}" value="${state.compare.toYear}" /></label>
       <label>Mål<select name="metric"><option value="count">Antall</option><option value="shareSex">Andel (%)</option><option value="rank">Rang</option><option value="index">Indeks</option></select></label>
       <label>Glatting<input name="smooth" type="range" min="1" max="10" value="${state.compare.smooth}" /></label>
       <button class="primaryWide" type="submit">Oppdater</button>
@@ -662,8 +795,10 @@ function openCompareSettings() {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     state.compare.fromYear = clampYear(Number(form.get("fromYear")));
+    state.compare.toYear = clampYear(Number(form.get("toYear")));
     state.compare.metric = String(form.get("metric"));
     state.compare.smooth = Number(form.get("smooth"));
+    normalizeComparePeriod();
     closeSubscreen();
     renderCompare();
     updateUrl();
@@ -671,7 +806,7 @@ function openCompareSettings() {
 }
 
 function openCompareTable() {
-  const years = [1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010, 2024, state.latestYear].filter((year, index, arr) => state.years.includes(year) && arr.indexOf(year) === index);
+  const years = [state.compare.fromYear, 1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010, 2024, state.compare.toYear].filter((year, index, arr) => year >= state.compare.fromYear && year <= state.compare.toYear && state.years.includes(year) && arr.indexOf(year) === index);
   const items = compareItems();
   openSubscreen("Tabellvisning", `
     <div class="tableScroller">
@@ -696,7 +831,7 @@ function renderReview() {
     card.innerHTML = `
       <div class="emptyState">
         <h2>Ingen navn å vurdere</h2>
-        <p>Arbeidsutvalget er tomt.</p>
+        <p>Utvalget er tomt.</p>
         <button class="primaryWide" data-go-tab="explore" type="button">Finn navn</button>
       </div>
     `;
@@ -716,7 +851,7 @@ function renderReview() {
       <span><small>Andel</small><b>${formatPercent(latest?.[3])}</b><em>av ${item.sex}r</em></span>
       <span><small>Toppår</small><b>${item.peakYear}</b><em>${formatNumber(item.peakCount)} fødte</em></span>
     </div>
-    <section class="schoolCard"><span><strong>Skolekontekst</strong><small>Estimat i relevant skoleløp</small></span><b>${formatDecimal(schoolEstimate(item, state.latestYear, 100, 7), 2)}</b></section>
+    <section class="schoolCard"><span><strong>Skolekontekst</strong><small>${formatNumber(state.school.gradeSize)} elever · ${formatNumber(state.school.grades)} trinn</small></span><b>${formatDecimal(schoolEstimateForCurrentSettings(item), 2)}</b></section>
   `;
   bindSubscreenButtons(card);
 }
@@ -888,13 +1023,13 @@ function decisionRow(entry) {
 }
 
 function openNameList(kind) {
-  const title = kind === "work" ? "Arbeidsutvalg" : kind === "shortlist" ? "Aktuelle" : "Uaktuelle";
+  const title = kind === "work" ? "Utvalg" : kind === "shortlist" ? "Aktuelle" : "Uaktuelle";
   const rows = kind === "work" ? workItems() : itemsWithStatus(kind);
   openSubscreen(title, `
     <p class="subLead">${kind === "work" ? "Navn som ikke er endelig vurdert ennå." : kind === "shortlist" ? "Navn som er markert som aktuelle." : "Navn som er valgt bort."}</p>
     <div class="sectionRow"><h3>${formatNumber(rows.length)} navn</h3><button id="listPrimaryAction" type="button">${kind === "work" ? "Sammenlign" : "Del liste"}</button></div>
     <div id="mineListRows" class="nameRows"></div>
-    ${rows.length ? `<button class="secondaryWide" data-clear-list="${kind}" type="button">${kind === "work" ? "Tøm arbeidsutvalg" : kind === "shortlist" ? "Tøm aktuelle" : "Tøm uaktuelle"}</button>` : ""}
+    ${rows.length ? `<button class="secondaryWide" data-clear-list="${kind}" type="button">${kind === "work" ? "Tøm utvalg" : kind === "shortlist" ? "Tøm aktuelle" : "Tøm uaktuelle"}</button>` : ""}
   `);
   $("#mineListRows").replaceChildren(...rows.map((item) => listManageRow(item, kind)));
   $("#listPrimaryAction").addEventListener("click", () => {
@@ -929,7 +1064,7 @@ function clearNameList(kind) {
   closeSubscreen();
   renderAll();
   updateUrl();
-  toast(kind === "work" ? "Arbeidsutvalg tømt" : kind === "shortlist" ? "Aktuelle tømt" : "Uaktuelle tømt");
+  toast(kind === "work" ? "Utvalg tømt" : kind === "shortlist" ? "Aktuelle tømt" : "Uaktuelle tømt");
 }
 
 function listManageRow(item, kind) {
@@ -943,10 +1078,10 @@ function listManageRow(item, kind) {
     event.stopPropagation();
     openSubscreen(item.name, `
       <div class="listMenu">
-        <button data-status="${item.id}" data-next="neutral" data-close-after="true" type="button"><span class="miniIcon blue"><svg><use href="#icon-list"></use></svg></span><span><strong>Sett som ikke vurdert</strong><small>Flytt til arbeidsutvalg uten aktuell/uaktuell-status</small></span><em>›</em></button>
+        <button data-status="${item.id}" data-next="neutral" data-close-after="true" type="button"><span class="miniIcon blue"><svg><use href="#icon-list"></use></svg></span><span><strong>Sett som ikke vurdert</strong><small>Flytt til utvalg uten aktuell/uaktuell-status</small></span><em>›</em></button>
         <button data-status="${item.id}" data-next="shortlist" data-close-after="true" type="button"><span class="miniIcon green"><svg><use href="#icon-heart"></use></svg></span><span><strong>Marker aktuell</strong><small>Flytt til favoritter</small></span><em>›</em></button>
         <button data-status="${item.id}" data-next="rejected" data-close-after="true" type="button"><span class="miniIcon red"><svg><use href="#icon-x"></use></svg></span><span><strong>Marker uaktuell</strong><small>Skjul fra vanlige forslag</small></span><em>›</em></button>
-        <button data-remove="${item.id}" data-close-after="true" type="button"><span class="miniIcon"><svg><use href="#icon-x"></use></svg></span><span><strong>Fjern fra arbeidsutvalg</strong><small>Påvirker ikke vurderingen</small></span><em>›</em></button>
+        <button data-remove="${item.id}" data-close-after="true" type="button"><span class="miniIcon"><svg><use href="#icon-x"></use></svg></span><span><strong>Fjern fra utvalg</strong><small>Påvirker ikke vurderingen</small></span><em>›</em></button>
       </div>
     `);
     bindSubscreenButtons();
@@ -960,13 +1095,29 @@ function openHistory() {
 }
 
 function openBackup() {
-  openSubscreen("Sikkerhetskopi", `
+  openSubscreen("Innstillinger", `
+    <form id="schoolSettingsForm" class="formStack settingsBlock">
+      <h3>Skolekontekst</h3>
+      <p class="subLead">Brukes i skoleestimat og filter for forventet navnetetthet.</p>
+      <label>Elever per årskull<input name="gradeSize" type="number" min="1" step="1" value="${state.school.gradeSize}" /></label>
+      <label>Antall trinn i skoleløpet<input name="grades" type="number" min="1" step="1" value="${state.school.grades}" /></label>
+      <button class="primaryWide" type="submit">Lagre skoleløpstall</button>
+    </form>
     <div class="listMenu">
       <button id="exportJson" type="button"><span class="miniIcon blue"><svg><use href="#icon-share"></use></svg></span><span><strong>Eksporter beslutninger</strong><small>JSON-fil for import senere</small></span><em>›</em></button>
       <button id="exportStatusCsv" type="button"><span class="miniIcon green"><svg><use href="#icon-list"></use></svg></span><span><strong>Eksporter CSV</strong><small>Aktuelle og uaktuelle navn</small></span><em>›</em></button>
       <button id="importJson" type="button"><span class="miniIcon yellow"><svg><use href="#icon-gear"></use></svg></span><span><strong>Importer beslutninger</strong><small>Slår sammen med lokale valg</small></span><em>›</em></button>
     </div>
   `);
+  $("#schoolSettingsForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    state.school.gradeSize = Math.max(1, Math.round(Number(form.get("gradeSize")) || 100));
+    state.school.grades = Math.max(1, Math.round(Number(form.get("grades")) || 7));
+    saveSchoolSettings();
+    toast("Skoleløpstall lagret");
+    renderAll();
+  });
   $("#exportJson").addEventListener("click", exportDecisionsJson);
   $("#exportStatusCsv").addEventListener("click", exportDecisionsCsv);
   $("#importJson").addEventListener("click", () => $("#importInput").click());
@@ -1005,6 +1156,7 @@ function bindSubscreenButtons(root = document) {
 
 function filteredRows() {
   let rows = state.query ? searchRows(state.query) : state.data.names.slice();
+  rows = rows.filter((item) => allPoints(item).some((point) => point.year >= state.filters.fromYear && point.year <= state.filters.toYear && (point.count ?? 0) > 0));
   if (state.filters.pattern) {
     try {
       const regex = new RegExp(state.filters.pattern, "i");
@@ -1017,7 +1169,7 @@ function filteredRows() {
   if (state.filters.popularity === "top50") rows = rows.filter((item) => (pointInYear(item, state.latestYear)?.[2] ?? 9999) <= 50);
   if (state.filters.popularity === "rising") rows = rows.filter((item) => trendScore(item) > 0);
   if (state.filters.popularity === "rare") rows = rows.filter((item) => latestCount(item) < 25);
-  if (state.filters.schoolMax !== "") rows = rows.filter((item) => schoolEstimate(item, state.latestYear, 100, 7) <= Number(state.filters.schoolMax));
+  if (state.filters.schoolMax !== "") rows = rows.filter((item) => schoolEstimateForCurrentSettings(item) <= Number(state.filters.schoolMax));
   return rows.sort((a, b) => latestCount(b) - latestCount(a) || a.name.localeCompare(b.name, "no"));
 }
 
@@ -1034,16 +1186,16 @@ function similarRows(reference, mode) {
         const peakDiff = Math.abs(reference.peakCount - item.peakCount);
         return { item, similarity: 1 / (1 + rankDiff / 15 + peakDiff / 500), reason: "lik popularitet" };
       }
-      const similarity = curveSimilarity(reference, item);
-      return { item, similarity, reason: "lignende kurve" };
+      const similarity = curveSimilarity(reference, item, mode === "curveCount" ? "count" : "shareSex");
+      return { item, similarity, reason: mode === "curveCount" ? "lignende antallskurve" : "lignende relativ kurve" };
     })
     .filter((row) => Number.isFinite(row.similarity))
     .sort((a, b) => b.similarity - a.similarity || a.item.name.localeCompare(b.item.name, "no"));
 }
 
-function curveSimilarity(a, b) {
-  const left = allPoints(a).filter((p) => p.year >= 1900).map((p) => p.shareSex ?? 0);
-  const right = allPoints(b).filter((p) => p.year >= 1900).map((p) => p.shareSex ?? 0);
+function curveSimilarity(a, b, metric = "shareSex") {
+  const left = allPoints(a).filter((p) => p.year >= state.compare.fromYear && p.year <= state.compare.toYear).map((p) => p[metric] ?? 0);
+  const right = allPoints(b).filter((p) => p.year >= state.compare.fromYear && p.year <= state.compare.toYear).map((p) => p[metric] ?? 0);
   const n = Math.min(left.length, right.length);
   if (n < 3) return 0;
   return Math.max(0, Math.min(1, (pearson(zScore(left.slice(-n)), zScore(right.slice(-n))) + 1) / 2));
@@ -1214,6 +1366,10 @@ function schoolEstimate(item, birthYear, gradeSize, grades) {
   return (share / 100) * gradeSize * grades;
 }
 
+function schoolEstimateForCurrentSettings(item) {
+  return schoolEstimate(item, state.latestYear, state.school.gradeSize, state.school.grades);
+}
+
 function renderMiniChart(id, items, metric = "shareSex", fromYear = 1900, smoothWidth = 3) {
   const chart = document.getElementById(id);
   if (!chart) return;
@@ -1239,7 +1395,7 @@ function copyShareLink() {
 function downloadCsv() {
   const items = compareItems();
   const rows = [["name", "sex", "year", "count", "rank", "share_same_sex_pct"]];
-  items.forEach((item) => allPoints(item).filter((p) => p.year >= state.compare.fromYear).forEach((p) => rows.push([item.name, item.sex, p.year, p.count ?? "", p.rank ?? "", p.shareSex ?? ""])));
+  items.forEach((item) => allPoints(item).filter((p) => p.year >= state.compare.fromYear && p.year <= state.compare.toYear).forEach((p) => rows.push([item.name, item.sex, p.year, p.count ?? "", p.rank ?? "", p.shareSex ?? ""])));
   downloadBlob("navnestatistikk.csv", rows.map((row) => row.map(csvCell).join(",")).join("\n"), "text/csv;charset=utf-8");
 }
 

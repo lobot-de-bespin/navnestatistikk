@@ -50,6 +50,7 @@
 
           <section class="phoneSurface">
             <section id="exploreWorkflow" class="workflowCard"></section>
+            <section id="exploreStarter" class="nameLens"></section>
             <div class="searchBar">
               <svg><use href="#icon-search"></use></svg>
               <input id="searchInput" type="search" placeholder="Søk etter navn..." autocomplete="off" />
@@ -63,13 +64,12 @@
               <button class="active" type="button" data-popular-sex="jente">Jenter</button>
               <button type="button" data-popular-sex="gutt">Gutter</button>
             </div>
-            <div id="popularList" class="nameRows"></div>
-
             <button id="candidateCard" class="softCallout" type="button">
               <span class="miniIcon"><svg><use href="#icon-list"></use></svg></span>
               <span><strong>Legg treff til valgte navn</strong><small>Samle navnene som matcher søk og filtre.</small></span>
               <em>Legg til</em>
             </button>
+            <div id="popularList" class="nameRows"></div>
 
             <div class="sectionRow">
               <h3>Siste søk</h3>
@@ -102,6 +102,7 @@
             <button id="compareRangeSummary" class="rangeSummary" type="button" aria-label="Endre periode og glatting"></button>
             <div id="compareChart" class="chartBox" role="img" aria-label="Navnekurver"></div>
             <div id="compareLegend" class="legend"></div>
+            <section id="compareInsight" class="insightPanel"></section>
             <section id="compareSimilarPanel" class="similarPanelCompact" hidden></section>
             <section class="metricPanel">
               <h3>Nøkkeltall <span id="compareYearLabel">2025</span></h3>

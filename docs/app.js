@@ -3,7 +3,7 @@ const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
 const SCHOOL_STORAGE_KEY = "navnestatistikk:schoolSettings:v1";
-const SW_VERSION = "2026-07-23.2";
+const SW_VERSION = "2026-07-23.3";
 
 const state = {
   data: null,
@@ -307,6 +307,12 @@ function handleWorkflowNavigation(event) {
     addQuickName(quick.dataset.quickName);
     return;
   }
+  const preset = event.target.closest("[data-filter-preset]");
+  if (preset) {
+    event.preventDefault();
+    applyExplorePreset(preset.dataset.filterPreset);
+    return;
+  }
   const button = event.target.closest("[data-go-tab]");
   if (!button) return;
   event.preventDefault();
@@ -322,6 +328,7 @@ function nextMineStep(counts) {
 
 function renderExplore() {
   renderRecentSearches();
+  renderExploreStarter();
   $("[data-popular-sex='jente']")?.classList.toggle("active", state.popularSex === "jente");
   $("[data-popular-sex='gutt']")?.classList.toggle("active", state.popularSex === "gutt");
   const list = $("#popularList");
@@ -331,12 +338,51 @@ function renderExplore() {
   $("#exploreListTitle").textContent = isFiltered ? `Treff (${formatNumber(rows.length)})` : "Navn å utforske";
   $("#popularSexToggle").hidden = true;
   $("#openCandidateList").textContent = "Filtre";
-  updateCandidateCard(rows);
+  updateCandidateCard(rows, isFiltered);
   if (!rows.length) {
-    list.innerHTML = `<p class="mutedEmpty">Ingen navn matcher søk og filtre. Juster filtrene for å få flere treff.</p>`;
+    list.innerHTML = `
+      <div class="emptyState compact">
+        <p>Ingen navn matcher søk og filtre.</p>
+        <div class="emptyActions">
+          <button data-filter-preset="popular" type="button">Populære</button>
+          <button data-filter-preset="rising" type="button">Stigende</button>
+          <button data-filter-preset="clear" type="button">Nullstill</button>
+        </div>
+      </div>
+    `;
     return;
   }
   list.replaceChildren(...rows.slice(0, 24).map((item, index) => nameRow(item, { rank: index + 1, detail: true })));
+}
+
+function renderExploreStarter() {
+  const panel = $("#exploreStarter");
+  if (!panel) return;
+  const work = workItems().slice(0, 3);
+  if (work.length) {
+    panel.innerHTML = `
+      <div>
+        <strong>${formatNumber(workItems().length)} valgt</strong>
+        <small>${work.map((item) => escapeHtml(item.name)).join(", ")}${workItems().length > work.length ? " ..." : ""}</small>
+      </div>
+      <div class="lensActions">
+        <button data-go-tab="compare" type="button">Sammenlign</button>
+        <button data-go-tab="review" type="button">Vurder</button>
+      </div>
+    `;
+    return;
+  }
+  panel.innerHTML = `
+    <div>
+      <strong>Startpunkt</strong>
+      <small>Velg en retning for første liste</small>
+    </div>
+    <div class="lensActions">
+      <button data-filter-preset="popular" type="button">Populære</button>
+      <button data-filter-preset="rising" type="button">Stigende</button>
+      <button data-filter-preset="rare" type="button">Sjeldne</button>
+    </div>
+  `;
 }
 
 function hasActiveExploreFilters() {
@@ -351,10 +397,11 @@ function hasActiveExploreFilters() {
   );
 }
 
-function updateCandidateCard(rows = filteredRows()) {
+function updateCandidateCard(rows = filteredRows(), isFiltered = hasActiveExploreFilters()) {
   const card = $("#candidateCard");
   if (!card) return;
   const count = Math.min(rows.length, 80);
+  card.hidden = !isFiltered;
   card.disabled = count === 0;
   card.innerHTML = `
     <span class="miniIcon"><svg><use href="#icon-list"></use></svg></span>
@@ -380,6 +427,19 @@ function addFilteredRowsToWork() {
 function setPopularSex(sex) {
   state.popularSex = sex;
   renderExplore();
+}
+
+function applyExplorePreset(preset) {
+  state.query = "";
+  $("#searchInput").value = "";
+  state.filters.sex = "alle";
+  state.filters.fromYear = Math.max(1900, state.firstYear);
+  state.filters.toYear = state.latestYear;
+  state.filters.pattern = "";
+  state.filters.schoolMax = "";
+  state.filters.popularity = preset === "clear" || preset === "popular" ? "alle" : preset;
+  renderExplore();
+  updateUrl();
 }
 
 function searchRows(query) {
@@ -531,6 +591,7 @@ function renderCompare() {
   renderCompareChips(items);
   renderCompareStats(items);
   renderChart(items);
+  renderCompareInsight(items);
   renderCompareSimilar(items);
   const reviewButton = $("#compareReview");
   if (reviewButton) {
@@ -538,6 +599,28 @@ function renderCompare() {
     reviewButton.hidden = !count;
     reviewButton.textContent = count ? `Vurder ${formatNumber(count)}` : "Vurder";
   }
+}
+
+function renderCompareInsight(items) {
+  const panel = $("#compareInsight");
+  if (!panel) return;
+  if (!items.length) {
+    panel.hidden = true;
+    panel.replaceChildren();
+    return;
+  }
+  panel.hidden = false;
+  const latestRows = items
+    .map((item) => ({ item, point: pointInYear(item, state.latestYear), trend: trendScore(item) }))
+    .filter((row) => row.point);
+  const largest = latestRows.slice().sort((a, b) => (b.point?.[1] ?? 0) - (a.point?.[1] ?? 0))[0];
+  const fastest = latestRows.slice().sort((a, b) => b.trend - a.trend)[0];
+  const rarest = latestRows.slice().sort((a, b) => (a.point?.[1] ?? 0) - (b.point?.[1] ?? 0))[0];
+  panel.innerHTML = `
+    <span><small>Størst nå</small><strong>${escapeHtml(largest?.item.name ?? "-")}</strong><em>${formatNumber(largest?.point?.[1] ?? 0)} i ${state.latestYear}</em></span>
+    <span><small>Mest opp</small><strong>${escapeHtml(fastest?.item.name ?? "-")}</strong><em>${fastest?.trend > 0 ? "+" : ""}${formatNumber(fastest?.trend ?? 0)} siste 10 år</em></span>
+    <span><small>Mest særpreg</small><strong>${escapeHtml(rarest?.item.name ?? "-")}</strong><em>${formatNumber(rarest?.point?.[1] ?? 0)} i ${state.latestYear}</em></span>
+  `;
 }
 
 function setComparePeriod(fromYear, toYear) {
@@ -1056,7 +1139,7 @@ function renderMine() {
   if (!state.history.length) {
     recent.innerHTML = `
       <div class="emptyState compact">
-        <p>Ingen vurderinger ennå.</p>
+        <p>${work.length ? `${formatNumber(work.length)} navn klare til vurdering.` : "Ingen vurderinger ennå."}</p>
         <div class="emptyActions">
           <button data-go-tab="review" type="button">Vurder navn</button>
           <button data-go-tab="explore" type="button">Finn flere</button>

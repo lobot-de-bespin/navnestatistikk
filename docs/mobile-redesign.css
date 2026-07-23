@@ -193,10 +193,10 @@ svg {
   align-content: start;
   min-height: calc(100vh - 110px - var(--tab-height));
   padding: 10px 10px calc(var(--tab-height) + 20px + env(safe-area-inset-bottom));
-  border: 1px solid rgba(232, 225, 216, 0.72);
+  border: 1px solid rgba(232, 225, 216, 0.58);
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.76);
-  box-shadow: 0 10px 26px rgba(28, 35, 48, 0.055);
+  background: rgba(255, 255, 255, 0.64);
+  box-shadow: 0 8px 22px rgba(28, 35, 48, 0.045);
 }
 
 .navTitle {
@@ -278,6 +278,53 @@ svg {
   border-radius: 16px;
   background: #f7f9fc;
   box-shadow: inset 0 0 0 1px rgba(232, 225, 216, 0.72);
+}
+
+.nameLens {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 54px;
+  padding: 10px 11px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #eef7ff 0%, #fff7fb 100%);
+  color: var(--ink);
+}
+
+.nameLens strong,
+.nameLens small {
+  display: block;
+}
+
+.nameLens strong {
+  font-size: 0.84rem;
+  line-height: 1.12;
+}
+
+.nameLens small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.64rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.lensActions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+.lensActions button {
+  min-height: 30px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #1d64a8;
+  font-size: 0.62rem;
+  font-weight: 820;
+  white-space: nowrap;
 }
 
 .workflowCounts {
@@ -506,6 +553,10 @@ svg {
   background: #f5f2ff;
   color: var(--ink);
   text-align: left;
+}
+
+.softCallout[hidden] {
+  display: none;
 }
 
 .softCallout strong,
@@ -809,6 +860,57 @@ input[type="range"] {
   border-radius: 18px;
   background: #fff;
   box-shadow: inset 0 0 0 1px rgba(232, 225, 216, 0.74);
+}
+
+.insightPanel {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #e8edf4;
+}
+
+.insightPanel[hidden] {
+  display: none;
+}
+
+.insightPanel span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 10px 8px;
+  background: #fff;
+}
+
+.insightPanel small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.56rem;
+  font-weight: 780;
+  line-height: 1.08;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.insightPanel strong {
+  overflow: hidden;
+  color: #142039;
+  font-size: 0.72rem;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.insightPanel em {
+  overflow: hidden;
+  color: #596477;
+  font-size: 0.56rem;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1.12;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .similarPanelCompact {
@@ -1622,7 +1724,21 @@ input[type="range"] {
 
 @media (max-width: 380px) {
   .nameRow {
-    grid-template-columns: 20px minmax(0, 1fr) 76px auto auto;
+    grid-template-columns: 20px minmax(0, 1fr) 72px auto auto;
+  }
+
+  .nameLens {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .lensActions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .lensActions button {
+    padding-inline: 6px;
   }
 
   .reviewCard {

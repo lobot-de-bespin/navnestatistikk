@@ -530,16 +530,32 @@ svg {
 .moreButton {
   display: grid;
   place-items: center;
-  width: 31px;
-  height: 31px;
-  border-radius: 12px;
-  background: #f4f7fb;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #f4f8fd;
   color: var(--blue);
+  box-shadow: inset 0 0 0 1px rgba(203, 225, 248, 0.72);
+  line-height: 0;
+}
+
+.addButton svg,
+.moreButton svg {
+  display: block;
+  width: 19px;
+  height: 19px;
 }
 
 .addButton.active {
-  background: #2e7bcf;
-  color: #fff;
+  background: #eaf7ef;
+  color: var(--green);
+  box-shadow: inset 0 0 0 1px rgba(74, 163, 111, 0.2);
+}
+
+.moreButton {
+  line-height: 1;
+  font-size: 1rem;
+  font-weight: 820;
 }
 
 .softCallout {
@@ -1244,6 +1260,10 @@ input[type="range"] {
 
 .reviewCard h2,
 .detailHero h2 {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.16em;
   margin: 0;
   color: #13203a;
   font-size: 3.15rem;
@@ -1251,13 +1271,20 @@ input[type="range"] {
   font-weight: 840;
 }
 
-.reviewCard h2 .jente,
-.detailHero h2 .jente {
+.sexIcon {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 0.46em;
+  height: 0.46em;
+  transform: translateY(0.045em);
+  stroke-width: 2.35;
+}
+
+.sexIcon.jente {
   color: var(--pink);
 }
 
-.reviewCard h2 .gutt,
-.detailHero h2 .gutt {
+.sexIcon.gutt {
   color: var(--blue);
 }
 
@@ -1349,14 +1376,14 @@ input[type="range"] {
 }
 
 .schoolCard {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   padding: 11px;
   border-radius: 16px;
-  background: var(--purple-soft);
-  color: #403488;
+  background: #eef7fb;
+  color: #28435e;
 }
 
 .schoolCard strong {
@@ -1368,13 +1395,26 @@ input[type="range"] {
 .schoolCard small {
   display: block;
   margin-top: 3px;
-  color: #6b628f;
+  color: #65778a;
   font-size: 0.7rem;
   line-height: 1.25;
 }
 
 .schoolCard b {
+  color: #1d5f9f;
   font-size: 1.02rem;
+  text-align: right;
+}
+
+.schoolEdit {
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #1d5f9f;
+  font-size: 0.62rem;
+  font-weight: 820;
+  box-shadow: inset 0 0 0 1px rgba(203, 225, 248, 0.78);
 }
 
 .reviewActions {
@@ -1503,9 +1543,9 @@ input[type="range"] {
 .detailHero {
   position: relative;
   display: grid;
-  min-height: 102px;
+  min-height: 86px;
   align-items: end;
-  padding: 12px 76px 5px 4px;
+  padding: 8px 4px 3px;
 }
 
 .detailHero p {

@@ -3,7 +3,7 @@ const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
 const SCHOOL_STORAGE_KEY = "navnestatistikk:schoolSettings:v1";
-const SW_VERSION = "2026-07-23.4";
+const SW_VERSION = "2026-07-23.5";
 
 const state = {
   data: null,
@@ -285,9 +285,8 @@ function renderWorkflowCards() {
   const counts = workflowCounts();
   const explore = $("#exploreWorkflow");
   if (explore) {
-    explore.innerHTML = counts.work
-      ? `${workflowSummaryMarkup(counts)}<button class="workflowCta" data-go-tab="compare" type="button">Utforsk utvalg</button>`
-      : `${workflowSummaryMarkup(counts)}<span class="workflowNote">Velg fra listen.</span>`;
+    explore.hidden = true;
+    explore.replaceChildren();
   }
   const compare = $("#compareWorkflow");
   if (compare) {
@@ -498,8 +497,8 @@ function nameRow(item, options = {}) {
     </button>
     <span class="spark">${sparklineSvg(item)}</span>
     <span class="count">${formatNumber(latestCount(item))}</span>
-    <button class="addButton ${selected ? "active" : ""}" type="button" aria-label="${selected ? "Fjern" : "Legg til"} ${escapeHtml(item.name)}">
-      <svg><use href="#icon-${selected ? "x" : "plus"}"></use></svg>
+    <button class="addButton ${selected ? "active" : ""}" type="button" aria-label="${selected ? "Valgt, trykk for å fjerne" : "Legg til"} ${escapeHtml(item.name)}">
+      <svg><use href="#icon-${selected ? "check" : "plus"}"></use></svg>
     </button>
   `;
   $(".nameMain", row).addEventListener("click", () => openNameDetail(item));
@@ -845,6 +844,19 @@ function peakShare(item) {
   return allPoints(item).find((point) => point.year === item.peakYear)?.shareSex ?? null;
 }
 
+function schoolCardMarkup(item) {
+  return `
+    <section class="subCard schoolCard">
+      <span>
+        <strong>Forventet i skoleløpet</strong>
+        <small>${formatNumber(state.school.gradeSize)} elever/år · ${formatNumber(state.school.grades)} trinn</small>
+      </span>
+      <b>${formatDecimal(schoolEstimateForCurrentSettings(item), 2)}</b>
+      <button class="schoolEdit" data-school-settings type="button">Endre</button>
+    </section>
+  `;
+}
+
 function openNameDetail(item) {
   openSubscreen(item.name, detailMarkup(item), () => setNameStatus(item.id, "shortlist"));
   $("#subAction").innerHTML = '<svg><use href="#icon-heart"></use></svg>';
@@ -855,10 +867,8 @@ function detailMarkup(item) {
   const latest = pointInYear(item, state.latestYear);
   return `
     <section class="detailHero">
-      <div><h2>${escapeHtml(item.name)} <span class="${item.sex}">${sexSymbol(item)}</span></h2><p>${escapeHtml(item.sex)}</p></div>
-      <button class="heartRound" data-status="${item.id}" data-next="shortlist" type="button"><svg><use href="#icon-heart"></use></svg></button>
+      <div><h2>${escapeHtml(item.name)} ${sexIconMarkup(item)}</h2><p>${escapeHtml(item.sex)}</p></div>
     </section>
-    <div class="subTabs"><button class="active">Oversikt</button><button>Statistikk</button><button>Skole</button><button data-similar="${item.id}">Lignende</button></div>
     <section class="subCard">
       <h3>Utvikling over tid</h3>
       <div id="detailChart" class="miniChart"></div>
@@ -873,11 +883,8 @@ function detailMarkup(item) {
       <span><small>Første år</small><b>${item.firstYear ?? item.firstDataYear}</b></span>
       <span><small>Siste år</small><b>${item.lastYear ?? item.lastDataYear}</b></span>
     </section>
-    <section class="subCard schoolCard">
-      <span><strong>Skolekontekst</strong><small>${formatNumber(state.school.gradeSize)} elever · ${formatNumber(state.school.grades)} trinn</small></span>
-      <b>${formatDecimal(schoolEstimateForCurrentSettings(item), 2)}</b>
-    </section>
-    <button class="primaryWide" data-add="${item.id}" type="button">Legg til valgte navn</button>
+    ${schoolCardMarkup(item)}
+    <button class="primaryWide" data-add="${item.id}" type="button">Legg til i utvalg</button>
     <button class="secondaryWide" data-similar="${item.id}" type="button">Finn lignende navn</button>
   `;
 }
@@ -912,7 +919,7 @@ function openFilters() {
       <label>Periode<div class="rangePair"><input name="fromYear" type="number" min="${state.firstYear}" max="${state.latestYear}" value="${state.filters.fromYear}" /><input name="toYear" type="number" min="${state.firstYear}" max="${state.latestYear}" value="${state.filters.toYear}" /></div></label>
       <label>Popularitet<select name="popularity"><option value="alle">Alle</option><option value="top50">Topp 50 i siste år</option><option value="rising">Stigende trend</option><option value="rare">Mindre vanlig nå</option></select></label>
       <label>Navnemønster<input name="pattern" type="text" placeholder="f.eks. ^El eller a$" value="${escapeHtml(state.filters.pattern)}" /></label>
-      <label>Forventet navnetetthet<input name="schoolMax" type="number" min="0" step="0.1" placeholder="Maks i skoleløp" value="${escapeHtml(state.filters.schoolMax)}" /></label>
+      <label>Maks forventet i skoleløpet<input name="schoolMax" type="number" min="0" step="0.1" placeholder="f.eks. 2" value="${escapeHtml(state.filters.schoolMax)}" /></label>
       <button class="primaryWide" type="submit">Vis ${formatNumber(filteredRows().length)} navn</button>
     </form>
   `);
@@ -1022,9 +1029,8 @@ function renderReview() {
   const latest = pointInYear(item, state.latestYear);
   $(".reviewActions").hidden = false;
   card.innerHTML = `
-    <button class="heartRound" data-status="${item.id}" data-next="shortlist" type="button"><svg><use href="#icon-heart"></use></svg></button>
     <p class="cardMeta">${state.review.index + 1} av ${state.review.deck.length}</p>
-    <h2>${escapeHtml(item.name)} <span class="${item.sex}">${sexSymbol(item)}</span></h2>
+    <h2>${escapeHtml(item.name)} ${sexIconMarkup(item)}</h2>
     <span class="trendPill">${trendLabel(item)}</span>
     <div class="reviewSpark">${sparklineSvg(item, 420, 120)}</div>
     <div class="reviewStats">
@@ -1033,7 +1039,7 @@ function renderReview() {
       <span><small>Andel</small><b>${formatPercent(latest?.[3])}</b><em>av ${item.sex}r</em></span>
       <span><small>Toppår</small><b>${item.peakYear}</b><em>${formatNumber(item.peakCount)} fødte</em></span>
     </div>
-    <section class="schoolCard"><span><strong>Skolekontekst</strong><small>${formatNumber(state.school.gradeSize)} elever · ${formatNumber(state.school.grades)} trinn</small></span><b>${formatDecimal(schoolEstimateForCurrentSettings(item), 2)}</b></section>
+    ${schoolCardMarkup(item)}
   `;
   bindSubscreenButtons(card);
 }
@@ -1289,11 +1295,11 @@ function openHistory() {
 function openBackup() {
   openSubscreen("Innstillinger", `
     <form id="schoolSettingsForm" class="formStack settingsBlock">
-      <h3>Skolekontekst</h3>
-      <p class="subLead">Brukes i skoleestimat og filter for forventet navnetetthet.</p>
+      <h3>Skoleestimat</h3>
+      <p class="subLead">Anslår hvor mange elever med navnet som kan finnes i et skoleløp.</p>
       <label>Elever per årskull<input name="gradeSize" type="number" min="1" step="1" value="${state.school.gradeSize}" /></label>
       <label>Antall trinn i skoleløpet<input name="grades" type="number" min="1" step="1" value="${state.school.grades}" /></label>
-      <button class="primaryWide" type="submit">Lagre skoleløpstall</button>
+      <button class="primaryWide" type="submit">Lagre estimat</button>
     </form>
     <div class="listMenu">
       <button id="exportJson" type="button"><span class="miniIcon blue"><svg><use href="#icon-share"></use></svg></span><span><strong>Eksporter beslutninger</strong><small>JSON-fil for import senere</small></span><em>›</em></button>
@@ -1307,7 +1313,7 @@ function openBackup() {
     state.school.gradeSize = Math.max(1, Math.round(Number(form.get("gradeSize")) || 100));
     state.school.grades = Math.max(1, Math.round(Number(form.get("grades")) || 7));
     saveSchoolSettings();
-    toast("Skoleløpstall lagret");
+    toast("Skoleestimat lagret");
     renderAll();
   });
   $("#exportJson").addEventListener("click", exportDecisionsJson);
@@ -1345,6 +1351,7 @@ function bindSubscreenButtons(root = document) {
   }));
   $$("[data-clear-list]", root).forEach((button) => button.addEventListener("click", () => clearNameList(button.dataset.clearList)));
   $$("[data-similar]", root).forEach((button) => button.addEventListener("click", () => openSimilar(state.itemsById.get(button.dataset.similar))));
+  $$("[data-school-settings]", root).forEach((button) => button.addEventListener("click", openBackup));
 }
 
 function addQuickName(name) {
@@ -1671,8 +1678,9 @@ function normalize(value) {
   return String(value).trim().toLocaleLowerCase("nb-NO");
 }
 
-function sexSymbol(item) {
-  return item.sex === "jente" ? "♀" : "♂";
+function sexIconMarkup(item) {
+  const symbol = item.sex === "jente" ? "female" : "male";
+  return `<svg class="sexIcon ${item.sex}" aria-label="${escapeHtml(item.sex)}" role="img"><use href="#icon-${symbol}"></use></svg>`;
 }
 
 function formatNumber(value) {

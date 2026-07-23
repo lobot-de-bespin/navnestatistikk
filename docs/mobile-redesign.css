@@ -527,23 +527,29 @@ svg {
 }
 
 .addButton,
-.moreButton {
+.chipRemove,
+.similarMiniRow i {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  max-height: 28px;
+  padding: 0;
   border-radius: 50%;
-  background: #f4f8fd;
+  background: #fff;
   color: var(--blue);
-  box-shadow: inset 0 0 0 1px rgba(203, 225, 248, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(46, 123, 207, 0.16);
   line-height: 0;
 }
 
 .addButton svg,
-.moreButton svg {
+.chipRemove svg,
+.similarMiniRow i svg {
   display: block;
-  width: 19px;
-  height: 19px;
+  width: 15px;
+  height: 15px;
+  margin: auto;
 }
 
 .addButton.active {
@@ -553,6 +559,14 @@ svg {
 }
 
 .moreButton {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #f4f8fd;
+  color: var(--blue);
+  box-shadow: inset 0 0 0 1px rgba(203, 225, 248, 0.72);
   line-height: 1;
   font-size: 1rem;
   font-weight: 820;
@@ -683,8 +697,7 @@ svg {
   padding: 0 5px 0 12px;
 }
 
-.nameChipName,
-.chipRemove {
+.nameChipName {
   display: grid;
   place-items: center;
   min-width: 0;
@@ -701,16 +714,8 @@ svg {
 }
 
 .chipRemove {
-  width: 24px;
-  height: 24px;
-  background: rgba(255, 255, 255, 0.58);
-  line-height: 0;
-}
-
-.chipRemove svg {
-  width: 13px;
-  height: 13px;
-  stroke-width: 2.3;
+  flex: 0 0 28px;
+  padding: 0;
 }
 
 .inlineControls {
@@ -1058,24 +1063,8 @@ input[type="range"] {
   font-weight: 820;
 }
 
-.similarMiniRow i {
-  display: grid;
-  width: 28px;
-  height: 28px;
-  place-items: center;
-  border-radius: 999px;
-  background: #fff;
-  color: var(--blue);
-  box-shadow: inset 0 0 0 1px rgba(46, 123, 207, 0.16);
-}
-
-.similarMiniRow svg {
-  width: 15px;
-  height: 15px;
-}
-
 .similarMiniRow.large {
-  min-height: 58px;
+  min-height: 76px;
 }
 
 .sexTag {
@@ -1107,8 +1096,13 @@ input[type="range"] {
 
 .inlineSpark svg {
   display: block;
-  width: 96px;
+  width: min(96px, 100%);
   height: 24px;
+}
+
+.similarMiniRow.large .inlineSpark svg {
+  width: min(132px, 100%);
+  height: 30px;
 }
 
 .statTable {
@@ -1177,6 +1171,7 @@ input[type="range"] {
 }
 
 .reviewSurface {
+  position: relative;
   min-height: calc(100vh - 100px - var(--tab-height));
   gap: 9px;
   background: linear-gradient(180deg, #fff7fb 0%, #fffefd 38%);
@@ -1231,31 +1226,42 @@ input[type="range"] {
 .reviewCard.hintReject::after,
 .reviewCard.swipeShortlist::after,
 .reviewCard.swipeReject::after {
-  position: absolute;
-  top: 24px;
-  z-index: 2;
-  padding: 8px 12px;
+  content: none;
+}
+
+.reviewSwipeHint {
+  position: fixed;
+  top: min(45vh, 360px);
+  left: 50%;
+  z-index: 92;
+  min-width: 136px;
+  padding: 11px 18px;
   border: 2px solid currentColor;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.72);
-  font-size: 0.78rem;
-  font-weight: 900;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 14px 34px rgba(28, 35, 48, 0.14);
+  font-size: 0.9rem;
+  font-weight: 920;
   letter-spacing: 0;
+  text-align: center;
   text-transform: uppercase;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.94);
+  transition: opacity 110ms ease, transform 110ms ease;
+  pointer-events: none;
 }
 
-.reviewCard.hintShortlist::after,
-.reviewCard.swipeShortlist::after {
-  right: 24px;
+.reviewSwipeHint.show {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.reviewSwipeHint.yes {
   color: #28794a;
-  content: "Aktuelt";
 }
 
-.reviewCard.hintReject::after,
-.reviewCard.swipeReject::after {
-  left: 24px;
+.reviewSwipeHint.no {
   color: #bd4155;
-  content: "Uaktuelt";
 }
 
 .reviewCard h2,
@@ -1377,9 +1383,9 @@ input[type="range"] {
 
 .schoolCard {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
+  gap: 8px 10px;
   padding: 11px;
   border-radius: 16px;
   background: #eef7fb;
@@ -1403,10 +1409,28 @@ input[type="range"] {
 .schoolCard b {
   color: #1d5f9f;
   font-size: 1.02rem;
+  line-height: 1;
   text-align: right;
 }
 
+.schoolNumbers {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 3px 9px;
+  align-items: baseline;
+  justify-items: end;
+}
+
+.schoolNumbers small {
+  margin: 0;
+  font-size: 0.56rem;
+  font-weight: 780;
+  line-height: 1;
+}
+
 .schoolEdit {
+  grid-column: 1 / -1;
+  justify-self: end;
   min-height: 30px;
   padding: 0 10px;
   border-radius: 999px;
@@ -1778,7 +1802,7 @@ input[type="range"] {
 
 .toast {
   position: fixed;
-  top: calc(max(10px, env(safe-area-inset-top)) + 6px);
+  top: calc(max(10px, env(safe-area-inset-top)) + 42px);
   right: 16px;
   bottom: auto;
   left: 16px;
@@ -1827,6 +1851,40 @@ input[type="range"] {
 
   .tabBar {
     width: 410px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 540px) {
+  html,
+  body {
+    min-height: 100%;
+    overflow-x: hidden;
+  }
+
+  .appFrame {
+    width: min(430px, 100vw);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .screen.active {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    padding-top: 0;
+  }
+
+  .screenHeader {
+    position: static;
+    top: auto;
+  }
+
+  .phoneSurface,
+  .subscreenPanel {
+    min-height: calc(100vh - 90px - var(--tab-height));
+  }
+
+  .tabBar {
+    width: min(calc(100% - 20px), 398px);
   }
 }
 

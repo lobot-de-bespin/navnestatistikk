@@ -3,7 +3,7 @@ const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
 const SCHOOL_STORAGE_KEY = "navnestatistikk:schoolSettings:v1";
-const SW_VERSION = "2026-07-23.5";
+const SW_VERSION = "2026-07-23.6";
 
 const state = {
   data: null,
@@ -36,6 +36,7 @@ const state = {
   school: {
     gradeSize: 100,
     grades: 7,
+    birthYear: 2025,
   },
   similarMode: "curve",
   similarReferenceId: "",
@@ -61,6 +62,7 @@ async function init() {
   await loadData();
   restoreFromUrl();
   renderAll();
+  lockPortraitOrientation();
   registerServiceWorker();
 }
 
@@ -73,6 +75,7 @@ async function loadData() {
   state.filters.toYear = state.latestYear;
   state.compare.fromYear = Math.max(1900, state.firstYear);
   state.compare.toYear = state.latestYear;
+  state.school.birthYear = clampYear(state.school.birthYear || state.latestYear);
   state.itemsById = new Map(state.data.names.map((item) => [item.id, item]));
   state.selected = new Set([...state.selected].filter((id) => state.itemsById.has(id)));
   saveWorkSelection(false);
@@ -151,6 +154,13 @@ function registerServiceWorker() {
   }
 }
 
+function lockPortraitOrientation() {
+  if (!screen.orientation?.lock) return;
+  const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+  if (!standalone) return;
+  screen.orientation.lock("portrait").catch(() => {});
+}
+
 function loadLocalState() {
   try {
     const storedSelection = localStorage.getItem(WORK_STORAGE_KEY);
@@ -179,8 +189,9 @@ function loadLocalState() {
     const school = JSON.parse(localStorage.getItem(SCHOOL_STORAGE_KEY) || "{}") || {};
     state.school.gradeSize = Math.max(1, Number(school.gradeSize) || state.school.gradeSize);
     state.school.grades = Math.max(1, Number(school.grades) || state.school.grades);
+    state.school.birthYear = Number(school.birthYear) || state.school.birthYear;
   } catch {
-    state.school = { gradeSize: 100, grades: 7 };
+    state.school = { gradeSize: 100, grades: 7, birthYear: 2025 };
   }
 }
 
@@ -578,6 +589,7 @@ function setNameStatus(id, status) {
 }
 
 function renderCompare() {
+  if (state.compare.metric === "index") state.compare.metric = "count";
   $$("[data-metric]").forEach((button) => button.classList.toggle("active", button.dataset.metric === state.compare.metric));
   normalizeComparePeriod();
   const rangeSummary = $("#compareRangeSummary");
@@ -813,12 +825,14 @@ function similarResultRow(row, options = {}) {
   const item = row.item;
   const button = document.createElement("button");
   button.type = "button";
+  const sparkWidth = options.compact ? 96 : 132;
+  const sparkHeight = options.compact ? 24 : 30;
   button.className = `similarMiniRow ${options.compact ? "" : "large"}`;
   button.innerHTML = `
     <span>
       <strong>${escapeHtml(item.name)} <small class="sexTag ${item.sex}">${escapeHtml(item.sex)}</small></strong>
       <small>${row.reason}</small>
-      ${options.compact ? `<b class="inlineSpark">${sparklineSvg(item, 96, 24)}</b>` : ""}
+      <b class="inlineSpark">${sparklineSvg(item, sparkWidth, sparkHeight)}</b>
     </span>
     <em>${formatDecimal(row.similarity * 100, 0)} %</em>
     <i><svg><use href="#icon-plus"></use></svg></i>
@@ -845,13 +859,17 @@ function peakShare(item) {
 }
 
 function schoolCardMarkup(item) {
+  const estimate = schoolEstimateForCurrentSettings(item);
   return `
     <section class="subCard schoolCard">
       <span>
-        <strong>Forventet i skoleløpet</strong>
-        <small>${formatNumber(state.school.gradeSize)} elever/år · ${formatNumber(state.school.grades)} trinn</small>
+        <strong>Skoleestimat</strong>
+        <small>Født ${state.school.birthYear} · ${formatNumber(state.school.gradeSize)} elever/år · ${formatNumber(state.school.grades)} trinn</small>
       </span>
-      <b>${formatDecimal(schoolEstimateForCurrentSettings(item), 2)}</b>
+      <span class="schoolNumbers">
+        <b>${formatDecimal(estimate.grade, 2)}</b><small>eget trinn</small>
+        <b>${formatDecimal(estimate.school, 2)}</b><small>hele skolen</small>
+      </span>
       <button class="schoolEdit" data-school-settings type="button">Endre</button>
     </section>
   `;
@@ -969,7 +987,7 @@ function openCompareSettings() {
     <form id="compareSettingsForm" class="formStack">
       <label>Fra år<input name="fromYear" type="number" min="${state.firstYear}" max="${state.latestYear}" value="${state.compare.fromYear}" /></label>
       <label>Til år<input name="toYear" type="number" min="${state.firstYear}" max="${state.latestYear}" value="${state.compare.toYear}" /></label>
-      <label>Mål<select name="metric"><option value="count">Antall</option><option value="shareSex">Andel (%)</option><option value="rank">Rang</option><option value="index">Start=100</option></select></label>
+      <label>Mål<select name="metric"><option value="count">Antall</option><option value="shareSex">Andel (%)</option><option value="rank">Rang</option></select></label>
       <label>Glatting<select name="smooth"><option value="1">Av</option><option value="3">3 år</option><option value="5">5 år</option><option value="7">7 år</option></select></label>
       <button class="primaryWide" type="submit">Oppdater</button>
     </form>
@@ -1086,6 +1104,7 @@ function moveReviewSwipe(event) {
   card.style.setProperty("--swipe-rotate", `${rotation}deg`);
   card.classList.toggle("hintShortlist", reviewSwipe.dx > 70);
   card.classList.toggle("hintReject", reviewSwipe.dx < -70);
+  updateReviewSwipeHint(reviewSwipe.dx);
 }
 
 function endReviewSwipe(event) {
@@ -1109,12 +1128,23 @@ function resetReviewSwipe(card = $("#reviewCard")) {
   reviewSwipe.pointerId = null;
   reviewSwipe.dx = 0;
   reviewSwipe.dy = 0;
+  updateReviewSwipeHint(0);
   if (!card) return;
   card.classList.remove("is-swiping", "hintShortlist", "hintReject", "swipeShortlist", "swipeReject");
   card.style.removeProperty("--swipe-x");
   card.style.removeProperty("--swipe-y");
   card.style.removeProperty("--swipe-rotate");
   card.style.opacity = "";
+}
+
+function updateReviewSwipeHint(dx) {
+  const hint = $("#reviewSwipeHint");
+  if (!hint) return;
+  const abs = Math.abs(dx);
+  hint.classList.toggle("show", abs > 32);
+  hint.classList.toggle("yes", dx > 32);
+  hint.classList.toggle("no", dx < -32);
+  hint.textContent = dx > 32 ? "Aktuelt" : dx < -32 ? "Uaktuelt" : "";
 }
 
 function commitReviewDecision(status, direction) {
@@ -1296,7 +1326,8 @@ function openBackup() {
   openSubscreen("Innstillinger", `
     <form id="schoolSettingsForm" class="formStack settingsBlock">
       <h3>Skoleestimat</h3>
-      <p class="subLead">Anslår hvor mange elever med navnet som kan finnes i et skoleløp.</p>
+      <p class="subLead">Anslår hvor mange elever med navnet som kan finnes på barnets trinn og i hele skoleløpet.</p>
+      <label>Barnets fødselsår<input name="birthYear" type="number" min="${state.firstYear}" max="${state.latestYear}" value="${state.school.birthYear}" /></label>
       <label>Elever per årskull<input name="gradeSize" type="number" min="1" step="1" value="${state.school.gradeSize}" /></label>
       <label>Antall trinn i skoleløpet<input name="grades" type="number" min="1" step="1" value="${state.school.grades}" /></label>
       <button class="primaryWide" type="submit">Lagre estimat</button>
@@ -1310,11 +1341,13 @@ function openBackup() {
   $("#schoolSettingsForm").addEventListener("submit", (event) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    state.school.birthYear = clampYear(Number(form.get("birthYear")));
     state.school.gradeSize = Math.max(1, Math.round(Number(form.get("gradeSize")) || 100));
     state.school.grades = Math.max(1, Math.round(Number(form.get("grades")) || 7));
     saveSchoolSettings();
-    toast("Skoleestimat lagret");
     renderAll();
+    closeSubscreen(false);
+    toast("Skoleestimat lagret");
   });
   $("#exportJson").addEventListener("click", exportDecisionsJson);
   $("#exportStatusCsv").addEventListener("click", exportDecisionsCsv);
@@ -1361,7 +1394,7 @@ function addQuickName(name) {
 }
 
 function metricLabel(metric) {
-  return { count: "Antall", shareSex: "Andel", rank: "Rang", index: "Start=100" }[metric] || "Antall";
+  return { count: "Antall", shareSex: "Andel", rank: "Rang" }[metric] || "Antall";
 }
 
 function smoothLabel(value) {
@@ -1383,7 +1416,7 @@ function filteredRows() {
   if (state.filters.popularity === "top50") rows = rows.filter((item) => (pointInYear(item, state.latestYear)?.[2] ?? 9999) <= 50);
   if (state.filters.popularity === "rising") rows = rows.filter((item) => trendScore(item) > 0);
   if (state.filters.popularity === "rare") rows = rows.filter((item) => latestCount(item) < 25);
-  if (state.filters.schoolMax !== "") rows = rows.filter((item) => schoolEstimateForCurrentSettings(item) <= Number(state.filters.schoolMax));
+  if (state.filters.schoolMax !== "") rows = rows.filter((item) => schoolEstimateForCurrentSettings(item).school <= Number(state.filters.schoolMax));
   return rows.sort((a, b) => latestCount(b) - latestCount(a) || a.name.localeCompare(b.name, "no"));
 }
 
@@ -1529,15 +1562,11 @@ function effectiveMetric() {
 function metricValue(point, item, metric) {
   if (metric === "shareSex") return point.shareSex;
   if (metric === "rank") return point.rank;
-  if (metric === "index") {
-    const base = allPoints(item).find((p) => p.year >= state.compare.fromYear && p.count)?.count;
-    return base && point.count != null ? (point.count / base) * 100 : null;
-  }
   return point.count;
 }
 
 function yAxis(metric) {
-  const title = { count: "Antall", shareSex: "Andel (%)", rank: "Rang", index: "Start=100" }[metric] || "Antall";
+  const title = { count: "Antall", shareSex: "Andel (%)", rank: "Rang" }[metric] || "Antall";
   const axis = { title, gridcolor: "#edf0f4", zeroline: false, rangemode: "tozero" };
   if (metric === "rank") axis.autorange = "reversed";
   return axis;
@@ -1580,14 +1609,22 @@ function trendLabel(item) {
   return "Historisk utvikling tilgjengelig";
 }
 
-function schoolEstimate(item, birthYear, gradeSize, grades) {
+function schoolEstimateForYear(item, birthYear, gradeSize) {
   const point = pointInYear(item, birthYear);
   const share = point?.[3] ?? 0;
-  return (share / 100) * gradeSize * grades;
+  return (share / 100) * gradeSize;
+}
+
+function schoolEstimate(item, birthYear, gradeSize, grades) {
+  const grade = schoolEstimateForYear(item, birthYear, gradeSize);
+  const school = Array.from({ length: Math.max(1, Math.round(grades)) }, (_, index) => birthYear - index)
+    .filter((year) => year >= state.firstYear && year <= state.latestYear)
+    .reduce((sum, year) => sum + schoolEstimateForYear(item, year, gradeSize), 0);
+  return { grade, school };
 }
 
 function schoolEstimateForCurrentSettings(item) {
-  return schoolEstimate(item, state.latestYear, state.school.gradeSize, state.school.grades);
+  return schoolEstimate(item, state.school.birthYear, state.school.gradeSize, state.school.grades);
 }
 
 function renderMiniChart(id, items, metric = "shareSex", fromYear = 1900, smoothWidth = 3) {

@@ -1,0 +1,12 @@
+{
+  "appId": "no.flemmen.navnestatistikk",
+  "appName": "Navnestatistikk",
+  "webDir": "docs",
+  "bundledWebRuntime": false,
+  "ios": {
+    "path": "apps/ios",
+    "scheme": "Navnestatistikk",
+    "contentInset": "automatic",
+    "minVersion": "15.0"
+  }
+}

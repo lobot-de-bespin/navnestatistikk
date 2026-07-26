@@ -1,13 +1,16 @@
 {
+  "id": "./",
   "name": "Norsk navnestatistikk",
   "short_name": "Navnestatistikk",
-  "description": "Finn, graf og vurder norske fornavn i SSBs navnestatistikk fra 1880 til 2025.",
+  "description": "Finn, sammenlign og vurder norske fornavn med åpne navnedata fra SSB.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#f6f5f1",
   "theme_color": "#11675a",
+  "categories": ["lifestyle", "education", "utilities"],
+  "lang": "nb-NO",
   "icons": [
     {
       "src": "icon-192.png",
@@ -20,6 +23,20 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Søk etter navn",
+      "short_name": "Søk",
+      "url": "./",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Personvern",
+      "short_name": "Personvern",
+      "url": "./personvern.html",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
     }
   ]
 }

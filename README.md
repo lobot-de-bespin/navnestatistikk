@@ -15,3 +15,21 @@ python3 scripts/build_data.py
 ```
 
 Publisering skjer som statisk GitHub Pages-side fra `docs/`.
+
+## iOS-spor
+
+iOS-arbeidet ligger ved siden av GitHub Pages-oppsettet:
+
+- Web/PWA-kilde: `docs/`
+- Capacitor-konfigurasjon: `capacitor.config.json`
+- iOS-prosjekt: `apps/ios`
+
+Nyttige kommandoer:
+
+```bash
+npm run check:js
+npm run cap:sync:ios
+```
+
+Ekte iOS-build, signering, TestFlight og App Store-innsending krever macOS med
+Xcode og Apple Developer-konto.

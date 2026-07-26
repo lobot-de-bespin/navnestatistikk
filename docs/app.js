@@ -3,7 +3,7 @@ const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
 const SCHOOL_STORAGE_KEY = "navnestatistikk:schoolSettings:v1";
-const SW_VERSION = "2026-07-26.1";
+const SW_VERSION = "2026-07-26.2";
 
 const state = {
   data: null,
@@ -1357,6 +1357,8 @@ function openBackup() {
       <button class="primaryWide" type="submit">Lagre estimat</button>
     </form>
     <div class="listMenu">
+      <button data-open-data-sources type="button"><span class="miniIcon blue"><svg><use href="#icon-list"></use></svg></span><span><strong>Datagrunnlag og lisens</strong><small>SSB-tabeller, CC BY 4.0 og forbehold</small></span><em>›</em></button>
+      <button data-open-privacy type="button"><span class="miniIcon green"><svg><use href="#icon-check"></use></svg></span><span><strong>Personvern</strong><small>Lokale valg lagres på enheten</small></span><em>›</em></button>
       <button id="exportJson" type="button"><span class="miniIcon blue"><svg><use href="#icon-share"></use></svg></span><span><strong>Eksporter beslutninger</strong><small>JSON-fil for import senere</small></span><em>›</em></button>
       <button id="exportStatusCsv" type="button"><span class="miniIcon green"><svg><use href="#icon-list"></use></svg></span><span><strong>Eksporter CSV</strong><small>Aktuelle og uaktuelle navn</small></span><em>›</em></button>
       <button id="importJson" type="button"><span class="miniIcon yellow"><svg><use href="#icon-gear"></use></svg></span><span><strong>Importer beslutninger</strong><small>Slår sammen med lokale valg</small></span><em>›</em></button>
@@ -1409,6 +1411,31 @@ function bindSubscreenButtons(root = document) {
   $$("[data-clear-list]", root).forEach((button) => button.addEventListener("click", () => clearNameList(button.dataset.clearList)));
   $$("[data-similar]", root).forEach((button) => button.addEventListener("click", () => openSimilar(state.itemsById.get(button.dataset.similar))));
   $$("[data-school-settings]", root).forEach((button) => button.addEventListener("click", openBackup));
+  $$("[data-open-data-sources]", root).forEach((button) => button.addEventListener("click", openDataSources));
+  $$("[data-open-privacy]", root).forEach((button) => button.addEventListener("click", openPrivacy));
+}
+
+function openDataSources() {
+  openSubscreen("Datagrunnlag", `
+    <section class="subCard legalCard">
+      <h3>Data fra SSB</h3>
+      <p>Appen bygger på åpne data fra Statistisk sentralbyrås statistikkbank. Navnedataene behandles lokalt i appen og vises med egne beregninger for trend, sammenligning og skoleestimat.</p>
+      <p>Kildene er SSB-tabell 10467, 05803 og 09745. SSBs API-er oppgir lisensen CC BY 4.0.</p>
+      <p>SSB har ikke godkjent, kontrollert eller anbefalt denne appen. Feil kan skyldes appens bearbeiding av åpne data.</p>
+      <a class="textLink" href="datagrunnlag.html" target="_blank" rel="noopener">Åpne full datatekst</a>
+    </section>
+  `);
+}
+
+function openPrivacy() {
+  openSubscreen("Personvern", `
+    <section class="subCard legalCard">
+      <h3>Lokalt først</h3>
+      <p>Søk, valgte navn, shortlist, uaktuelle navn og skoleinnstillinger lagres i nettleserens lokale lagring på enheten din.</p>
+      <p>Appen har ingen innlogging og sender ikke navnelister til en server. Eksport skjer bare når du selv bruker eksportfunksjonen.</p>
+      <a class="textLink" href="personvern.html" target="_blank" rel="noopener">Åpne full personverntekst</a>
+    </section>
+  `);
 }
 
 function addQuickName(name) {

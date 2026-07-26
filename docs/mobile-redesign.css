@@ -454,6 +454,11 @@ svg {
   text-align: left;
 }
 
+.starterGrid button.wide {
+  grid-column: 1 / -1;
+  min-height: 48px;
+}
+
 .starterGrid strong,
 .starterGrid small {
   display: block;
@@ -1131,6 +1136,25 @@ input[type="range"] {
   white-space: nowrap;
 }
 
+.similarIntro {
+  margin: -2px 0 0;
+  color: #687386;
+  font-size: 0.68rem;
+  font-weight: 690;
+  line-height: 1.35;
+}
+
+.advancedToggle {
+  justify-self: start;
+  min-height: 32px;
+  padding: 0 11px;
+  border-radius: 8px;
+  background: #f2efff;
+  color: #6b54c5;
+  font-size: 0.68rem;
+  font-weight: 840;
+}
+
 .similarControlGrid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -1263,6 +1287,47 @@ input[type="range"] {
   border-radius: 12px;
   background: #edf0f4;
   scrollbar-width: none;
+}
+
+.decisionSummary {
+  gap: 10px;
+}
+
+.decisionPills {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.decisionPills span {
+  display: grid;
+  align-content: start;
+  min-width: 0;
+  min-height: 54px;
+  padding: 8px 7px;
+  border-radius: 8px;
+  background: #f7f9fc;
+}
+
+.decisionPills b,
+.decisionPills small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.decisionPills b {
+  color: #142039;
+  font-size: 0.66rem;
+  line-height: 1.14;
+}
+
+.decisionPills small {
+  margin-top: 3px;
+  color: #6f7888;
+  font-size: 0.56rem;
+  font-weight: 720;
+  line-height: 1.12;
 }
 
 .statTable::-webkit-scrollbar {

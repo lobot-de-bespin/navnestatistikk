@@ -3,7 +3,7 @@ const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
 const SCHOOL_STORAGE_KEY = "navnestatistikk:schoolSettings:v1";
-const SW_VERSION = "2026-07-26.1";
+const SW_VERSION = "2026-07-26.3";
 
 const state = {
   data: null,
@@ -41,6 +41,7 @@ const state = {
   similarMode: "curve",
   similarReferenceId: "",
   similarSex: "alle",
+  showAdvancedSimilar: false,
   review: {
     deck: [],
     index: 0,
@@ -346,6 +347,19 @@ function handleWorkflowNavigation(event) {
     applyExplorePreset(preset.dataset.filterPreset);
     return;
   }
+  const focusSearch = event.target.closest("[data-focus-search]");
+  if (focusSearch) {
+    event.preventDefault();
+    $("#searchInput")?.focus();
+    return;
+  }
+  const advancedSimilar = event.target.closest("[data-toggle-advanced-similar]");
+  if (advancedSimilar) {
+    event.preventDefault();
+    state.showAdvancedSimilar = !state.showAdvancedSimilar;
+    renderCompare();
+    return;
+  }
   const button = event.target.closest("[data-go-tab]");
   if (!button) return;
   event.preventDefault();
@@ -408,13 +422,14 @@ function renderExploreStarter() {
   panel.innerHTML = `
     <div class="starterIntro">
       <strong>Finn babynavn med data</strong>
-      <small>Velg en strategi. Plusstegnet legger navn i utvalget, og derfra kan du sammenligne og vurdere.</small>
+      <small>Velg en retning først. De avanserte analysene finnes når du har navn å sammenligne.</small>
     </div>
     <div class="starterGrid">
       <button data-filter-preset="popular" type="button"><strong>Trygt og vanlig</strong><small>Toppnavn akkurat nå</small></button>
       <button data-filter-preset="rising" type="button"><strong>På vei opp</strong><small>Navn med positiv trend</small></button>
       <button data-filter-preset="rare" type="button"><strong>Mer særpreg</strong><small>Færre enn 25 i siste år</small></button>
       <button data-filter-preset="school" type="button"><strong>Færre i klassen</strong><small>Maks to i skoleløpet</small></button>
+      <button class="wide" data-focus-search type="button"><strong>Jeg har navn fra før</strong><small>Søk direkte og legg egne kandidater i listen</small></button>
     </div>
   `;
 }
@@ -439,7 +454,7 @@ function updateCandidateCard(rows = filteredRows(), isFiltered = hasActiveExplor
   card.disabled = count === 0;
   card.innerHTML = `
     <span class="miniIcon"><svg><use href="#icon-list"></use></svg></span>
-      <span><strong>Legg treff til utvalg</strong><small>${count ? `${formatNumber(count)} navn fra gjeldende søk og filtre` : "Ingen treff å legge til"}</small></span>
+      <span><strong>Legg treff til vår liste</strong><small>${count ? `${formatNumber(count)} navn fra gjeldende søk og filtre` : "Ingen treff å legge til"}</small></span>
     <em>${count ? "Legg til" : "Tomt"}</em>
   `;
 }
@@ -453,7 +468,7 @@ function addFilteredRowsToWork() {
   rows.forEach((item) => state.selected.add(item.id));
   resetReviewDeck();
   saveWorkSelection();
-  toast(`${formatNumber(rows.length)} navn lagt til i valgte navn`);
+  toast(`${formatNumber(rows.length)} navn lagt til i vår liste`);
   renderAll();
   updateUrl();
 }
@@ -545,7 +560,7 @@ function nameRow(item, options = {}) {
 function toggleWorkSelection(item) {
   if (!item) return;
   if (state.selected.has(item.id) && !state.status[item.id]) {
-    removeFromWork(item.id, `${item.name} fjernet fra valgte navn`);
+    removeFromWork(item.id, `${item.name} fjernet fra listen`);
     return;
   }
   addToWork(item);
@@ -558,7 +573,7 @@ function addToWork(item) {
   resetReviewDeck();
   saveWorkSelection();
   saveStatus();
-  toast(`${item.name} lagt til i valgte navn`);
+  toast(`${item.name} lagt til i vår liste`);
   renderAll();
   updateUrl();
 }
@@ -571,7 +586,7 @@ function removeFromWork(id, message = "") {
   renderAll();
   updateUrl();
   if (message) toast(message);
-  else if (item) toast(`${item.name} fjernet fra valgte navn`);
+  else if (item) toast(`${item.name} fjernet fra listen`);
 }
 
 function applyNameStatus(id, status) {
@@ -599,7 +614,7 @@ function setNameStatus(id, status) {
   const item = state.itemsById.get(id);
   if (item) {
     const messages = {
-      neutral: `${item.name} flyttet til valgte navn`,
+      neutral: `${item.name} flyttet til kandidater`,
       shortlist: `${item.name} markert som aktuell`,
       rejected: `${item.name} markert som uaktuell`,
     };
@@ -732,15 +747,18 @@ function renderCompareSimilar(items) {
   ensureSimilarReference(items);
   const reference = state.itemsById.get(state.similarReferenceId) || items[0];
   const rows = similarRows(reference, state.similarMode, state.similarSex).slice(0, 5);
+  const preview = rows.slice(0, state.showAdvancedSimilar ? 5 : 3);
   panel.innerHTML = `
     <div class="similarPanelHead">
-      <span><strong>Lignende navn</strong><small>Referanse: ${escapeHtml(reference.name)} · ${similarSexLabel(state.similarSex)}</small></span>
+      <span><strong>Flere navn i samme gate</strong><small>${similarPreviewLabel(reference)}</small></span>
       <button type="button" data-similar="${reference.id}">Se alle</button>
     </div>
-    ${similarControlsMarkup(items, reference)}
+    <p class="similarIntro">Appen finner forslag med lignende utvikling, popularitet eller navneform. Du kan åpne avansert analyse når du vil styre metoden selv.</p>
+    ${state.showAdvancedSimilar ? similarControlsMarkup(items, reference) : ""}
     <div class="similarMiniRows"></div>
+    <button class="advancedToggle" data-toggle-advanced-similar type="button">${state.showAdvancedSimilar ? "Skjul avansert analyse" : "Vis avansert analyse"}</button>
   `;
-  $(".similarMiniRows", panel).replaceChildren(...rows.map((row) => similarResultRow(row, { compact: true })));
+  $(".similarMiniRows", panel).replaceChildren(...preview.map((row) => similarResultRow(row, { compact: true })));
   bindSimilarControls(panel, items);
 }
 
@@ -818,10 +836,10 @@ function similarControlsMarkup(items, reference) {
 
 function similarModes() {
   return [
-    ["curve", "Kurveform"],
-    ["curveCount", "Antall"],
-    ["shareLevel", "Andel"],
-    ["text", "Navnelikhet"],
+    ["curve", "Lik trend"],
+    ["curveCount", "Lik størrelse"],
+    ["shareLevel", "Lik andel"],
+    ["text", "Lik skrivemåte"],
   ];
 }
 
@@ -877,6 +895,11 @@ function similarSexLabel(value) {
   return { alle: "alle kjønn", same: "samme kjønn", jente: "jentenavn", gutt: "guttenavn" }[value] || "alle kjønn";
 }
 
+function similarPreviewLabel(reference) {
+  if (!state.showAdvancedSimilar) return `Basert på ${escapeHtml(reference.name)} og kurven over tid`;
+  return `Referanse: ${escapeHtml(reference.name)} · ${similarSexLabel(state.similarSex)}`;
+}
+
 function peakShare(item) {
   return allPoints(item).find((point) => point.year === item.peakYear)?.shareSex ?? null;
 }
@@ -910,6 +933,9 @@ function detailMarkup(item) {
     <section class="detailHero">
       <div><h2>${escapeHtml(item.name)} ${sexIconMarkup(item)}</h2><p>${escapeHtml(item.sex)}</p></div>
     </section>
+    <section class="subCard decisionSummary">
+      ${decisionSummaryMarkup(item)}
+    </section>
     <section class="subCard">
       <h3>Utvikling over tid</h3>
       <div id="detailChart" class="miniChart"></div>
@@ -925,8 +951,25 @@ function detailMarkup(item) {
       <span><small>Siste år</small><b>${item.lastYear ?? item.lastDataYear}</b></span>
     </section>
     ${schoolCardMarkup(item)}
-    <button class="primaryWide" data-add="${item.id}" type="button">Legg til i utvalg</button>
+    <button class="primaryWide" data-add="${item.id}" type="button">Legg til i vår liste</button>
     <button class="secondaryWide" data-similar="${item.id}" type="button">Finn lignende navn</button>
+  `;
+}
+
+function decisionSummaryMarkup(item) {
+  const latest = pointInYear(item, state.latestYear);
+  const trend = trendScore(item);
+  const estimate = schoolEstimateForCurrentSettings(item);
+  const rank = latest?.[2] ? `#${formatNumber(latest[2])}` : "uten rang";
+  const trendText = trend > 20 ? "tydelig på vei opp" : trend > 0 ? "svakt på vei opp" : trend < -20 ? "på vei ned" : "stabilt";
+  const schoolText = estimate.school < 1 ? "svært få i skoleløpet" : estimate.school < 3 ? "lav klasse-risiko" : "flere mulige navnebrødre";
+  return `
+    <h3>Beslutningskort</h3>
+    <div class="decisionPills">
+      <span><b>${rank}</b><small>rang ${state.latestYear}</small></span>
+      <span><b>${trendText}</b><small>siste 10 år</small></span>
+      <span><b>${schoolText}</b><small>${formatDecimal(estimate.school, 1)} i skoleløpet</small></span>
+    </div>
   `;
 }
 
@@ -1250,7 +1293,7 @@ function renderMine() {
   if (!state.history.length) {
     recent.innerHTML = `
       <div class="emptyState compact">
-        <p>${work.length ? `${formatNumber(work.length)} navn klare til vurdering.` : "Ingen vurderinger ennå."}</p>
+        <p>${work.length ? `${formatNumber(work.length)} kandidater klare til vurdering.` : "Listen er tom. Start med navn dere allerede liker, eller finn kandidater med data."}</p>
         <div class="emptyActions">
           <button data-go-tab="review" type="button">Vurder navn</button>
           <button data-go-tab="explore" type="button">Finn flere</button>
@@ -1275,13 +1318,13 @@ function decisionRow(entry) {
 }
 
 function openNameList(kind) {
-  const title = kind === "work" ? "Valgte navn" : kind === "shortlist" ? "Aktuelle" : "Uaktuelle";
+  const title = kind === "work" ? "Kandidater" : kind === "shortlist" ? "Aktuelle" : "Uaktuelle";
   const rows = kind === "work" ? workItems() : itemsWithStatus(kind);
   openSubscreen(title, `
-    <p class="subLead">${kind === "work" ? "Navn som er valgt for sammenligning og vurdering." : kind === "shortlist" ? "Navn som er markert som aktuelle." : "Navn som er valgt bort."}</p>
+    <p class="subLead">${kind === "work" ? "Navn dere vurderer videre. Sammenlign dem med data, eller gå gjennom dem ett og ett." : kind === "shortlist" ? "Navn som fortsatt kjennes aktuelle." : "Navn som er valgt bort."}</p>
     <div class="sectionRow"><h3>${formatNumber(rows.length)} navn</h3><button id="listPrimaryAction" type="button">${kind === "work" ? "Utforsk" : "Del liste"}</button></div>
     <div id="mineListRows" class="nameRows"></div>
-    ${rows.length ? `<button class="secondaryWide" data-clear-list="${kind}" type="button">${kind === "work" ? "Tøm valgte navn" : kind === "shortlist" ? "Tøm aktuelle" : "Tøm uaktuelle"}</button>` : ""}
+    ${rows.length ? `<button class="secondaryWide" data-clear-list="${kind}" type="button">${kind === "work" ? "Tøm kandidater" : kind === "shortlist" ? "Tøm aktuelle" : "Tøm uaktuelle"}</button>` : ""}
   `);
   $("#mineListRows").replaceChildren(...rows.map((item) => listManageRow(item, kind)));
   $("#listPrimaryAction").addEventListener("click", () => {
@@ -1316,7 +1359,7 @@ function clearNameList(kind) {
   closeSubscreen();
   renderAll();
   updateUrl();
-  toast(kind === "work" ? "Valgte navn tømt" : kind === "shortlist" ? "Aktuelle tømt" : "Uaktuelle tømt");
+  toast(kind === "work" ? "Kandidatlisten tømt" : kind === "shortlist" ? "Aktuelle tømt" : "Uaktuelle tømt");
 }
 
 function listManageRow(item, kind) {
@@ -1330,10 +1373,10 @@ function listManageRow(item, kind) {
     event.stopPropagation();
     openSubscreen(item.name, `
       <div class="listMenu">
-        <button data-status="${item.id}" data-next="neutral" data-close-after="true" type="button"><span class="miniIcon blue"><svg><use href="#icon-list"></use></svg></span><span><strong>Sett som ikke vurdert</strong><small>Flytt til valgte navn uten aktuell/uaktuell-status</small></span><em>›</em></button>
+        <button data-status="${item.id}" data-next="neutral" data-close-after="true" type="button"><span class="miniIcon blue"><svg><use href="#icon-list"></use></svg></span><span><strong>Sett som kandidat</strong><small>Flytt tilbake uten aktuell/uaktuell-status</small></span><em>›</em></button>
         <button data-status="${item.id}" data-next="shortlist" data-close-after="true" type="button"><span class="miniIcon green"><svg><use href="#icon-heart"></use></svg></span><span><strong>Marker aktuell</strong><small>Flytt til favoritter</small></span><em>›</em></button>
         <button data-status="${item.id}" data-next="rejected" data-close-after="true" type="button"><span class="miniIcon red"><svg><use href="#icon-x"></use></svg></span><span><strong>Marker uaktuell</strong><small>Skjul fra vanlige forslag</small></span><em>›</em></button>
-        <button data-remove="${item.id}" data-close-after="true" type="button"><span class="miniIcon"><svg><use href="#icon-x"></use></svg></span><span><strong>Fjern fra valgte navn</strong><small>Påvirker ikke vurderingen</small></span><em>›</em></button>
+        <button data-remove="${item.id}" data-close-after="true" type="button"><span class="miniIcon"><svg><use href="#icon-x"></use></svg></span><span><strong>Fjern fra listen</strong><small>Påvirker ikke vurderingen</small></span><em>›</em></button>
       </div>
     `);
     bindSubscreenButtons();

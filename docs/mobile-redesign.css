@@ -275,21 +275,120 @@ svg {
   align-items: center;
   min-height: 52px;
   padding: 8px;
-  border-radius: 16px;
+  border-radius: 8px;
   background: #f7f9fc;
   box-shadow: inset 0 0 0 1px rgba(232, 225, 216, 0.72);
 }
 
-.nameLens {
-  display: flex;
+.workflowPath {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.workflowPath button {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 6px;
   align-items: center;
-  justify-content: space-between;
+  min-height: 42px;
+  padding: 6px;
+  border-radius: 8px;
+  background: #fff;
+  color: #596477;
+  text-align: left;
+  box-shadow: inset 0 0 0 1px rgba(226, 232, 240, 0.9);
+}
+
+.workflowPath button.active {
+  background: #eaf2ff;
+  color: #1766a8;
+  box-shadow: inset 0 0 0 1px rgba(46, 123, 207, 0.18);
+}
+
+.workflowPath b {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #eef2f7;
+  color: inherit;
+  font-size: 0.66rem;
+}
+
+.workflowPath strong,
+.workflowPath small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workflowPath strong {
+  font-size: 0.66rem;
+  line-height: 1.05;
+}
+
+.workflowPath small {
+  margin-top: 2px;
+  font-size: 0.54rem;
+  font-weight: 720;
+  line-height: 1.05;
+}
+
+.taskPrompt {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 9px;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.taskPrompt strong,
+.taskPrompt small {
+  display: block;
+}
+
+.taskPrompt strong {
+  font-size: 0.78rem;
+  line-height: 1.12;
+}
+
+.taskPrompt small {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.62rem;
+  line-height: 1.25;
+}
+
+.taskPrompt button {
+  min-height: 34px;
+  padding: 0 11px;
+  border-radius: 8px;
+  background: #eaf2ff;
+  color: #1766a8;
+  font-size: 0.68rem;
+  font-weight: 820;
+}
+
+.nameLens {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
   min-height: 54px;
   padding: 10px 11px;
-  border-radius: 16px;
+  border-radius: 8px;
   background: linear-gradient(135deg, #eef7ff 0%, #fff7fb 100%);
   color: var(--ink);
+}
+
+.nameLens:has(.starterGrid) {
+  grid-template-columns: 1fr;
 }
 
 .nameLens strong,
@@ -319,12 +418,58 @@ svg {
 .lensActions button {
   min-height: 30px;
   padding: 0 9px;
-  border-radius: 999px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.72);
   color: #1d64a8;
   font-size: 0.62rem;
   font-weight: 820;
   white-space: nowrap;
+}
+
+.starterIntro strong,
+.starterIntro small {
+  display: block;
+}
+
+.starterIntro small {
+  max-width: 34rem;
+  font-size: 0.68rem;
+  line-height: 1.3;
+}
+
+.starterGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.starterGrid button {
+  display: grid;
+  align-content: start;
+  min-height: 58px;
+  padding: 9px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.74);
+  color: #1d3557;
+  text-align: left;
+}
+
+.starterGrid strong,
+.starterGrid small {
+  display: block;
+  min-width: 0;
+}
+
+.starterGrid strong {
+  font-size: 0.7rem;
+  line-height: 1.1;
+}
+
+.starterGrid small {
+  margin-top: 3px;
+  color: #687386;
+  font-size: 0.58rem;
+  line-height: 1.18;
 }
 
 .workflowCounts {
@@ -363,7 +508,7 @@ svg {
 .workflowCta {
   min-height: 38px;
   padding: 0 10px;
-  border-radius: 13px;
+  border-radius: 8px;
   background: #eaf2ff;
   color: #1766a8;
   font-size: 0.68rem;
@@ -888,7 +1033,7 @@ input[type="range"] {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1px;
   overflow: hidden;
-  border-radius: 16px;
+  border-radius: 8px;
   background: #e8edf4;
 }
 
@@ -902,6 +1047,10 @@ input[type="range"] {
   min-width: 0;
   padding: 10px 8px;
   background: #fff;
+}
+
+.insightPanel .wide {
+  grid-column: 1 / -1;
 }
 
 .insightPanel small {

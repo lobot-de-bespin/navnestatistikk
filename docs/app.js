@@ -3,7 +3,7 @@ const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
 const SCHOOL_STORAGE_KEY = "navnestatistikk:schoolSettings:v1";
-const SW_VERSION = "2026-07-23.6";
+const SW_VERSION = "2026-07-26.1";
 
 const state = {
   data: null,
@@ -292,18 +292,39 @@ function workflowSummaryMarkup(counts) {
   `;
 }
 
+function workflowPathMarkup(active) {
+  const steps = [
+    ["explore", "Finn", "Lag et utvalg"],
+    ["compare", "Utforsk", "Se mønstre"],
+    ["review", "Vurder", "Velg ja/nei"],
+  ];
+  return `
+    <div class="workflowPath" aria-label="Arbeidsflyt">
+      ${steps
+        .map(
+          ([tab, label, detail], index) => `
+            <button class="${tab === active ? "active" : ""}" data-go-tab="${tab}" type="button">
+              <b>${index + 1}</b><span><strong>${label}</strong><small>${detail}</small></span>
+            </button>
+          `,
+        )
+        .join("")}
+    </div>
+  `;
+}
+
 function renderWorkflowCards() {
   const counts = workflowCounts();
   const explore = $("#exploreWorkflow");
   if (explore) {
-    explore.hidden = true;
-    explore.replaceChildren();
+    explore.hidden = false;
+    explore.innerHTML = workflowPathMarkup("explore");
   }
   const compare = $("#compareWorkflow");
   if (compare) {
     compare.innerHTML = counts.work
-      ? `${workflowSummaryMarkup(counts)}<button class="workflowCta" data-go-tab="review" type="button">Vurder valgte</button>`
-      : `${workflowSummaryMarkup(counts)}<button class="workflowCta" data-go-tab="explore" type="button">Finn navn først</button>`;
+      ? `${workflowPathMarkup("compare")}${workflowSummaryMarkup(counts)}<button class="workflowCta" data-go-tab="review" type="button">Vurder valgte</button>`
+      : `${workflowPathMarkup("compare")}<section class="taskPrompt"><strong>Legg inn navn først</strong><small>Søk etter et navn, eller bruk startpunktene for å fylle utvalget.</small><button data-go-tab="explore" type="button">Finn navn</button></section>`;
   }
   const mine = $("#mineWorkflow");
   if (mine) {
@@ -374,25 +395,26 @@ function renderExploreStarter() {
   if (work.length) {
     panel.innerHTML = `
       <div>
-        <strong>${formatNumber(workItems().length)} valgt</strong>
+        <strong>${formatNumber(workItems().length)} navn i utvalget</strong>
         <small>${work.map((item) => escapeHtml(item.name)).join(", ")}${workItems().length > work.length ? " ..." : ""}</small>
       </div>
       <div class="lensActions">
-        <button data-go-tab="compare" type="button">Utforsk</button>
+        <button data-go-tab="compare" type="button">Sammenlign</button>
         <button data-go-tab="review" type="button">Vurder</button>
       </div>
     `;
     return;
   }
   panel.innerHTML = `
-    <div>
-      <strong>Startpunkt</strong>
-      <small>Velg en retning for første liste</small>
+    <div class="starterIntro">
+      <strong>Finn babynavn med data</strong>
+      <small>Velg en strategi. Plusstegnet legger navn i utvalget, og derfra kan du sammenligne og vurdere.</small>
     </div>
-    <div class="lensActions">
-      <button data-filter-preset="popular" type="button">Populære</button>
-      <button data-filter-preset="rising" type="button">Stigende</button>
-      <button data-filter-preset="rare" type="button">Sjeldne</button>
+    <div class="starterGrid">
+      <button data-filter-preset="popular" type="button"><strong>Trygt og vanlig</strong><small>Toppnavn akkurat nå</small></button>
+      <button data-filter-preset="rising" type="button"><strong>På vei opp</strong><small>Navn med positiv trend</small></button>
+      <button data-filter-preset="rare" type="button"><strong>Mer særpreg</strong><small>Færre enn 25 i siste år</small></button>
+      <button data-filter-preset="school" type="button"><strong>Færre i klassen</strong><small>Maks to i skoleløpet</small></button>
     </div>
   `;
 }
@@ -448,8 +470,8 @@ function applyExplorePreset(preset) {
   state.filters.fromYear = Math.max(1900, state.firstYear);
   state.filters.toYear = state.latestYear;
   state.filters.pattern = "";
-  state.filters.schoolMax = "";
-  state.filters.popularity = preset === "clear" || preset === "popular" ? "alle" : preset;
+  state.filters.schoolMax = preset === "school" ? "2" : "";
+  state.filters.popularity = preset === "clear" || preset === "popular" || preset === "school" ? "alle" : preset;
   renderExplore();
   updateUrl();
 }
@@ -631,6 +653,7 @@ function renderCompareInsight(items) {
   const fastest = latestRows.slice().sort((a, b) => b.trend - a.trend)[0];
   const rarest = latestRows.slice().sort((a, b) => (a.point?.[1] ?? 0) - (b.point?.[1] ?? 0))[0];
   panel.innerHTML = `
+    <span class="wide"><small>Slik leses dette</small><strong>${metricLabel(state.compare.metric)}</strong><em>${compareMetricHelp()}</em></span>
     <span><small>Størst nå</small><strong>${escapeHtml(largest?.item.name ?? "-")}</strong><em>${formatNumber(largest?.point?.[1] ?? 0)} i ${state.latestYear}</em></span>
     <span><small>Mest opp</small><strong>${escapeHtml(fastest?.item.name ?? "-")}</strong><em>${fastest?.trend > 0 ? "+" : ""}${formatNumber(fastest?.trend ?? 0)} siste 10 år</em></span>
     <span><small>Mest særpreg</small><strong>${escapeHtml(rarest?.item.name ?? "-")}</strong><em>${formatNumber(rarest?.point?.[1] ?? 0)} i ${state.latestYear}</em></span>
@@ -727,8 +750,8 @@ function renderChart(items) {
   if (!items.length) {
     chart.innerHTML = `
       <div class="emptyState">
-        <h2>Ingen navn i utvalget</h2>
-        <p>Start med et kjent navn eller åpne populære forslag.</p>
+        <h2>Ingen navn å sammenligne</h2>
+        <p>Legg til minst to kandidater for å se popularitet, trend og skoleestimat side om side.</p>
         <div class="emptyActions">
           <button data-quick-name="Nora" type="button">Nora</button>
           <button data-quick-name="Noah" type="button">Noah</button>
@@ -932,11 +955,12 @@ function renderSimilarList(reference, rows) {
 function openFilters() {
   openSubscreen("Søk og filtre", `
     <form id="filterForm" class="formStack">
-      <label>Søk etter navn<input name="query" type="search" value="${escapeHtml(state.query)}" /></label>
-      <label>Kjønn<select name="sex"><option value="alle">Alle</option><option value="jente">Jente</option><option value="gutt">Gutt</option></select></label>
-      <label>Periode<div class="rangePair"><input name="fromYear" type="number" min="${state.firstYear}" max="${state.latestYear}" value="${state.filters.fromYear}" /><input name="toYear" type="number" min="${state.firstYear}" max="${state.latestYear}" value="${state.filters.toYear}" /></div></label>
-      <label>Popularitet<select name="popularity"><option value="alle">Alle</option><option value="top50">Topp 50 i siste år</option><option value="rising">Stigende trend</option><option value="rare">Mindre vanlig nå</option></select></label>
-      <label>Navnemønster<input name="pattern" type="text" placeholder="f.eks. ^El eller a$" value="${escapeHtml(state.filters.pattern)}" /></label>
+      <p class="subLead">Filtrene lager kandidatlisten. Treffene kan legges til utvalget samlet eller ett og ett.</p>
+      <label>Navn inneholder<input name="query" type="search" value="${escapeHtml(state.query)}" placeholder="f.eks. ell, anna eller leo" /></label>
+      <label>Navnetype<select name="sex"><option value="alle">Jente- og guttenavn</option><option value="jente">Jentenavn</option><option value="gutt">Guttenavn</option></select></label>
+      <label>Historisk periode<div class="rangePair"><input name="fromYear" type="number" min="${state.firstYear}" max="${state.latestYear}" value="${state.filters.fromYear}" /><input name="toYear" type="number" min="${state.firstYear}" max="${state.latestYear}" value="${state.filters.toYear}" /></div></label>
+      <label>Dataprofil<select name="popularity"><option value="alle">Alle profiler</option><option value="top50">Topp 50 nå</option><option value="rising">Stigende siste år</option><option value="rare">Mindre vanlig nå</option></select></label>
+      <label>Mønster i navnet<input name="pattern" type="text" placeholder="Regex: ^El eller a$" value="${escapeHtml(state.filters.pattern)}" /></label>
       <label>Maks forventet i skoleløpet<input name="schoolMax" type="number" min="0" step="0.1" placeholder="f.eks. 2" value="${escapeHtml(state.filters.schoolMax)}" /></label>
       <button class="primaryWide" type="submit">Vis ${formatNumber(filteredRows().length)} navn</button>
     </form>
@@ -1034,7 +1058,7 @@ function renderReview() {
     card.innerHTML = `
       <div class="emptyState">
         <h2>Ingen navn å vurdere</h2>
-        <p>Velg noen navn først, eller start med et vanlig eksempel.</p>
+        <p>Utvalget er handlelisten din. Finn navn først, så kan du avgjøre dem ett og ett her.</p>
         <div class="emptyActions">
           <button data-quick-name="Nora" type="button">Nora</button>
           <button data-quick-name="Noah" type="button">Noah</button>
@@ -1395,6 +1419,12 @@ function addQuickName(name) {
 
 function metricLabel(metric) {
   return { count: "Antall", shareSex: "Andel", rank: "Rang" }[metric] || "Antall";
+}
+
+function compareMetricHelp() {
+  if (state.compare.metric === "rank") return "Lavere kurve betyr høyere plassering.";
+  if (state.compare.metric === "shareSex") return "Best for å sammenligne jente- og guttenavn.";
+  return "Viser hvor mange barn som fikk navnet hvert år.";
 }
 
 function smoothLabel(value) {

@@ -1388,7 +1388,7 @@ input[type="range"] {
   position: relative;
   min-height: calc(100vh - 100px - var(--tab-height));
   gap: 9px;
-  background: linear-gradient(180deg, #fff7fb 0%, #fffefd 38%);
+  background: linear-gradient(180deg, #fff9fb 0%, #fffefd 38%);
   overflow: hidden;
 }
 
@@ -1402,6 +1402,7 @@ input[type="range"] {
 
 .reviewCard {
   position: relative;
+  z-index: 2;
   display: grid;
   gap: 8px;
   min-height: 326px;
@@ -1444,38 +1445,47 @@ input[type="range"] {
 }
 
 .reviewSwipeHint {
-  position: fixed;
-  top: min(45vh, 360px);
-  left: 50%;
-  z-index: 92;
-  min-width: 136px;
-  padding: 11px 18px;
-  border: 2px solid currentColor;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 14px 34px rgba(28, 35, 48, 0.14);
-  font-size: 0.9rem;
+  position: absolute;
+  top: 34px;
+  right: 10px;
+  left: 10px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  min-height: 326px;
+  padding: 20px 22px;
+  border-radius: 18px;
+  background: #f7f9fc;
+  box-shadow: inset 0 0 0 1px rgba(232, 225, 216, 0.72);
+  font-size: 0.92rem;
   font-weight: 920;
   letter-spacing: 0;
-  text-align: center;
   text-transform: uppercase;
   opacity: 0;
-  transform: translate(-50%, -50%) scale(0.94);
-  transition: opacity 110ms ease, transform 110ms ease;
+  transition: opacity 120ms ease, background 120ms ease;
   pointer-events: none;
 }
 
 .reviewSwipeHint.show {
   opacity: 1;
-  transform: translate(-50%, -50%) scale(1);
 }
 
 .reviewSwipeHint.yes {
+  justify-content: flex-start;
+  background: linear-gradient(90deg, #e4f6eb 0%, #f8fffb 70%);
   color: #28794a;
 }
 
 .reviewSwipeHint.no {
+  justify-content: flex-end;
+  background: linear-gradient(270deg, #ffe8ed 0%, #fffafb 70%);
   color: #bd4155;
+}
+
+.reviewActions,
+.undoLink {
+  position: relative;
+  z-index: 3;
 }
 
 .reviewCard h2,

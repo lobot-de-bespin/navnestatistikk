@@ -3,7 +3,7 @@ const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
 const SCHOOL_STORAGE_KEY = "navnestatistikk:schoolSettings:v1";
-const SW_VERSION = "2026-07-26.3";
+const SW_VERSION = "2026-07-26.4";
 
 const state = {
   data: null,
@@ -38,7 +38,7 @@ const state = {
     grades: 7,
     birthYear: 2025,
   },
-  similarMode: "curve",
+  similarMode: "shareLevel",
   similarReferenceId: "",
   similarSex: "alle",
   showAdvancedSimilar: false,
@@ -896,7 +896,7 @@ function similarSexLabel(value) {
 }
 
 function similarPreviewLabel(reference) {
-  if (!state.showAdvancedSimilar) return `Basert på ${escapeHtml(reference.name)} og kurven over tid`;
+  if (!state.showAdvancedSimilar) return `Basert på ${escapeHtml(reference.name)}, popularitet og andel i årskullet`;
   return `Referanse: ${escapeHtml(reference.name)} · ${similarSexLabel(state.similarSex)}`;
 }
 
@@ -1497,6 +1497,7 @@ function similarRows(reference, mode, sexFilter = state.similarSex) {
   const targetSex = sexFilter === "same" ? reference.sex : sexFilter;
   return state.data.names
     .filter((item) => item.id !== reference.id && (targetSex === "alle" || item.sex === targetSex) && state.status[item.id] !== "rejected")
+    .filter((item) => similarCandidateHasSignal(item, mode))
     .map((item) => {
       if (mode === "text") {
         const distance = levenshtein(normalize(reference.name), normalize(item.name));
@@ -1517,6 +1518,13 @@ function similarRows(reference, mode, sexFilter = state.similarSex) {
     })
     .filter((row) => Number.isFinite(row.similarity))
     .sort((a, b) => b.similarity - a.similarity || a.item.name.localeCompare(b.item.name, "no"));
+}
+
+function similarCandidateHasSignal(item, mode) {
+  if (mode === "text") return latestCount(item) > 0 || item.peakCount >= 10;
+  const activeYears = allPoints(item).filter((point) => (point.count ?? 0) > 0).length;
+  if (mode === "curve") return activeYears >= 12 && (latestCount(item) >= 20 || item.peakCount >= 100);
+  return activeYears >= 8 && (latestCount(item) >= 5 || item.peakCount >= 30);
 }
 
 function curveSimilarity(a, b, metric = "shareSex") {

@@ -414,39 +414,292 @@ body {
   padding-bottom: 16px;
 }
 
+.compareHeader,
+.reviewHeader,
+.mineHeader {
+  position: relative;
+  min-height: 104px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  padding-inline: 20px;
+  overflow: hidden;
+}
+
+.compareHeader .iconBubble,
+.reviewHeader .iconBubble,
+.mineHeader .iconBubble {
+  display: none;
+}
+
+.compareHeader h1,
+.reviewHeader h1,
+.mineHeader h1 {
+  font-size: 1.82rem;
+  line-height: 1;
+}
+
+.compareHeader p,
+.reviewHeader p,
+.mineHeader p {
+  max-width: 17.5rem;
+  margin-top: 6px;
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.compareHeader::after,
+.reviewHeader::after,
+.mineHeader::after {
+  content: "";
+  position: absolute;
+  right: 62px;
+  bottom: -30px;
+  z-index: 0;
+  width: 94px;
+  height: 94px;
+  background: url("assets/illustrations/botanical-sprite-v1.png") 0 100% / 200% 200% no-repeat;
+  opacity: 0.16;
+  pointer-events: none;
+}
+
+.reviewHeader::after {
+  background-position: 0 0;
+  opacity: 0.12;
+}
+
+.mineHeader::after {
+  background-position: 100% 100%;
+  opacity: 0.15;
+}
+
+.compareHeader > *,
+.reviewHeader > *,
+.mineHeader > * {
+  position: relative;
+  z-index: 1;
+}
+
 #view-compare .phoneSurface,
 #view-mine .phoneSurface {
-  gap: 13px;
+  gap: 14px;
   background: var(--surface);
 }
 
+#view-compare .workflowCard {
+  display: none;
+}
+
+#compareChips {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  max-height: 142px;
+  overflow: visible;
+  overflow-y: auto;
+  padding: 0;
+  scrollbar-width: none;
+}
+
+#compareChips::-webkit-scrollbar {
+  display: none;
+}
+
 #compareChips .nameChip {
-  min-height: 40px;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 28px;
+  gap: 8px;
+  justify-content: stretch;
+  min-width: 0;
+  min-height: 66px;
+  padding: 9px 8px 9px 10px;
+  border-radius: 18px;
+  background: #fff2eb;
+  color: #24463d;
+  box-shadow: inset 0 0 0 1px rgba(240, 221, 209, 0.86);
+}
+
+#compareChips .nameChip.gutt {
+  background: #f1f7ea;
+  color: #24463d;
+}
+
+#compareChips .nameChip::before {
+  content: "";
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: url("assets/illustrations/botanical-sprite-v1.png") 0 0 / 200% 200% no-repeat;
+  mix-blend-mode: multiply;
+}
+
+#compareChips .nameChip.gutt::before {
+  background-position: 100% 0;
+}
+
+#compareChips .nameChipName {
+  justify-items: start;
+  align-content: center;
+  font-size: 0.95rem;
+  font-weight: 900;
+  text-align: left;
+}
+
+#compareChips .chipRemove {
+  align-self: center;
+  background: rgba(255, 255, 255, 0.68);
+  color: #b96857;
   box-shadow: none;
 }
 
 .metricModes {
-  min-height: 48px;
+  min-height: 44px;
   padding: 4px;
   background: #f7f4ed;
   box-shadow: inset 0 0 0 1px var(--line);
 }
 
 .metricModes button {
-  min-height: 40px;
+  min-height: 36px;
   font-size: 0.72rem;
 }
 
 .rangeSummary {
-  min-height: 48px;
-  border-radius: 17px;
-  background: #fffaf3;
+  min-height: 44px;
+  padding: 5px 2px 8px;
+  border-radius: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  box-shadow: none;
+}
+
+.rangeSummary strong {
+  color: #233e36;
+  font-size: 0.84rem;
+}
+
+.rangeSummary em {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: #fff2eb;
 }
 
 .chartBox {
-  height: 250px;
-  border-radius: 18px;
-  box-shadow: inset 0 0 0 1px var(--line);
+  height: 232px;
+  border-radius: 16px;
+  background: #fffefa;
+  box-shadow: none;
+}
+
+.legend {
+  padding: 0 5px 4px;
+}
+
+.legend span {
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
+#view-compare .insightPanel {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+#view-compare .insightPanel span {
+  min-height: 72px;
+  padding: 10px;
+  border-top: 4px solid #f28a70;
+  background: #fff8f3;
+}
+
+#view-compare .insightPanel span:nth-child(3) {
+  border-top-color: #80a864;
+  background: #f6faef;
+}
+
+#view-compare .insightPanel span:nth-child(4) {
+  border-top-color: #7db6d6;
+  background: #f2f8fb;
+}
+
+#view-compare .insightPanel .wide {
+  min-height: auto;
+  padding: 10px 12px;
+  border: 0;
+  background: #fff2e8;
+}
+
+#view-compare .insightPanel small,
+#view-compare .insightPanel strong,
+#view-compare .insightPanel em {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+#view-compare .insightPanel strong {
+  font-size: 0.78rem;
+}
+
+#view-compare .insightPanel em {
+  margin-top: 2px;
+  font-size: 0.58rem;
+  line-height: 1.24;
+}
+
+.similarPanelCompact {
+  position: relative;
+  overflow: hidden;
+  padding: 15px;
+  background: linear-gradient(135deg, #eef7fb, #f7fbef);
+}
+
+.similarPanelCompact::after {
+  content: "";
+  position: absolute;
+  right: -24px;
+  bottom: -26px;
+  width: 112px;
+  height: 112px;
+  background: url("assets/illustrations/botanical-sprite-v1.png") 100% 100% / 200% 200% no-repeat;
+  opacity: 0.13;
+  pointer-events: none;
+}
+
+.similarPanelCompact > * {
+  position: relative;
+  z-index: 1;
+}
+
+.metricPanel {
+  padding: 13px;
+  background: #fffefa;
+}
+
+.statTable {
+  max-height: none;
+  border-radius: 13px;
+  background: var(--line);
+}
+
+.statRow {
+  min-height: 40px;
+  background: #fffdf9;
+}
+
+#view-compare .actionRow {
+  grid-template-columns: 1.2fr repeat(4, minmax(0, 0.8fr));
+  gap: 7px;
+}
+
+#view-compare .actionRow button {
+  min-height: 40px;
+  border-radius: 14px;
+  background: #f5f7f8;
+}
+
+#view-compare .actionRow .primaryStep {
+  background: #eaf4ff;
+  color: #2f78a8;
 }
 
 .insightPanel span,
@@ -460,18 +713,220 @@ body {
 }
 
 .reviewSurface {
+  position: relative;
   border-radius: 0;
-  background: linear-gradient(180deg, #fff3ec 0%, var(--surface) 36%);
+  gap: 12px;
+  background:
+    radial-gradient(140px 100px at 100% 0, rgba(255, 218, 199, 0.46), transparent 72%),
+    linear-gradient(180deg, #fff3ec 0%, var(--surface) 38%);
+}
+
+#view-review .reviewProgressLine {
+  justify-self: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #7b6f65;
+  font-size: 0.68rem;
 }
 
 .reviewCard {
-  min-height: 360px;
-  border-radius: 24px;
-  box-shadow: var(--shadow), inset 0 0 0 1px var(--line);
+  min-height: 380px;
+  padding: 20px 18px 15px;
+  overflow: hidden;
+  border-radius: 28px;
+  background:
+    radial-gradient(120px 110px at 102% -4%, rgba(255, 226, 213, 0.72), transparent 72%),
+    linear-gradient(180deg, #fffefa, #fffaf3);
+  box-shadow: 0 15px 34px rgba(75, 57, 39, 0.1), inset 0 0 0 1px var(--line);
+}
+
+.reviewCard::before {
+  content: "";
+  position: absolute;
+  top: 13px;
+  right: 13px;
+  width: 78px;
+  height: 78px;
+  background: url("assets/illustrations/botanical-sprite-v1.png") 0 0 / 200% 200% no-repeat;
+  opacity: 0.72;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+.reviewNamePlate {
+  position: relative;
+  z-index: 1;
+  max-width: calc(100% - 74px);
+}
+
+.reviewCard h2 {
+  color: #153d33;
+  font-size: clamp(2.7rem, 14vw, 3.7rem);
+  letter-spacing: -0.045em;
+}
+
+.reviewSpark {
+  border-radius: 18px;
+  background: #f6fafb;
+}
+
+.reviewStats span {
+  border-radius: 16px;
+  background: #fff;
+}
+
+.schoolCard {
+  border-radius: 18px;
+  background: #eaf5fb;
 }
 
 .reviewActions .reviewAction {
-  border-radius: 20px;
+  min-height: 70px;
+  border-radius: 22px;
+  box-shadow: 0 10px 24px rgba(74, 57, 39, 0.08);
+}
+
+#view-mine .workflowCard {
+  display: none;
+}
+
+.mineFilters {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  padding: 1px 0 3px;
+  scrollbar-width: none;
+}
+
+.mineFilters::-webkit-scrollbar {
+  display: none;
+}
+
+.mineFilters button {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #fff;
+  color: #746c63;
+  font-size: 0.66rem;
+  font-weight: 800;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.mineFilters button.active {
+  background: #8ea968;
+  color: white;
+  box-shadow: none;
+}
+
+.minePreview {
+  gap: 8px;
+}
+
+.manageNameRow,
+.manageNameRow:nth-child(2n),
+.manageNameRow:nth-child(3n),
+.manageNameRow:nth-child(4n) {
+  min-height: 70px;
+  background: #fffdf9;
+}
+
+.manageNameRow .rank {
+  background: #eaf3fb;
+  color: #5994b8;
+}
+
+.manageNameRow.status-shortlist .rank {
+  background: #eef6e7;
+  color: #77a15a;
+}
+
+.manageNameRow.status-rejected .rank {
+  background: #fff0f1;
+  color: #d26b78;
+}
+
+.manageNameRow .rank svg {
+  width: 19px;
+  height: 19px;
+}
+
+.manageNameRow .moreButton {
+  grid-column: 4;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: transparent;
+  color: #a38f7e;
+  box-shadow: none;
+}
+
+.mineTip {
+  position: relative;
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr);
+  gap: 5px 12px;
+  align-items: center;
+  min-height: 126px;
+  padding: 14px 14px 14px 10px;
+  overflow: hidden;
+  border-radius: 19px;
+  background: #eaf5fb;
+  color: #24463d;
+}
+
+.mineTipArt {
+  grid-row: 1 / 3;
+  width: 86px;
+  height: 86px;
+  background: url("assets/illustrations/botanical-sprite-v1.png") 100% 100% / 200% 200% no-repeat;
+  mix-blend-mode: multiply;
+}
+
+.mineTip span {
+  align-self: end;
+}
+
+.mineTip small,
+.mineTip strong {
+  display: block;
+}
+
+.mineTip small {
+  color: #397f8d;
+  font-size: 0.6rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.mineTip strong {
+  margin-top: 2px;
+  font-size: 0.82rem;
+}
+
+.mineTip p {
+  margin: 4px 0 0;
+  color: #65726f;
+  font-size: 0.62rem;
+  line-height: 1.3;
+}
+
+.mineTip button {
+  justify-self: start;
+  align-self: start;
+  min-height: 31px;
+  padding: 0 11px;
+  border-radius: 999px;
+  background: #68a9cf;
+  color: white;
+  font-size: 0.62rem;
+  font-weight: 850;
+}
+
+#view-mine .decisionRows .emptyState {
+  background: #fff9f1;
 }
 
 .tabBar {

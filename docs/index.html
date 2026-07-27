@@ -85,7 +85,7 @@
         </section>
 
         <section id="view-compare" class="screen" data-view="compare">
-          <header class="screenHeader">
+          <header class="screenHeader compareHeader">
             <div class="iconBubble green"><svg><use href="#icon-chart"></use></svg></div>
             <div>
               <h1>Sammenlign</h1>
@@ -124,7 +124,7 @@
         </section>
 
         <section id="view-review" class="screen" data-view="review">
-          <header class="screenHeader">
+          <header class="screenHeader reviewHeader">
             <div class="iconBubble pink"><svg><use href="#icon-heart"></use></svg></div>
             <div>
               <h1>Vurder</h1>
@@ -150,7 +150,7 @@
         </section>
 
         <section id="view-mine" class="screen" data-view="mine">
-          <header class="screenHeader">
+          <header class="screenHeader mineHeader">
             <div class="iconBubble yellow"><svg><use href="#icon-star"></use></svg></div>
             <div>
               <h1>Vår liste</h1>
@@ -163,11 +163,18 @@
 
           <section class="phoneSurface">
             <section id="mineWorkflow" class="workflowCard"></section>
-            <div class="listMenu">
-              <button type="button" data-open-list="work"><span class="miniIcon blue"><svg><use href="#icon-list"></use></svg></span><span><strong>Kandidater</strong><small id="workCount">0 navn</small></span><em>›</em></button>
-              <button type="button" data-open-list="shortlist"><span class="miniIcon green"><svg><use href="#icon-heart"></use></svg></span><span><strong>Aktuelle</strong><small id="shortlistCount">0 navn</small></span><em>›</em></button>
-              <button type="button" data-open-list="rejected"><span class="miniIcon red"><svg><use href="#icon-x"></use></svg></span><span><strong>Uaktuelle</strong><small id="rejectedCount">0 navn</small></span><em>›</em></button>
+            <div id="mineFilters" class="mineFilters" aria-label="Filtrer vår liste">
+              <button class="active" type="button" data-mine-filter="all">Alle</button>
+              <button type="button" data-mine-filter="work">Kandidater</button>
+              <button type="button" data-mine-filter="shortlist">Aktuelle</button>
+              <button type="button" data-mine-filter="rejected">Uaktuelle</button>
             </div>
+            <div id="minePreview" class="nameRows minePreview"></div>
+            <section class="mineTip">
+              <div class="mineTipArt" aria-hidden="true"></div>
+              <span><small>Tips</small><strong>Sammenlign favorittene</strong><p>Se trend, rang og særpreg side om side før dere bestemmer dere.</p></span>
+              <button data-go-tab="compare" type="button">Sammenlign</button>
+            </section>
             <div class="sectionRow">
               <h3>Nylig vurderte</h3>
               <button id="openHistory" type="button">Se alle</button>

@@ -3,7 +3,7 @@ const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
 const SCHOOL_STORAGE_KEY = "navnestatistikk:schoolSettings:v1";
-const SW_VERSION = "2026-07-27.4";
+const SW_VERSION = "2026-07-27.5";
 
 const state = {
   data: null,
@@ -42,6 +42,7 @@ const state = {
   similarReferenceId: "",
   similarSex: "alle",
   showAdvancedSimilar: false,
+  mineFilter: "all",
   review: {
     deck: [],
     index: 0,
@@ -131,6 +132,12 @@ function bindChrome() {
   $("#openHistory")?.addEventListener("click", openHistory);
   $$("[data-open-list]").forEach((button) => {
     button.addEventListener("click", () => openNameList(button.dataset.openList));
+  });
+  $$("[data-mine-filter]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.mineFilter = button.dataset.mineFilter;
+      renderMine();
+    });
   });
   $("#subBack")?.addEventListener("click", closeSubscreen);
   $("#subscreen")?.addEventListener("click", (event) => {
@@ -1307,9 +1314,25 @@ function renderMine() {
   const work = workItems();
   const shortlist = itemsWithStatus("shortlist");
   const rejected = itemsWithStatus("rejected");
-  $("#workCount").textContent = `${formatNumber(work.length)} navn`;
-  $("#shortlistCount").textContent = `${formatNumber(shortlist.length)} navn`;
-  $("#rejectedCount").textContent = `${formatNumber(rejected.length)} navn`;
+  const groups = { work, shortlist, rejected };
+  const all = uniqueItems([...work, ...shortlist, ...rejected]);
+  const rows = state.mineFilter === "all" ? all : groups[state.mineFilter] || all;
+  $$("[data-mine-filter]").forEach((button) => {
+    const count = button.dataset.mineFilter === "all" ? all.length : groups[button.dataset.mineFilter]?.length || 0;
+    const labels = { all: "Alle", work: "Kandidater", shortlist: "Aktuelle", rejected: "Uaktuelle" };
+    button.textContent = `${labels[button.dataset.mineFilter]} (${formatNumber(count)})`;
+    button.classList.toggle("active", button.dataset.mineFilter === state.mineFilter);
+  });
+  const preview = $("#minePreview");
+  preview.replaceChildren(...rows.slice(0, 16).map((item) => listManageRow(item, itemStatusKind(item))));
+  if (!rows.length) {
+    preview.innerHTML = `
+      <div class="emptyState compact">
+        <p>${all.length ? "Ingen navn i denne kategorien ennå." : "Listen er tom. Finn navn dere vil utforske, så samles de her."}</p>
+        <div class="emptyActions"><button data-go-tab="explore" type="button">Finn navn</button></div>
+      </div>
+    `;
+  }
   const recent = $("#recentDecisions");
   recent.replaceChildren(...state.history.slice(0, 6).map((entry) => decisionRow(entry)));
   if (!state.history.length) {
@@ -1323,6 +1346,10 @@ function renderMine() {
       </div>
     `;
   }
+}
+
+function itemStatusKind(item) {
+  return state.status[item.id] === "shortlist" ? "shortlist" : state.status[item.id] === "rejected" ? "rejected" : "work";
 }
 
 function decisionRow(entry) {
@@ -1386,6 +1413,16 @@ function clearNameList(kind) {
 
 function listManageRow(item, kind) {
   const row = nameRow(item);
+  row.classList.add("manageNameRow", `status-${kind}`);
+  const statusMeta = {
+    work: ["list", "Kandidat"],
+    shortlist: ["heart", "Aktuelt"],
+    rejected: ["x", "Uaktuelt"],
+  }[kind] || ["list", "Kandidat"];
+  const rank = $(".rank", row);
+  rank.innerHTML = `<svg><use href="#icon-${statusMeta[0]}"></use></svg>`;
+  const meta = $(".nameMain small", row);
+  meta.textContent = `${statusMeta[1]} · ${meta.textContent}`;
   $(".addButton", row).remove();
   const menu = document.createElement("button");
   menu.type = "button";

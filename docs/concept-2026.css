@@ -156,7 +156,7 @@ body {
 
 #view-explore .phoneSurface {
   margin-top: 0;
-  padding-top: 0;
+  padding-top: 16px;
   background: var(--surface);
 }
 
@@ -164,11 +164,15 @@ body {
   position: relative;
   z-index: 4;
   min-height: 54px;
-  margin-top: -27px;
+  margin-top: 0;
   padding-inline: 17px;
   border-radius: 27px;
   background: #fff;
   box-shadow: 0 12px 28px rgba(71, 54, 36, 0.13), inset 0 0 0 1px rgba(232, 220, 204, 0.72);
+}
+
+#view-explore .nameLens + .searchBar {
+  margin-top: 0;
 }
 
 .searchBar svg {
@@ -315,6 +319,7 @@ body {
   border-radius: 18px;
   background: #fff7f1;
   box-shadow: inset 0 0 0 1px rgba(238, 228, 215, 0.92);
+  scroll-margin-bottom: calc(var(--tab-height) + 30px);
 }
 
 .featureNameCard:nth-child(2n) {
@@ -450,26 +455,15 @@ body {
 .compareHeader::after,
 .reviewHeader::after,
 .mineHeader::after {
-  content: "";
-  position: absolute;
-  right: 62px;
-  bottom: -30px;
-  z-index: 0;
-  width: 94px;
-  height: 94px;
-  background: url("assets/illustrations/botanical-sprite-v1.png") 0 100% / 200% 200% no-repeat;
-  opacity: 0.16;
-  pointer-events: none;
+  content: none;
 }
 
 .reviewHeader::after {
-  background-position: 0 0;
-  opacity: 0.12;
+  content: none;
 }
 
 .mineHeader::after {
-  background-position: 100% 100%;
-  opacity: 0.15;
+  content: none;
 }
 
 .compareHeader > *,
@@ -716,6 +710,7 @@ body {
   position: relative;
   border-radius: 0;
   gap: 12px;
+  padding-bottom: calc(var(--tab-height) + 24px + env(safe-area-inset-bottom));
   background:
     radial-gradient(140px 100px at 100% 0, rgba(255, 218, 199, 0.46), transparent 72%),
     linear-gradient(180deg, #fff3ec 0%, var(--surface) 38%);
@@ -761,9 +756,23 @@ body {
 }
 
 .reviewCard h2 {
+  align-items: center;
   color: #153d33;
   font-size: clamp(2.7rem, 14vw, 3.7rem);
   letter-spacing: -0.045em;
+}
+
+.reviewCard .sexIcon {
+  width: 0.64em;
+  height: 0.64em;
+  transform: translateY(0.01em);
+  stroke-width: 2.55;
+}
+
+.detailHero .sexIcon {
+  width: 0.58em;
+  height: 0.58em;
+  stroke-width: 2.5;
 }
 
 .reviewSpark {
@@ -781,7 +790,15 @@ body {
   background: #eaf5fb;
 }
 
-.reviewActions .reviewAction {
+#view-review .reviewActions {
+  position: static;
+  inset: auto;
+  z-index: 3;
+  width: 100%;
+  margin: 2px 0 0;
+}
+
+#view-review .reviewActions .reviewAction {
   min-height: 70px;
   border-radius: 22px;
   box-shadow: 0 10px 24px rgba(74, 57, 39, 0.08);

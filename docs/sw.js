@@ -1,4 +1,4 @@
-const CACHE_VERSION = "2026-07-27.7";
+const CACHE_VERSION = "2026-07-27.8";
 const CACHE_PREFIX = "navnestatistikk-pwa";
 const CACHE_NAME = `${CACHE_PREFIX}-${CACHE_VERSION}`;
 
@@ -17,6 +17,7 @@ const SHELL_PATHS = [
   "./apple-touch-icon.png",
   "./vendor/plotly-2.35.2.min.js",
   "./assets/names-data.json",
+  "./assets/open-names.json",
   "./assets/illustrations/mobile-mascot-sprite-v1.png",
   "./assets/illustrations/botanical-sprite-v1.png",
 ];

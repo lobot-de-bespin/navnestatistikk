@@ -1023,3 +1023,165 @@ body {
     gap: 8px;
   }
 }
+
+/* Names documented in the current Norwegian population, without birth history. */
+.nameRow .rank svg {
+  width: 20px;
+  height: 20px;
+}
+
+.nameRow.noHistory {
+  background: #f4f8f2;
+}
+
+.nameRow.noHistory .rank {
+  background: #e1ecda;
+  color: #638452;
+}
+
+.registryBadge,
+.inlineSource {
+  display: inline-flex;
+  min-height: 25px;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #e8f1e2;
+  color: #5d7c4c;
+  font-size: 0.56rem;
+  font-weight: 820;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.noDataLegend {
+  display: flex !important;
+  width: 100%;
+  align-items: center;
+  gap: 6px;
+  color: #657068;
+  line-height: 1.35;
+}
+
+.noDataLegend svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  color: #64864e;
+}
+
+.chartNoHistory {
+  display: grid;
+  min-height: 210px;
+  place-items: center;
+  color: #6c756f;
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.registryNameSource,
+.reviewRegistryName {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 13px;
+  align-items: start;
+  background: #eff6ea;
+}
+
+.sourcePeople {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border-radius: 50%;
+  background: #dcebd2;
+  color: #64864e;
+}
+
+.sourcePeople svg {
+  width: 25px;
+  height: 25px;
+}
+
+.registryNameSource small,
+.reviewRegistryName small {
+  color: #678056;
+  font-size: 0.66rem;
+  font-weight: 820;
+  text-transform: uppercase;
+}
+
+.registryNameSource h3,
+.reviewRegistryName strong {
+  display: block;
+  margin: 2px 0 4px;
+  color: #21483b;
+  font-size: 1rem;
+}
+
+.registryNameSource p,
+.reviewRegistryName p,
+.sourceNote p,
+.reviewSourceNote {
+  margin: 0;
+  color: #657068;
+  font-size: 0.75rem;
+  line-height: 1.38;
+}
+
+.registryFacts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0;
+  background: transparent;
+}
+
+.registryFacts span {
+  display: grid;
+  min-height: 88px;
+  place-content: center;
+  padding: 10px;
+  border-radius: 18px;
+  background: #fffefa;
+  box-shadow: inset 0 0 0 1px rgba(232, 212, 190, 0.74);
+  text-align: center;
+}
+
+.registryFacts small,
+.registryFacts em {
+  color: #70766f;
+  font-size: 0.65rem;
+  font-style: normal;
+}
+
+.registryFacts b {
+  margin: 2px 0;
+  color: #173f35;
+  font-size: 1.25rem;
+}
+
+.sourceNote a {
+  display: inline-block;
+  margin-top: 9px;
+  color: #477c67;
+  font-size: 0.7rem;
+  font-weight: 760;
+}
+
+.reviewRegistryName {
+  margin-top: 10px;
+  padding: 14px;
+  border-radius: 24px;
+}
+
+.registryNameStats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.reviewSourceNote {
+  padding: 10px 8px 0;
+  text-align: center;
+}

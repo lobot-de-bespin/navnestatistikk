@@ -3,7 +3,7 @@ const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
 const SCHOOL_STORAGE_KEY = "navnestatistikk:schoolSettings:v1";
-const SW_VERSION = "2026-07-27.7";
+const SW_VERSION = "2026-07-27.9";
 
 const state = {
   data: null,
@@ -524,7 +524,18 @@ function searchRows(query) {
     .filter((item) => state.filters.sex === "alle" || item.sex === state.filters.sex)
     .filter((item) => !state.status[item.id] || state.status[item.id] !== "rejected")
     .filter((item) => normalize(item.name).includes(q))
-    .sort((a, b) => latestCount(b) - latestCount(a) || a.name.localeCompare(b.name, "no"));
+    .sort((a, b) => {
+      const aName = normalize(a.name);
+      const bName = normalize(b.name);
+      return (
+        Number(bName === q) - Number(aName === q) ||
+        Number(bName.startsWith(q)) - Number(aName.startsWith(q)) ||
+        Number(hasHistory(b)) - Number(hasHistory(a)) ||
+        latestCount(b) - latestCount(a) ||
+        (b.currentCount ?? 0) - (a.currentCount ?? 0) ||
+        a.name.localeCompare(b.name, "no")
+      );
+    });
 }
 
 function popularRows(sex = "jente", limit = 10) {
@@ -561,17 +572,18 @@ function rememberSearch(query) {
 
 function nameRow(item, options = {}) {
   const selected = state.selected.has(item.id);
+  const history = hasHistory(item);
   const latest = pointInYear(item, state.latestYear);
   const row = document.createElement("article");
-  row.className = `nameRow ${options.feature ? "featureNameCard" : ""} ${selected ? "selected" : ""}`;
+  row.className = `nameRow ${options.feature ? "featureNameCard" : ""} ${selected ? "selected" : ""} ${history ? "" : "noHistory"}`;
   row.innerHTML = `
-    <span class="rank">${options.rank ?? ""}</span>
+    <span class="rank">${history ? (options.rank ?? "") : '<svg aria-hidden="true"><use href="#icon-people"></use></svg>'}</span>
     <button class="nameMain" type="button">
       <strong>${escapeHtml(item.name)}</strong>
-      <small>${escapeHtml(itemMood(item))} · toppår ${item.peakYear}</small>
+      <small>${history ? `${escapeHtml(itemMood(item))} · toppår ${item.peakYear}` : "I bruk i Norge · ingen historikk"}</small>
     </button>
-    <span class="spark">${sparklineSvg(item)}</span>
-    <span class="count nameScore"><b>${formatNumber(latest?.[1] ?? 0)}</b><small>${state.latestYear}</small></span>
+    <span class="spark">${history ? sparklineSvg(item) : '<span class="registryBadge">SSB</span>'}</span>
+    <span class="count nameScore"><b>${formatNumber(history ? (latest?.[1] ?? 0) : item.currentCount)}</b><small>${history ? state.latestYear : "personer"}</small></span>
     <button class="addButton ${selected ? "active" : ""}" type="button" aria-label="${selected ? "Valgt, trykk for å fjerne" : "Legg til"} ${escapeHtml(item.name)}">
       <svg><use href="#icon-${selected ? "check" : "plus"}"></use></svg>
     </button>
@@ -689,8 +701,15 @@ function renderCompareInsight(items) {
   }
   panel.hidden = false;
   const latestRows = items
+    .filter(hasHistory)
     .map((item) => ({ item, point: pointInYear(item, state.latestYear), trend: trendScore(item) }))
     .filter((row) => row.point);
+  if (!latestRows.length) {
+    panel.innerHTML = `
+      <span class="wide"><small>Sammenligning</small><strong>Ingen fødselshistorikk</strong><em>Navnene er dokumentert i bruk i Norge, men mangler tidsserie i SSB-tabellen.</em></span>
+    `;
+    return;
+  }
   const largest = latestRows.slice().sort((a, b) => (b.point?.[1] ?? 0) - (a.point?.[1] ?? 0))[0];
   const fastest = latestRows.slice().sort((a, b) => b.trend - a.trend)[0];
   const rarest = latestRows.slice().sort((a, b) => (a.point?.[1] ?? 0) - (b.point?.[1] ?? 0))[0];
@@ -773,7 +792,8 @@ function renderCompareSimilar(items) {
   panel.hidden = false;
   ensureSimilarReference(items);
   const reference = state.itemsById.get(state.similarReferenceId) || items[0];
-  const rows = similarRows(reference, state.similarMode, state.similarSex).slice(0, 5);
+  const mode = hasHistory(reference) ? state.similarMode : "text";
+  const rows = similarRows(reference, mode, state.similarSex).slice(0, 5);
   const preview = rows.slice(0, state.showAdvancedSimilar ? 5 : 3);
   panel.innerHTML = `
     <div class="similarPanelHead">
@@ -809,15 +829,25 @@ function renderChart(items) {
     $("#compareLegend").replaceChildren();
     return;
   }
+  const historyItems = items.filter(hasHistory);
   const metric = effectiveMetric();
-  chart.innerHTML = lineChartSvg(items, metric, state.compare.fromYear, state.compare.toYear, 344, 250);
-  chart.dataset.traces = String(items.length);
+  chart.innerHTML = historyItems.length
+    ? lineChartSvg(historyItems, metric, state.compare.fromYear, state.compare.toYear, 344, 250)
+    : `<div class="chartNoHistory">Ingen fødselshistorikk å tegne</div>`;
+  chart.dataset.traces = String(historyItems.length);
   const legend = $("#compareLegend");
-  legend.replaceChildren(...items.map((item, index) => {
+  legend.replaceChildren(...historyItems.map((item, index) => {
     const label = document.createElement("span");
     label.innerHTML = `<i style="background:${chartColor(index, item)}"></i>${escapeHtml(item.name)}`;
     return label;
   }));
+  const registryItems = items.filter((item) => !hasHistory(item));
+  if (registryItems.length) {
+    const note = document.createElement("span");
+    note.className = "noDataLegend";
+    note.innerHTML = `<svg aria-hidden="true"><use href="#icon-people"></use></svg>${registryItems.map((item) => `${escapeHtml(item.name)}: ${formatNumber(item.currentCount)} personer`).join(" · ")}`;
+    legend.append(note);
+  }
 }
 
 function renderCompareStats(items) {
@@ -828,15 +858,16 @@ function renderCompareStats(items) {
   }
   table.replaceChildren(...items.map((item) => {
     const point = pointInYear(item, state.compare.toYear);
+    const history = hasHistory(item);
     const row = document.createElement("button");
     row.type = "button";
     row.className = "statRow";
     row.innerHTML = `
       <span><b>${escapeHtml(item.name)}</b><small>${escapeHtml(item.sex)}</small></span>
-      <span>${formatNumber(point?.[1] ?? 0)}</span>
+      <span>${history ? formatNumber(point?.[1] ?? 0) : formatNumber(item.currentCount)}</span>
       <span>${point?.[2] ? formatNumber(point[2]) : "-"}</span>
       <span>${formatPercent(point?.[3])}</span>
-      <span>${item.peakYear}</span>
+      <span>${history ? item.peakYear : "-"}</span>
     `;
     row.addEventListener("click", () => openNameDetail(item));
     return row;
@@ -900,7 +931,7 @@ function similarResultRow(row, options = {}) {
     <span>
       <strong>${escapeHtml(item.name)} <small class="sexTag ${item.sex}">${escapeHtml(item.sex)}</small></strong>
       <small>${row.reason}</small>
-      <b class="inlineSpark">${sparklineSvg(item, sparkWidth, sparkHeight)}</b>
+      <b class="inlineSpark">${hasHistory(item) ? sparklineSvg(item, sparkWidth, sparkHeight) : '<span class="inlineSource">SSB-register</span>'}</b>
     </span>
     <em>${formatDecimal(row.similarity * 100, 0)} %</em>
     <i><svg><use href="#icon-plus"></use></svg></i>
@@ -923,6 +954,7 @@ function similarSexLabel(value) {
 }
 
 function similarPreviewLabel(reference) {
+  if (!hasHistory(reference)) return `Basert på skrivemåten til ${escapeHtml(reference.name)}`;
   if (!state.showAdvancedSimilar) return `Basert på ${escapeHtml(reference.name)}, popularitet og andel i årskullet`;
   return `Referanse: ${escapeHtml(reference.name)} · ${similarSexLabel(state.similarSex)}`;
 }
@@ -951,10 +983,11 @@ function schoolCardMarkup(item) {
 function openNameDetail(item) {
   openSubscreen(item.name, detailMarkup(item), () => setNameStatus(item.id, "shortlist"));
   $("#subAction").innerHTML = '<svg><use href="#icon-heart"></use></svg>';
-  requestAnimationFrame(() => renderMiniChart("detailChart", [item], "shareSex", 1900, 3));
+  if (hasHistory(item)) requestAnimationFrame(() => renderMiniChart("detailChart", [item], "shareSex", 1900, 3));
 }
 
 function detailMarkup(item) {
+  if (!hasHistory(item)) return registryNameDetailMarkup(item);
   const latest = pointInYear(item, state.latestYear);
   return `
     <section class="detailHero">
@@ -983,6 +1016,33 @@ function detailMarkup(item) {
   `;
 }
 
+function registryNameDetailMarkup(item) {
+  return `
+    <section class="detailHero">
+      <div><h2>${escapeHtml(item.name)} ${sexIconMarkup(item)}</h2><p>${escapeHtml(item.sex)}</p></div>
+    </section>
+    <section class="subCard registryNameSource">
+      <span class="sourcePeople"><svg aria-hidden="true"><use href="#icon-people"></use></svg></span>
+      <div>
+        <small>Dokumentert i Norge</small>
+        <h3>${formatNumber(item.currentCount)} personer</h3>
+        <p>Navnet er registrert på personer med norsk personnummer i ${state.data.meta.currentNamesYear}.</p>
+      </div>
+    </section>
+    <section class="subCard registryFacts">
+      <span><small>Rang blant ${escapeHtml(item.sex)}navn</small><b>${formatNumber(item.currentRank)}</b><em>${state.data.meta.currentNamesYear}</em></span>
+      <span><small>Kilde</small><b>SSB</b><em>tabell ${escapeHtml(state.data.meta.currentNamesTable)}</em></span>
+    </section>
+    <section class="subCard sourceNote">
+      <h3>Ingen fødselshistorikk</h3>
+      <p>Navnet finnes i befolkningsregisteret, men ikke i SSBs historiske fødselsserie. Derfor viser vi ikke trend, toppår eller skoleestimat.</p>
+      <a href="https://www.ssb.no/statbank/table/${escapeHtml(state.data.meta.currentNamesTable)}/" target="_blank" rel="noopener">Se kildetabellen hos SSB</a>
+    </section>
+    <button class="primaryWide" data-add="${item.id}" type="button">Legg til i vår liste</button>
+    <button class="secondaryWide" data-similar="${item.id}" type="button">Finn navn med lignende skrivemåte</button>
+  `;
+}
+
 function decisionSummaryMarkup(item) {
   const latest = pointInYear(item, state.latestYear);
   const trend = trendScore(item);
@@ -1003,6 +1063,7 @@ function decisionSummaryMarkup(item) {
 function openSimilar(item) {
   if (!item) return;
   state.similarReferenceId = item.id;
+  if (!hasHistory(item)) state.similarMode = "text";
   const references = uniqueItems([item, ...compareItems()]);
   openSubscreen("Finn lignende navn", `
     <div class="similarHead">
@@ -1140,6 +1201,30 @@ function renderReview() {
   }
   const latest = pointInYear(item, state.latestYear);
   $(".reviewActions").hidden = false;
+  if (!hasHistory(item)) {
+    card.innerHTML = `
+      <div class="reviewNamePlate">
+        <p class="cardMeta">${state.review.index + 1} av ${state.review.deck.length}</p>
+        <h2>${escapeHtml(item.name)} ${sexIconMarkup(item)}</h2>
+        <span class="trendPill">I bruk i Norge</span>
+      </div>
+      <section class="reviewRegistryName">
+        <span class="sourcePeople"><svg aria-hidden="true"><use href="#icon-people"></use></svg></span>
+        <div>
+          <small>SSB · ${state.data.meta.currentNamesYear}</small>
+          <strong>${formatNumber(item.currentCount)} personer</strong>
+          <p>Dokumentert på personer med norsk personnummer.</p>
+        </div>
+      </section>
+      <div class="reviewStats registryNameStats">
+        <span><small>Antall</small><b>${formatNumber(item.currentCount)}</b><em>personer</em></span>
+        <span><small>Rang</small><b>${formatNumber(item.currentRank)}</b><em>blant ${escapeHtml(item.sex)}navn</em></span>
+      </div>
+      <p class="reviewSourceNote">Navnet mangler fødselshistorikk, så trend og skoleestimat vises ikke.</p>
+    `;
+    bindSubscreenButtons(card);
+    return;
+  }
   card.innerHTML = `
     <div class="reviewNamePlate">
       <p class="cardMeta">${state.review.index + 1} av ${state.review.deck.length}</p>
@@ -1535,7 +1620,16 @@ function smoothLabel(value) {
 
 function filteredRows() {
   let rows = state.query ? searchRows(state.query) : state.data.names.slice();
-  rows = rows.filter((item) => allPoints(item).some((point) => point.year >= state.filters.fromYear && point.year <= state.filters.toYear && (point.count ?? 0) > 0));
+  const defaultFromYear = Math.max(1900, state.firstYear);
+  const includeRegistryNames = Boolean(state.query) &&
+    state.filters.fromYear === defaultFromYear &&
+    state.filters.toYear === state.latestYear &&
+    state.filters.popularity === "alle" &&
+    state.filters.schoolMax === "";
+  rows = rows.filter((item) => {
+    if (!hasHistory(item)) return includeRegistryNames;
+    return allPoints(item).some((point) => point.year >= state.filters.fromYear && point.year <= state.filters.toYear && (point.count ?? 0) > 0);
+  });
   if (state.filters.pattern) {
     try {
       const regex = new RegExp(state.filters.pattern, "i");
@@ -1545,10 +1639,11 @@ function filteredRows() {
     }
   }
   if (state.filters.sex !== "alle") rows = rows.filter((item) => item.sex === state.filters.sex);
-  if (state.filters.popularity === "top50") rows = rows.filter((item) => (pointInYear(item, state.latestYear)?.[2] ?? 9999) <= 50);
-  if (state.filters.popularity === "rising") rows = rows.filter((item) => trendScore(item) > 0);
-  if (state.filters.popularity === "rare") rows = rows.filter((item) => latestCount(item) < 25);
-  if (state.filters.schoolMax !== "") rows = rows.filter((item) => schoolEstimateForCurrentSettings(item).school <= Number(state.filters.schoolMax));
+  if (state.filters.popularity === "top50") rows = rows.filter((item) => hasHistory(item) && (pointInYear(item, state.latestYear)?.[2] ?? 9999) <= 50);
+  if (state.filters.popularity === "rising") rows = rows.filter((item) => hasHistory(item) && trendScore(item) > 0);
+  if (state.filters.popularity === "rare") rows = rows.filter((item) => hasHistory(item) && latestCount(item) < 25);
+  if (state.filters.schoolMax !== "") rows = rows.filter((item) => hasHistory(item) && schoolEstimateForCurrentSettings(item).school <= Number(state.filters.schoolMax));
+  if (state.query) return rows;
   return rows.sort((a, b) => latestCount(b) - latestCount(a) || a.name.localeCompare(b.name, "no"));
 }
 
@@ -1580,7 +1675,8 @@ function similarRows(reference, mode, sexFilter = state.similarSex) {
 }
 
 function similarCandidateHasSignal(item, mode) {
-  if (mode === "text") return latestCount(item) > 0 || item.peakCount >= 10;
+  if (mode === "text") return true;
+  if (!hasHistory(item)) return false;
   const activeYears = allPoints(item).filter((point) => (point.count ?? 0) > 0).length;
   if (mode === "curve") return activeYears >= 12 && (latestCount(item) >= 20 || item.peakCount >= 100);
   return activeYears >= 8 && (latestCount(item) >= 5 || item.peakCount >= 30);
@@ -1672,7 +1768,7 @@ function shortNumber(value) {
 }
 
 function allPoints(item) {
-  return item.series.map(([yearIndex, count, rank, shareSex]) => {
+  return (item.series || []).map(([yearIndex, count, rank, shareSex]) => {
     const year = state.years[yearIndex];
     const total = state.data.totalBirths[yearIndex];
     return {
@@ -1688,7 +1784,7 @@ function allPoints(item) {
 function pointInYear(item, year) {
   const index = state.years.indexOf(year);
   if (index < 0) return null;
-  return item.series.find(([yearIndex]) => yearIndex === index) ?? null;
+  return (item.series || []).find(([yearIndex]) => yearIndex === index) ?? null;
 }
 
 function latestCount(item) {
@@ -1723,6 +1819,7 @@ function smooth(values, width) {
 }
 
 function sparklineSvg(item, width = 118, height = 32) {
+  if (!hasHistory(item)) return "";
   const points = allPoints(item).filter((point) => point.year >= 1950);
   const values = points.map((point) => point.count ?? point.shareSex ?? 0);
   const max = Math.max(...values, 1);
@@ -1743,6 +1840,7 @@ function trendScore(item) {
 }
 
 function trendLabel(item) {
+  if (!hasHistory(item)) return "I bruk i Norge";
   const score = trendScore(item);
   if (score > 20) return "Stigende trend siste år";
   if (score < -20) return "Roligere utvikling siste år";
@@ -1750,6 +1848,7 @@ function trendLabel(item) {
 }
 
 function itemMood(item) {
+  if (!hasHistory(item)) return "i bruk i Norge";
   const latest = pointInYear(item, state.latestYear);
   const rank = latest?.[2] ?? 9999;
   const trend = trendScore(item);
@@ -1776,6 +1875,10 @@ function schoolEstimate(item, birthYear, gradeSize, grades) {
 
 function schoolEstimateForCurrentSettings(item) {
   return schoolEstimate(item, state.school.birthYear, state.school.gradeSize, state.school.grades);
+}
+
+function hasHistory(item) {
+  return Boolean(item?.series?.length);
 }
 
 function renderMiniChart(id, items, metric = "shareSex", fromYear = 1900, smoothWidth = 3) {

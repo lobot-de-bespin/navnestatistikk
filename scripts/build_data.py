@@ -18,6 +18,7 @@ DATA_OUT = DOCS / "assets" / "names-data.json"
 API_V0 = "https://data.ssb.no/api/v0/no/table"
 API_V2 = "https://data.ssb.no/api/pxwebapi/v2/tables"
 NAME_TABLE = "10467"
+CURRENT_NAMES_TABLE = "10501"
 BIRTHS_TABLE = "05803"
 SEX_BIRTHS_TABLE = "09745"
 
@@ -81,6 +82,7 @@ def clean_name_id(code: str) -> tuple[str, str]:
 
 def build() -> dict:
     metadata = request_json(f"{API_V2}/{NAME_TABLE}/metadata?lang=no")
+    current_metadata = request_json(f"{API_V2}/{CURRENT_NAMES_TABLE}/metadata?lang=no")
     name_data = post_table(
         NAME_TABLE,
         [
@@ -196,6 +198,72 @@ def build() -> dict:
             }
         )
 
+    current_year_codes = sorted_codes(current_metadata["dimension"]["Tid"]["category"])
+    current_year = current_year_codes[-1]
+    current_data = post_table(
+        CURRENT_NAMES_TABLE,
+        [
+            all_query("Fornavn"),
+            item_query("ContentsCode", ["Personer"]),
+            item_query("Tid", [current_year]),
+        ],
+    )
+    current_codes = sorted_codes(current_data["dimension"]["Fornavn"]["category"])
+    current_labels = current_data["dimension"]["Fornavn"]["category"]["label"]
+    current_values = current_data.get("value", [])
+    current_shape = current_data["size"]
+    current_rows = []
+    for ni, code in enumerate(current_codes):
+        count = value_at(current_values, current_shape, (ni, 0, 0))
+        if count is None:
+            continue
+        sex, bare_id = clean_name_id(code)
+        current_rows.append(
+            {
+                "id": code,
+                "key": bare_id,
+                "name": current_labels.get(code, bare_id).replace("_", " "),
+                "sex": sex,
+                "currentCount": int(count),
+            }
+        )
+
+    current_ranks = {}
+    for sex in ("jente", "gutt"):
+        rows = sorted(
+            (row for row in current_rows if row["sex"] == sex),
+            key=lambda row: (-row["currentCount"], row["name"]),
+        )
+        previous_count = None
+        previous_rank = 0
+        for position, row in enumerate(rows, start=1):
+            rank = previous_rank if row["currentCount"] == previous_count else position
+            current_ranks[row["id"]] = rank
+            previous_count = row["currentCount"]
+            previous_rank = rank
+
+    records_by_id = {record["id"]: record for record in records}
+    for row in current_rows:
+        if row["id"] in records_by_id:
+            records_by_id[row["id"]]["currentCount"] = row["currentCount"]
+            records_by_id[row["id"]]["currentRank"] = current_ranks[row["id"]]
+            continue
+        records.append(
+            {
+                **row,
+                "currentRank": current_ranks[row["id"]],
+                "series": [],
+                "total": 0,
+                "peakYear": None,
+                "peakCount": None,
+                "firstYear": None,
+                "lastYear": None,
+                "firstDataYear": None,
+                "lastDataYear": None,
+                "sourceKind": "currentRegistry",
+            }
+        )
+
     records.sort(key=lambda r: (r["sex"], r["name"], r["id"]))
     return {
         "meta": {
@@ -203,9 +271,13 @@ def build() -> dict:
             "source": "Statistisk sentralbyrå",
             "license": "CC BY 4.0",
             "nameTable": NAME_TABLE,
+            "currentNamesTable": CURRENT_NAMES_TABLE,
             "birthsTable": BIRTHS_TABLE,
             "sexBirthsTable": SEX_BIRTHS_TABLE,
             "nameTableUpdated": metadata.get("updated"),
+            "currentNamesTableUpdated": current_metadata.get("updated"),
+            "currentNamesYear": int(current_year),
+            "currentNamesNotes": current_metadata.get("note", []),
             "notes": metadata.get("note", []),
         },
         "years": years,

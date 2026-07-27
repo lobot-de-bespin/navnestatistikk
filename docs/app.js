@@ -3,7 +3,7 @@ const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
 const SCHOOL_STORAGE_KEY = "navnestatistikk:schoolSettings:v1";
-const SW_VERSION = "2026-07-26.4";
+const SW_VERSION = "2026-07-27.1";
 
 const state = {
   data: null,
@@ -295,9 +295,9 @@ function workflowSummaryMarkup(counts) {
 
 function workflowPathMarkup(active) {
   const steps = [
-    ["explore", "Finn", "Lag et utvalg"],
-    ["compare", "Utforsk", "Se mønstre"],
-    ["review", "Vurder", "Velg ja/nei"],
+    ["explore", "Finn", "Start bredt"],
+    ["compare", "Sammenlign", "Se mønstre"],
+    ["review", "Vurder", "Velg shortlist"],
   ];
   return `
     <div class="workflowPath" aria-label="Arbeidsflyt">
@@ -422,13 +422,13 @@ function renderExploreStarter() {
   panel.innerHTML = `
     <div class="starterIntro">
       <strong>Finn babynavn med data</strong>
-      <small>Velg en retning først. De avanserte analysene finnes når du har navn å sammenligne.</small>
+      <small>Velg en retning først. Kurver, likhet og detaljer venter når dere har navn å sammenligne.</small>
     </div>
     <div class="starterGrid">
-      <button data-filter-preset="popular" type="button"><strong>Trygt og vanlig</strong><small>Toppnavn akkurat nå</small></button>
-      <button data-filter-preset="rising" type="button"><strong>På vei opp</strong><small>Navn med positiv trend</small></button>
-      <button data-filter-preset="rare" type="button"><strong>Mer særpreg</strong><small>Færre enn 25 i siste år</small></button>
-      <button data-filter-preset="school" type="button"><strong>Færre i klassen</strong><small>Maks to i skoleløpet</small></button>
+      <button data-filter-preset="popular" type="button"><strong>Trygt og vanlig</strong><small>Navn mange velger nå</small></button>
+      <button data-filter-preset="rising" type="button"><strong>På vei opp</strong><small>Navn med varm trend</small></button>
+      <button data-filter-preset="rare" type="button"><strong>Mer særpreg</strong><small>Fine navn færre bruker</small></button>
+      <button data-filter-preset="school" type="button"><strong>Færre i klassen</strong><small>Lavere klasseestimat</small></button>
       <button class="wide" data-focus-search type="button"><strong>Jeg har navn fra før</strong><small>Søk direkte og legg egne kandidater i listen</small></button>
     </div>
   `;
@@ -1600,7 +1600,7 @@ function lineChartSvg(items, metric, fromYear, toYear, width, height, options = 
 }
 
 function chartColor(index, item) {
-  const palette = ["#2e7bcf", "#ef5d93", "#2f9e78", "#8b68d9", "#d78324", "#1d9fb8", "#b44f8f", "#5968d8"];
+  const palette = ["#ff7358", "#79a95b", "#5aa7e8", "#f1b840", "#9f7bdd", "#3daea3", "#d95f91", "#5268d8"];
   return palette[index % palette.length];
 }
 
@@ -1672,7 +1672,7 @@ function sparklineSvg(item, width = 118, height = 32) {
     const y = height - (value / max) * (height - 4) - 2;
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   });
-  const color = item.sex === "jente" ? "#ef5d93" : "#2e7bcf";
+  const color = item.sex === "jente" ? "#ff7358" : "#5aa7e8";
   return `<svg viewBox="0 0 ${width} ${height}" aria-hidden="true"><polyline points="${coords.join(" ")}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 }
 

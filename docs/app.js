@@ -3,7 +3,7 @@ const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
 const SCHOOL_STORAGE_KEY = "navnestatistikk:schoolSettings:v1";
-const SW_VERSION = "2026-07-27.1";
+const SW_VERSION = "2026-07-27.2";
 
 const state = {
   data: null,
@@ -399,7 +399,14 @@ function renderExplore() {
     `;
     return;
   }
-  list.replaceChildren(...rows.slice(0, 24).map((item, index) => nameRow(item, { rank: index + 1, detail: true })));
+  list.classList.toggle("discoveryGrid", !isFiltered);
+  list.replaceChildren(
+    ...rows.slice(0, 24).map((item, index) => nameRow(item, {
+      rank: index + 1,
+      detail: true,
+      feature: !isFiltered && index < 4,
+    })),
+  );
 }
 
 function renderExploreStarter() {
@@ -408,9 +415,10 @@ function renderExploreStarter() {
   const work = workItems().slice(0, 3);
   if (work.length) {
     panel.innerHTML = `
-      <div>
-        <strong>${formatNumber(workItems().length)} navn i utvalget</strong>
-        <small>${work.map((item) => escapeHtml(item.name)).join(", ")}${workItems().length > work.length ? " ..." : ""}</small>
+      <div class="lensCopy">
+        <small>Utvalget akkurat nå</small>
+        <strong>${formatNumber(workItems().length)} navn</strong>
+        <span>${work.map((item) => escapeHtml(item.name)).join(", ")}${workItems().length > work.length ? " ..." : ""}</span>
       </div>
       <div class="lensActions">
         <button data-go-tab="compare" type="button">Sammenlign</button>
@@ -421,15 +429,19 @@ function renderExploreStarter() {
   }
   panel.innerHTML = `
     <div class="starterIntro">
-      <strong>Finn babynavn med data</strong>
-      <small>Velg en retning først. Kurver, likhet og detaljer venter når dere har navn å sammenligne.</small>
+      <small>Navn med litt magefølelse og litt statistikk</small>
+      <strong>Hva slags navn leter dere etter?</strong>
     </div>
     <div class="starterGrid">
-      <button data-filter-preset="popular" type="button"><strong>Trygt og vanlig</strong><small>Navn mange velger nå</small></button>
-      <button data-filter-preset="rising" type="button"><strong>På vei opp</strong><small>Navn med varm trend</small></button>
-      <button data-filter-preset="rare" type="button"><strong>Mer særpreg</strong><small>Fine navn færre bruker</small></button>
-      <button data-filter-preset="school" type="button"><strong>Færre i klassen</strong><small>Lavere klasseestimat</small></button>
-      <button class="wide" data-focus-search type="button"><strong>Jeg har navn fra før</strong><small>Søk direkte og legg egne kandidater i listen</small></button>
+      <button data-filter-preset="popular" type="button"><strong>Trygt</strong><small>Kjente navn som føles lette å bruke</small></button>
+      <button data-filter-preset="rising" type="button"><strong>Varm trend</strong><small>Navn flere får øynene opp for nå</small></button>
+      <button data-filter-preset="rare" type="button"><strong>Særpreg</strong><small>Fine navn uten å bli for vanlige</small></button>
+      <button data-filter-preset="school" type="button"><strong>Luft i klassen</strong><small>Lavere sjanse for flere med samme navn</small></button>
+    </div>
+    <div class="starterFoot">
+      <button data-focus-search type="button">Søk etter et navn</button>
+      <button data-quick-name="Alma" type="button">Prøv Alma</button>
+      <button data-quick-name="Elias" type="button">Prøv Elias</button>
     </div>
   `;
 }
@@ -536,7 +548,7 @@ function rememberSearch(query) {
 function nameRow(item, options = {}) {
   const selected = state.selected.has(item.id);
   const row = document.createElement("article");
-  row.className = `nameRow ${selected ? "selected" : ""}`;
+  row.className = `nameRow ${options.feature ? "featureNameCard" : ""} ${selected ? "selected" : ""}`;
   row.innerHTML = `
     <span class="rank">${options.rank ?? ""}</span>
     <button class="nameMain" type="button">

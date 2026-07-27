@@ -1,23 +1,26 @@
 :root {
-  --bg: #fff7ef;
-  --surface: #ffffff;
-  --surface-2: #fffaf4;
-  --ink: #12372f;
-  --muted: #786f68;
-  --line: #eadfce;
-  --blue: #5aa7e8;
-  --blue-soft: #e9f5ff;
-  --green: #79a95b;
-  --green-soft: #edf7e7;
-  --pink: #ff7358;
-  --pink-soft: #fff0e9;
-  --red: #df6574;
+  --bg: #fff3e4;
+  --surface: #fffefa;
+  --surface-2: #fff8ef;
+  --ink: #24362f;
+  --muted: #82756a;
+  --line: #ead9c5;
+  --blue: #6aa7d8;
+  --blue-soft: #e8f4fb;
+  --green: #7fa866;
+  --green-soft: #eef7e8;
+  --pink: #ee725b;
+  --pink-soft: #fff0e8;
+  --red: #d86c78;
   --red-soft: #fff0f1;
-  --yellow: #f1b840;
-  --yellow-soft: #fff5d8;
-  --purple: #9f7bdd;
-  --purple-soft: #f4efff;
-  --shadow: 0 18px 50px rgba(82, 61, 38, 0.12);
+  --yellow: #eab54a;
+  --yellow-soft: #fff4d8;
+  --purple: #9e83cb;
+  --purple-soft: #f5f0ff;
+  --peach: #ffd6be;
+  --butter: #ffe7a8;
+  --mint: #d9ead0;
+  --shadow: 0 22px 50px rgba(104, 72, 42, 0.14);
   --tab-height: 66px;
 }
 
@@ -40,9 +43,7 @@ body {
   min-height: 100%;
   margin: 0;
   background:
-    radial-gradient(70px 70px at calc(100% - 46px) 86px, rgba(255, 206, 83, 0.24) 0 70px, transparent 71px),
-    radial-gradient(92px 92px at 44px 160px, rgba(255, 115, 88, 0.1) 0 92px, transparent 93px),
-    var(--bg);
+    linear-gradient(180deg, #fff0de 0%, #fff8ef 52%, #fff4e7 100%);
   color: var(--ink);
   overflow-x: hidden;
 }
@@ -97,15 +98,13 @@ svg {
 
 .appFrame {
   position: relative;
-  width: min(100%, 430px);
+  width: min(100vw, 430px);
   min-height: 100vh;
   margin: 0 auto;
-  padding: max(12px, env(safe-area-inset-top)) 12px calc(var(--tab-height) + 52px + env(safe-area-inset-bottom));
+  padding: max(14px, env(safe-area-inset-top)) 12px calc(var(--tab-height) + 50px + env(safe-area-inset-bottom));
   background:
-    radial-gradient(42px 42px at calc(100% - 48px) 128px, rgba(255, 198, 66, 0.46) 0 42px, transparent 43px),
-    radial-gradient(64px 78px at calc(100% + 12px) 184px, rgba(121, 169, 91, 0.28) 0 64px, transparent 65px),
-    linear-gradient(180deg, #fffdf9 0%, var(--bg) 43%, #fffaf2 100%);
-  overflow-x: hidden;
+    linear-gradient(180deg, #fff7ed 0%, #fffdf7 28%, #fff2e2 100%);
+  overflow: hidden;
 }
 
 .appFrame::before,
@@ -117,25 +116,26 @@ svg {
 }
 
 .appFrame::before {
-  top: 104px;
-  right: -30px;
-  width: 96px;
-  height: 118px;
-  border-radius: 58% 42% 54% 46%;
+  top: 94px;
+  right: 8px;
+  width: 118px;
+  height: 168px;
+  border-radius: 999px 999px 44px 44px;
   background:
-    radial-gradient(ellipse at 42% 72%, rgba(121, 169, 91, 0.45) 0 32px, transparent 33px),
-    radial-gradient(ellipse at 75% 46%, rgba(121, 169, 91, 0.32) 0 27px, transparent 28px);
-  transform: rotate(-16deg);
+    linear-gradient(160deg, rgba(255, 231, 168, 0.92), rgba(255, 214, 190, 0.76));
+  transform: rotate(7deg);
+  opacity: 0.72;
 }
 
 .appFrame::after {
-  top: 126px;
-  right: 52px;
-  width: 52px;
-  height: 28px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.78);
-  box-shadow: 24px 7px 0 rgba(255, 255, 255, 0.62);
+  top: 128px;
+  left: 18px;
+  width: 72px;
+  height: 122px;
+  border-radius: 34px 34px 999px 999px;
+  background: linear-gradient(180deg, rgba(217, 234, 208, 0.74), rgba(232, 244, 251, 0.56));
+  transform: rotate(-10deg);
+  opacity: 0.72;
 }
 
 .screenStack {
@@ -154,14 +154,18 @@ svg {
 
 .screenHeader {
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) auto;
-  gap: 11px;
-  align-items: center;
-  padding: 4px 4px 7px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  padding: 4px 6px 2px;
 }
 
 .screenHeader > div:nth-child(2) {
   min-width: 0;
+}
+
+.screenHeader .iconBubble {
+  display: none;
 }
 
 .headerActions {
@@ -180,17 +184,18 @@ svg {
 .screenHeader h1 {
   margin: 0;
   color: #12372f;
-  font-size: 1.32rem;
-  line-height: 1.08;
-  font-weight: 820;
+  font-size: 2.12rem;
+  line-height: 0.96;
+  font-weight: 880;
 }
 
 .screenHeader p {
-  max-width: 31rem;
-  margin: 5px 0 0;
-  color: #6f675f;
-  font-size: 0.76rem;
-  line-height: 1.38;
+  max-width: 17rem;
+  margin: 7px 0 0;
+  color: #73685e;
+  font-size: 0.84rem;
+  font-weight: 650;
+  line-height: 1.34;
 }
 
 .iconBubble,
@@ -230,11 +235,11 @@ svg {
   gap: 12px;
   align-content: start;
   min-height: calc(100vh - 110px - var(--tab-height));
-  padding: 10px 10px calc(var(--tab-height) + 20px + env(safe-area-inset-bottom));
-  border: 1px solid rgba(234, 223, 206, 0.82);
-  border-radius: 20px;
-  background: rgba(255, 252, 247, 0.78);
-  box-shadow: 0 14px 34px rgba(82, 61, 38, 0.07);
+  padding: 12px 12px calc(var(--tab-height) + 20px + env(safe-area-inset-bottom));
+  border: 0;
+  border-radius: 30px 30px 0 0;
+  background: rgba(255, 254, 250, 0.88);
+  box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.72), 0 -18px 44px rgba(104, 72, 42, 0.08);
 }
 
 .navTitle {
@@ -2143,6 +2148,258 @@ input[type="range"] {
 .toast.show {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* Warm concept redesign: structural overrides after the legacy mobile rules. */
+#view-explore .workflowCard {
+  display: none;
+}
+
+#view-explore .screenHeader {
+  min-height: 126px;
+  align-items: start;
+  padding-top: 10px;
+}
+
+#view-explore .screenHeader h1 {
+  max-width: 14rem;
+  font-size: 2.6rem;
+  line-height: 0.9;
+}
+
+#view-explore .screenHeader p {
+  max-width: 18rem;
+  font-size: 0.9rem;
+}
+
+#view-explore .phoneSurface {
+  margin-top: -8px;
+}
+
+.searchBar {
+  min-height: 56px;
+  padding-inline: 16px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: inset 0 0 0 1px rgba(234, 217, 197, 0.8), 0 14px 28px rgba(104, 72, 42, 0.08);
+}
+
+.nameLens {
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 236px;
+  padding: 18px;
+  border-radius: 30px;
+  background: linear-gradient(145deg, rgba(255, 236, 202, 0.98) 0%, rgba(255, 215, 194, 0.94) 46%, rgba(232, 244, 251, 0.9) 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.72), var(--shadow);
+}
+
+.nameLens::before,
+.nameLens::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.nameLens::before {
+  right: 18px;
+  bottom: -18px;
+  width: 112px;
+  height: 142px;
+  border-radius: 54px 54px 22px 22px;
+  background: linear-gradient(180deg, rgba(255, 254, 250, 0.8), rgba(255, 254, 250, 0.36));
+  transform: rotate(8deg);
+}
+
+.nameLens::after {
+  right: 52px;
+  bottom: 24px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(238, 114, 91, 0.22);
+  box-shadow: 30px 18px 0 rgba(127, 168, 102, 0.2), -24px 26px 0 rgba(106, 167, 216, 0.18);
+}
+
+.nameLens strong,
+.nameLens small,
+.nameLens span {
+  display: block;
+}
+
+.nameLens strong {
+  max-width: 14.5rem;
+  font-size: 1.9rem;
+  line-height: 0.98;
+  font-weight: 890;
+}
+
+.nameLens small {
+  color: #826b5d;
+  font-size: 0.7rem;
+  font-weight: 840;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.nameLens span {
+  max-width: 15rem;
+  margin-top: 7px;
+  color: #6f645a;
+  font-size: 0.84rem;
+  font-weight: 700;
+  line-height: 1.26;
+}
+
+.lensActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.lensActions button {
+  min-height: 42px;
+  padding-inline: 12px;
+  font-size: 0.72rem;
+}
+
+.starterGrid {
+  gap: 8px;
+}
+
+.starterGrid button {
+  min-height: 78px;
+  padding: 12px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.starterGrid button::before {
+  width: 30px;
+  height: 8px;
+  margin-bottom: 10px;
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+.starterGrid strong {
+  font-size: 0.86rem;
+}
+
+.starterGrid small {
+  margin-top: 5px;
+  font-size: 0.66rem;
+  font-weight: 690;
+  line-height: 1.22;
+  text-transform: none;
+}
+
+.starterFoot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.starterFoot button {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  color: #be5d48;
+  font-size: 0.7rem;
+  font-weight: 820;
+}
+
+.nameRows.discoveryGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 11px;
+}
+
+.nameRows.discoveryGrid .nameRow:not(.featureNameCard) {
+  grid-column: 1 / -1;
+}
+
+.featureNameCard {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-content: space-between;
+  min-height: 164px;
+  padding: 14px;
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 248, 239, 0.96));
+  box-shadow: inset 0 0 0 1px rgba(234, 217, 197, 0.9), 0 14px 28px rgba(104, 72, 42, 0.08);
+}
+
+.featureNameCard:nth-child(2n) {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(238, 247, 232, 0.94));
+}
+
+.featureNameCard .rank {
+  grid-column: 1 / -1;
+  width: 34px;
+  height: 22px;
+  border-radius: 999px;
+  background: #fff0e8;
+}
+
+.featureNameCard .nameMain {
+  grid-column: 1 / -1;
+}
+
+.featureNameCard .nameMain strong {
+  font-size: 1.55rem;
+  line-height: 0.98;
+}
+
+.featureNameCard .nameMain small {
+  margin-top: 6px;
+  white-space: normal;
+}
+
+.featureNameCard .spark {
+  grid-column: 1 / -1;
+}
+
+.featureNameCard .spark svg {
+  height: 44px;
+}
+
+.featureNameCard .count {
+  text-align: left;
+}
+
+.chartBox,
+.metricPanel,
+.subCard,
+.similarPanelCompact,
+.listMenu button,
+.decisionRow,
+.nameRow {
+  border-radius: 24px;
+}
+
+.chartBox {
+  height: 250px;
+  background: #fffefa;
+  box-shadow: inset 0 0 0 1px rgba(234, 217, 197, 0.86), 0 16px 30px rgba(104, 72, 42, 0.08);
+}
+
+.reviewSurface {
+  border-radius: 30px 30px 0 0;
+  background: linear-gradient(180deg, #ffe7d7 0%, #fffefa 40%);
+}
+
+.reviewCard {
+  min-height: 386px;
+  border-radius: 34px;
+  background: linear-gradient(180deg, #fffefa 0%, #fff8ef 100%);
+}
+
+.reviewCard h2,
+.detailHero h2 {
+  font-size: 3.55rem;
+}
+
+.tabBar {
+  border-radius: 28px;
 }
 
 @media (min-width: 760px) {

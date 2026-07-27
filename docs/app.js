@@ -3,7 +3,7 @@ const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
 const SCHOOL_STORAGE_KEY = "navnestatistikk:schoolSettings:v1";
-const SW_VERSION = "2026-07-27.2";
+const SW_VERSION = "2026-07-27.3";
 
 const state = {
   data: null,
@@ -382,11 +382,12 @@ function renderExplore() {
   if (!list) return;
   const rows = filteredRows();
   const isFiltered = hasActiveExploreFilters();
-  $("#exploreListTitle").textContent = isFiltered ? `Treff (${formatNumber(rows.length)})` : "Navn å utforske";
+  $("#exploreListTitle").textContent = isFiltered ? `Treff (${formatNumber(rows.length)})` : "Forslag akkurat nå";
   $("#popularSexToggle").hidden = true;
   $("#openCandidateList").textContent = "Filtre";
   updateCandidateCard(rows, isFiltered);
   if (!rows.length) {
+    list.classList.remove("discoveryGrid");
     list.innerHTML = `
       <div class="emptyState compact">
         <p>Ingen navn matcher søk og filtre.</p>
@@ -415,10 +416,14 @@ function renderExploreStarter() {
   const work = workItems().slice(0, 3);
   if (work.length) {
     panel.innerHTML = `
+      <div class="heroArt chart" aria-hidden="true"></div>
       <div class="lensCopy">
-        <small>Utvalget akkurat nå</small>
-        <strong>${formatNumber(workItems().length)} navn</strong>
+        <small>Utvalget</small>
+        <strong>${formatNumber(workItems().length)} navn å kjenne på</strong>
         <span>${work.map((item) => escapeHtml(item.name)).join(", ")}${workItems().length > work.length ? " ..." : ""}</span>
+      </div>
+      <div class="selectedNameRail">
+        ${work.map((item) => `<span class="${item.sex}">${escapeHtml(item.name)}</span>`).join("")}
       </div>
       <div class="lensActions">
         <button data-go-tab="compare" type="button">Sammenlign</button>
@@ -428,18 +433,20 @@ function renderExploreStarter() {
     return;
   }
   panel.innerHTML = `
+    <div class="heroArt magnifier" aria-hidden="true"></div>
     <div class="starterIntro">
-      <small>Navn med litt magefølelse og litt statistikk</small>
-      <strong>Hva slags navn leter dere etter?</strong>
+      <small>SSB-navn · 1880-${state.latestYear}</small>
+      <strong>Hva føles riktig?</strong>
+      <span>Mykt, tidløst, sjeldent eller på vei opp?</span>
     </div>
     <div class="starterGrid">
-      <button data-filter-preset="popular" type="button"><strong>Trygt</strong><small>Kjente navn som føles lette å bruke</small></button>
-      <button data-filter-preset="rising" type="button"><strong>Varm trend</strong><small>Navn flere får øynene opp for nå</small></button>
-      <button data-filter-preset="rare" type="button"><strong>Særpreg</strong><small>Fine navn uten å bli for vanlige</small></button>
-      <button data-filter-preset="school" type="button"><strong>Luft i klassen</strong><small>Lavere sjanse for flere med samme navn</small></button>
+      <button data-filter-preset="popular" type="button"><strong>Trygt</strong><small>Kjent og lett å bruke</small></button>
+      <button data-filter-preset="rising" type="button"><strong>Varm trend</strong><small>Flere velger det nå</small></button>
+      <button data-filter-preset="rare" type="button"><strong>Særpreg</strong><small>Færre med samme navn</small></button>
+      <button data-filter-preset="school" type="button"><strong>Luft i klassen</strong><small>Lavere skoleestimat</small></button>
     </div>
     <div class="starterFoot">
-      <button data-focus-search type="button">Søk etter et navn</button>
+      <button data-focus-search type="button">Søk selv</button>
       <button data-quick-name="Alma" type="button">Prøv Alma</button>
       <button data-quick-name="Elias" type="button">Prøv Elias</button>
     </div>
@@ -547,16 +554,17 @@ function rememberSearch(query) {
 
 function nameRow(item, options = {}) {
   const selected = state.selected.has(item.id);
+  const latest = pointInYear(item, state.latestYear);
   const row = document.createElement("article");
   row.className = `nameRow ${options.feature ? "featureNameCard" : ""} ${selected ? "selected" : ""}`;
   row.innerHTML = `
     <span class="rank">${options.rank ?? ""}</span>
     <button class="nameMain" type="button">
       <strong>${escapeHtml(item.name)}</strong>
-      <small>${escapeHtml(item.sex)} · toppår ${item.peakYear}</small>
+      <small>${escapeHtml(itemMood(item))} · toppår ${item.peakYear}</small>
     </button>
     <span class="spark">${sparklineSvg(item)}</span>
-    <span class="count">${formatNumber(latestCount(item))}</span>
+    <span class="count nameScore"><b>${formatNumber(latest?.[1] ?? 0)}</b><small>${state.latestYear}</small></span>
     <button class="addButton ${selected ? "active" : ""}" type="button" aria-label="${selected ? "Valgt, trykk for å fjerne" : "Legg til"} ${escapeHtml(item.name)}">
       <svg><use href="#icon-${selected ? "check" : "plus"}"></use></svg>
     </button>
@@ -1126,9 +1134,11 @@ function renderReview() {
   const latest = pointInYear(item, state.latestYear);
   $(".reviewActions").hidden = false;
   card.innerHTML = `
-    <p class="cardMeta">${state.review.index + 1} av ${state.review.deck.length}</p>
-    <h2>${escapeHtml(item.name)} ${sexIconMarkup(item)}</h2>
-    <span class="trendPill">${trendLabel(item)}</span>
+    <div class="reviewNamePlate">
+      <p class="cardMeta">${state.review.index + 1} av ${state.review.deck.length}</p>
+      <h2>${escapeHtml(item.name)} ${sexIconMarkup(item)}</h2>
+      <span class="trendPill">${trendLabel(item)}</span>
+    </div>
     <div class="reviewSpark">${sparklineSvg(item, 420, 120)}</div>
     <div class="reviewStats">
       <span><small>Antall</small><b>${formatNumber(latest?.[1] ?? 0)}</b><em>${item.sex}r i ${state.latestYear}</em></span>
@@ -1700,6 +1710,17 @@ function trendLabel(item) {
   if (score > 20) return "Stigende trend siste år";
   if (score < -20) return "Roligere utvikling siste år";
   return "Historisk utvikling tilgjengelig";
+}
+
+function itemMood(item) {
+  const latest = pointInYear(item, state.latestYear);
+  const rank = latest?.[2] ?? 9999;
+  const trend = trendScore(item);
+  if (trend > 35) return "på vei opp";
+  if (latestCount(item) < 25) return "særpreg";
+  if (rank <= 20) return "trygt nå";
+  if (trend < -25) return "roligere";
+  return item.sex;
 }
 
 function schoolEstimateForYear(item, birthYear, gradeSize) {

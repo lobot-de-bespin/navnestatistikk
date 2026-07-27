@@ -2402,6 +2402,622 @@ input[type="range"] {
   border-radius: 28px;
 }
 
+/* Mockup-close pass: clay art, warmer hierarchy, less dashboard chrome. */
+.appFrame {
+  padding: max(12px, env(safe-area-inset-top)) 10px calc(var(--tab-height) + 42px + env(safe-area-inset-bottom));
+  background:
+    radial-gradient(180px 150px at 86% 118px, rgba(255, 218, 145, 0.44), transparent 72%),
+    radial-gradient(140px 120px at 8% 228px, rgba(217, 234, 208, 0.52), transparent 70%),
+    linear-gradient(180deg, #fff5e8 0%, #fffdf6 34%, #fff1df 100%);
+}
+
+.appFrame::before {
+  top: 94px;
+  right: -34px;
+  width: 170px;
+  height: 194px;
+  border-radius: 86px 86px 42px 42px;
+  background: linear-gradient(160deg, rgba(255, 231, 168, 0.82), rgba(255, 207, 184, 0.58));
+  filter: blur(0.1px);
+}
+
+.appFrame::after {
+  top: 198px;
+  left: -24px;
+  width: 104px;
+  height: 142px;
+  border-radius: 32px;
+  background: linear-gradient(180deg, rgba(203, 224, 195, 0.52), rgba(222, 239, 247, 0.42));
+}
+
+.screen {
+  gap: 10px;
+}
+
+.screenHeader {
+  min-height: 92px;
+  padding: 10px 16px 6px;
+}
+
+.screenHeader h1 {
+  max-width: 15rem;
+  color: #0f3e35;
+  font-size: 2.05rem;
+  line-height: 0.92;
+  font-weight: 900;
+}
+
+.screenHeader p {
+  max-width: 20rem;
+  margin-top: 8px;
+  color: #73685e;
+  font-size: 0.86rem;
+  font-weight: 720;
+}
+
+#view-explore .screenHeader {
+  min-height: 82px;
+}
+
+#view-explore .screenHeader h1 {
+  max-width: 13rem;
+  font-size: 2.36rem;
+}
+
+#view-explore .screenHeader p {
+  display: none;
+}
+
+.iconButton,
+.ghostIcon {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  border-radius: 50%;
+  background: rgba(255, 254, 250, 0.86);
+  color: #356f62;
+  box-shadow: inset 0 0 0 1px rgba(230, 213, 192, 0.92), 0 8px 20px rgba(104, 72, 42, 0.07);
+}
+
+.phoneSurface {
+  gap: 14px;
+  min-height: calc(100vh - 104px - var(--tab-height));
+  margin-inline: 0;
+  padding: 16px 14px calc(var(--tab-height) + 24px + env(safe-area-inset-bottom));
+  border-radius: 36px 36px 0 0;
+  background:
+    linear-gradient(180deg, rgba(255, 254, 250, 0.94), rgba(255, 251, 244, 0.96));
+  box-shadow: 0 -16px 46px rgba(83, 58, 34, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.nameLens {
+  min-height: 314px;
+  padding: 22px;
+  overflow: hidden;
+  border-radius: 34px;
+  background:
+    radial-gradient(180px 130px at 88% 8%, rgba(255, 247, 224, 0.76), transparent 72%),
+    linear-gradient(142deg, #ffe7bd 0%, #ffd0bf 43%, #e8f3f7 100%);
+  box-shadow: 0 22px 48px rgba(133, 82, 43, 0.14), inset 0 0 0 1px rgba(255, 255, 255, 0.74);
+}
+
+.nameLens::before,
+.nameLens::after {
+  content: none;
+}
+
+.heroArt {
+  position: absolute;
+  right: 16px;
+  top: 52px;
+  z-index: 0;
+  width: 138px;
+  height: 138px;
+  background-image: url("assets/illustrations/mobile-mascot-sprite-v1.png");
+  background-repeat: no-repeat;
+  background-size: 200% 200%;
+  border-radius: 50%;
+  box-shadow: 0 14px 28px rgba(42, 51, 70, 0.08), inset 0 0 0 1px rgba(255, 255, 255, 0.9);
+  pointer-events: none;
+}
+
+.heroArt.magnifier {
+  background-position: 100% 0;
+}
+
+.heroArt.chart {
+  top: auto;
+  right: 16px;
+  bottom: 42px;
+  width: 142px;
+  height: 142px;
+  background-position: 0 100%;
+}
+
+.starterIntro,
+.lensCopy,
+.starterGrid,
+.starterFoot,
+.selectedNameRail,
+.lensActions {
+  position: relative;
+  z-index: 1;
+}
+
+.starterIntro {
+  max-width: 11.5rem;
+}
+
+.starterIntro small,
+.lensCopy small {
+  margin: 0 0 7px;
+  color: rgba(36, 54, 47, 0.62);
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.starterIntro strong,
+.lensCopy strong {
+  max-width: 12rem;
+  color: #173f35;
+  font-size: 2.16rem;
+  line-height: 0.92;
+  font-weight: 920;
+}
+
+.starterIntro span,
+.lensCopy span {
+  display: block;
+  max-width: 11.5rem;
+  margin-top: 9px;
+  color: #705f54;
+  font-size: 0.82rem;
+  font-weight: 760;
+  line-height: 1.2;
+}
+
+.starterGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.starterGrid button {
+  min-height: 72px;
+  padding: 12px 12px 11px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.56);
+  color: #173f35;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.72);
+}
+
+.starterGrid button::before {
+  width: 32px;
+  height: 7px;
+  margin-bottom: 9px;
+  border-radius: 999px;
+  background: #ffd8ce;
+  box-shadow: none;
+}
+
+.starterGrid button:nth-child(2)::before {
+  background: #cfe7c7;
+  box-shadow: none;
+}
+
+.starterGrid button:nth-child(3)::before {
+  background: #cce8fb;
+  box-shadow: none;
+}
+
+.starterGrid button:nth-child(4)::before {
+  background: #ffe6a6;
+  box-shadow: none;
+}
+
+.starterGrid strong {
+  color: #173f35;
+  font-size: 0.88rem;
+  font-weight: 900;
+}
+
+.starterGrid small {
+  color: #78695d;
+  font-size: 0.65rem;
+  font-weight: 760;
+}
+
+.starterFoot {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.starterFoot button,
+.lensActions button {
+  min-height: 42px;
+  padding-inline: 13px;
+  border-radius: 999px;
+  background: rgba(255, 254, 250, 0.82);
+  color: #c85e4b;
+  font-size: 0.72rem;
+  font-weight: 900;
+  box-shadow: 0 8px 18px rgba(105, 69, 41, 0.06);
+}
+
+.selectedNameRail {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  max-width: 13.8rem;
+}
+
+.selectedNameRail span {
+  margin: 0;
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: rgba(255, 254, 250, 0.74);
+  color: #be5d48;
+  font-size: 0.72rem;
+}
+
+.selectedNameRail .gutt {
+  color: #2d79a8;
+}
+
+.nameLens + .searchBar {
+  position: relative;
+  z-index: 3;
+  margin-top: -34px;
+}
+
+.searchBar {
+  min-height: 58px;
+  padding-inline: 18px;
+  border-radius: 999px;
+  background: rgba(255, 254, 250, 0.98);
+  box-shadow: 0 16px 32px rgba(104, 72, 42, 0.1), inset 0 0 0 1px rgba(232, 212, 190, 0.88);
+}
+
+.searchBar svg {
+  width: 23px;
+  height: 23px;
+}
+
+.searchBar input {
+  font-size: 1.08rem;
+  font-weight: 740;
+}
+
+.sectionRow {
+  margin-top: 2px;
+  padding-inline: 2px;
+}
+
+.sectionRow h3 {
+  font-size: 1.02rem;
+  font-weight: 900;
+}
+
+.nameRows.discoveryGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.featureNameCard {
+  position: relative;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto 1fr auto;
+  min-height: 182px;
+  padding: 15px;
+  overflow: hidden;
+  border-radius: 30px;
+  background:
+    radial-gradient(80px 70px at 100% 100%, rgba(238, 114, 91, 0.1), transparent 75%),
+    linear-gradient(180deg, #fffefa 0%, #fff8ef 100%);
+  box-shadow: 0 14px 30px rgba(103, 73, 45, 0.09), inset 0 0 0 1px rgba(232, 212, 190, 0.86);
+}
+
+.featureNameCard:nth-child(2n) {
+  background:
+    radial-gradient(80px 70px at 100% 100%, rgba(127, 168, 102, 0.12), transparent 75%),
+    linear-gradient(180deg, #fffefa 0%, #f5fbef 100%);
+}
+
+.featureNameCard .rank {
+  grid-column: 1 / 2;
+  width: fit-content;
+  min-width: 39px;
+  height: 26px;
+  padding-inline: 11px;
+  border-radius: 999px;
+  background: #fff0e8;
+  color: #856f61;
+  font-size: 0.76rem;
+}
+
+.featureNameCard .nameMain {
+  grid-column: 1 / -1;
+  margin-top: 6px;
+}
+
+.featureNameCard .nameMain strong {
+  color: #103e35;
+  font-size: 1.62rem;
+  line-height: 0.96;
+  white-space: normal;
+}
+
+.featureNameCard .nameMain small {
+  max-width: 8.8rem;
+  margin-top: 7px;
+  color: #75685d;
+  font-size: 0.7rem;
+  white-space: normal;
+}
+
+.featureNameCard .spark {
+  grid-column: 1 / -1;
+  align-self: end;
+  margin-top: 8px;
+}
+
+.featureNameCard .spark svg {
+  height: 46px;
+}
+
+.featureNameCard .count {
+  grid-column: 1 / 2;
+  display: grid;
+  gap: 2px;
+  align-self: end;
+  margin-top: 4px;
+  color: #6f6257;
+  text-align: left;
+}
+
+.nameScore b {
+  display: block;
+  color: #5f564e;
+  font-size: 0.94rem;
+  line-height: 1;
+}
+
+.nameScore small {
+  color: #9a8a7c;
+  font-size: 0.56rem;
+  font-weight: 800;
+}
+
+.featureNameCard .addButton {
+  position: absolute;
+  right: 15px;
+  bottom: 15px;
+  width: 42px;
+  height: 42px;
+  min-height: 42px;
+  border-radius: 50%;
+  background: #fffafa;
+}
+
+.nameRow:not(.featureNameCard) {
+  min-height: 72px;
+  border-radius: 24px;
+  background: rgba(255, 254, 250, 0.94);
+  box-shadow: inset 0 0 0 1px rgba(232, 212, 190, 0.82);
+}
+
+#view-compare .workflowCard {
+  display: none;
+}
+
+#view-compare .phoneSurface {
+  gap: 15px;
+  background: linear-gradient(180deg, rgba(255, 254, 250, 0.95), rgba(255, 246, 234, 0.98));
+}
+
+#compareChips .nameChip {
+  min-height: 44px;
+  padding-left: 16px;
+  border-radius: 999px;
+  font-size: 0.86rem;
+  box-shadow: 0 8px 18px rgba(104, 72, 42, 0.06);
+}
+
+.metricModes {
+  min-height: 56px;
+  padding: 6px;
+  background: #fff5e7;
+  box-shadow: inset 0 0 0 1px rgba(232, 212, 190, 0.86);
+}
+
+.metricModes button {
+  min-height: 44px;
+  font-size: 0.84rem;
+}
+
+.rangeSummary {
+  min-height: 58px;
+  padding: 10px 14px;
+  border-radius: 22px;
+  background: #fffaf3;
+}
+
+.chartBox {
+  height: 292px;
+  border-radius: 34px;
+  background: #fffefa;
+  box-shadow: 0 18px 36px rgba(104, 72, 42, 0.1), inset 0 0 0 1px rgba(232, 212, 190, 0.82);
+}
+
+.lineChart rect {
+  fill: #fffefa;
+}
+
+.insightPanel {
+  gap: 8px;
+  overflow: visible;
+  border-radius: 0;
+  background: transparent;
+}
+
+.insightPanel span {
+  border-radius: 20px;
+  background: #fffefa;
+  box-shadow: inset 0 0 0 1px rgba(232, 212, 190, 0.76);
+}
+
+.insightPanel .wide {
+  border-radius: 24px;
+  background: #fff3e7;
+}
+
+.metricPanel {
+  border-radius: 28px;
+}
+
+.reviewSurface {
+  gap: 14px;
+  padding-top: 12px;
+  padding-bottom: calc(var(--tab-height) + 116px + env(safe-area-inset-bottom));
+  background:
+    radial-gradient(160px 150px at 100% 0, rgba(255, 220, 152, 0.36), transparent 72%),
+    linear-gradient(180deg, #ffe3d4 0%, #fffefa 36%);
+}
+
+#view-review .screenHeader {
+  min-height: 74px;
+}
+
+#view-review .screenHeader h1 {
+  font-size: 2.16rem;
+}
+
+#view-review .screenHeader p {
+  display: none;
+}
+
+.reviewProgressLine {
+  color: #6f7a8a;
+  font-size: 0.9rem;
+}
+
+.reviewCard {
+  min-height: 382px;
+  padding: 18px 18px 14px;
+  border-radius: 36px;
+  background: linear-gradient(180deg, #fffefa 0%, #fff8ef 100%);
+  box-shadow: 0 18px 42px rgba(72, 63, 48, 0.16), inset 0 0 0 1px rgba(225, 214, 196, 0.92);
+}
+
+.reviewNamePlate {
+  display: grid;
+  justify-items: start;
+  gap: 7px;
+}
+
+.reviewCard h2 {
+  font-size: clamp(3rem, 16vw, 4.1rem);
+  line-height: 0.9;
+}
+
+.trendPill {
+  justify-self: start;
+  padding: 8px 14px;
+  font-size: 0.82rem;
+}
+
+.reviewSpark {
+  min-height: 84px;
+  margin-top: 4px;
+  padding: 8px 10px;
+  border-radius: 28px;
+  background: #fffaf3;
+}
+
+.reviewSpark svg {
+  height: 78px;
+}
+
+.reviewStats {
+  gap: 8px;
+  border: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.reviewStats span {
+  min-height: 58px;
+  padding: 8px;
+  border: 0 !important;
+  border-radius: 20px;
+  background: #fffefa;
+  box-shadow: inset 0 0 0 1px rgba(232, 212, 190, 0.74);
+}
+
+.reviewStats small {
+  font-size: 0.66rem;
+  font-weight: 820;
+}
+
+.reviewStats b {
+  font-size: 1.1rem;
+}
+
+.schoolCard {
+  border-radius: 26px;
+  padding: 10px;
+}
+
+.schoolCard strong {
+  font-size: 0.82rem;
+}
+
+.schoolCard small {
+  font-size: 0.64rem;
+}
+
+.schoolCard b {
+  font-size: 0.95rem;
+}
+
+.reviewActions {
+  position: fixed;
+  right: max(14px, env(safe-area-inset-right));
+  bottom: calc(var(--tab-height) + 18px + env(safe-area-inset-bottom));
+  left: max(14px, env(safe-area-inset-left));
+  z-index: 79;
+  gap: 10px;
+  width: min(calc(100% - 28px), 402px);
+  margin: 0 auto;
+}
+
+.reviewActions .reviewAction {
+  min-height: 68px;
+  border-radius: 26px;
+  font-size: 0.78rem;
+  box-shadow: 0 12px 28px rgba(86, 64, 44, 0.12);
+}
+
+.tabBar {
+  height: 74px;
+  padding: 8px;
+  border-radius: 34px;
+  box-shadow: 0 18px 46px rgba(92, 65, 42, 0.18);
+}
+
+.tabBar button {
+  border-radius: 25px;
+  font-size: 0.68rem;
+}
+
+.tabBar button.active {
+  background: #fff0e8;
+  color: #ee725b;
+}
+
 @media (min-width: 760px) {
   .appFrame {
     width: min(100%, 1180px);

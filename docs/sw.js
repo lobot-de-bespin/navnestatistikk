@@ -1,4 +1,4 @@
-const CACHE_VERSION = "2026-07-27.3";
+const CACHE_VERSION = "2026-07-27.4";
 const CACHE_PREFIX = "navnestatistikk-pwa";
 const CACHE_NAME = `${CACHE_PREFIX}-${CACHE_VERSION}`;
 
@@ -7,6 +7,7 @@ const SHELL_PATHS = [
   "./index.html",
   "./styles.css",
   "./mobile-redesign.css",
+  "./concept-2026.css",
   "./app.js",
   "./sw.js",
   "./manifest.webmanifest",
@@ -17,6 +18,7 @@ const SHELL_PATHS = [
   "./vendor/plotly-2.35.2.min.js",
   "./assets/names-data.json",
   "./assets/illustrations/mobile-mascot-sprite-v1.png",
+  "./assets/illustrations/botanical-sprite-v1.png",
 ];
 
 const SHELL_URLS = new Set(SHELL_PATHS.map((path) => new URL(path, self.registration.scope).href));

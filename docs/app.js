@@ -3,7 +3,7 @@ const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
 const SCHOOL_STORAGE_KEY = "navnestatistikk:schoolSettings:v1";
-const SW_VERSION = "2026-07-28.4";
+const SW_VERSION = "2026-07-28.5";
 const MAX_COMPARE_ITEMS = 12;
 
 const state = {
@@ -87,6 +87,10 @@ async function loadData() {
   state.school.birthYear = clampYear(state.school.birthYear || state.latestYear);
   state.itemsById = new Map(state.data.names.map((item) => [item.id, item]));
   state.selected = new Set([...state.selected].filter((id) => state.itemsById.has(id)));
+  ["#openSearchView", "#openFilter", "#openGlobalCoverage"].forEach((selector) => {
+    const control = $(selector);
+    if (control) control.disabled = false;
+  });
   saveWorkSelection(false);
 }
 
@@ -1238,6 +1242,7 @@ function renderSimilarList(reference, rows) {
 }
 
 function openGlobalFilters() {
+  if (!state.data) return;
   openSubscreen("Grunnvalg", `
     <form id="globalFilterForm" class="formStack">
       <p class="subLead">Disse valgene følger deg i både Oppdag og Søk. Forslagsseksjonene beholder sin egen logikk.</p>
@@ -1268,6 +1273,7 @@ function openGlobalFilters() {
 }
 
 function openSearchView() {
+  if (!state.data) return;
   openSubscreen("Søk", `
     <section class="searchWorkspace">
       <div class="searchViewBar">

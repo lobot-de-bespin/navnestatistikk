@@ -15,7 +15,7 @@ async function openPage(width = 390) {
   });
   const page = await context.newPage();
   const errors = [];
-  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("pageerror", (error) => errors.push(error.stack || error.message));
   await page.goto(baseUrl, { waitUntil: "networkidle" });
   await page.waitForSelector(".discoverySection", { timeout: 15000 });
   return { context, page, errors };
@@ -94,7 +94,7 @@ try {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: "block" });
     const page = await context.newPage();
     const errors = [];
-    page.on("pageerror", (error) => errors.push(error.message));
+    page.on("pageerror", (error) => errors.push(error.stack || error.message));
     await page.route("**/assets/names-data.json", async (route) => {
       const response = await route.fetch();
       const data = await response.json();
@@ -124,9 +124,14 @@ try {
         sourceRefs: ["open-test"],
         factSources: { identity: ["open-test"], gender: ["open-test"], norwayUse: ["open-test"] },
       });
-      await route.fulfill({ response, json: data });
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json; charset=utf-8",
+        body: JSON.stringify(data),
+      });
     });
     await page.goto(baseUrl, { waitUntil: "networkidle" });
+    await page.waitForSelector(".discoverySection", { timeout: 15000 });
     await page.click("#openSearchView");
     await page.fill("#searchViewInput", "Testnavn");
     await page.locator("#searchResultList .nameMain").click();

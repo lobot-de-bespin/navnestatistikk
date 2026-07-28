@@ -22,6 +22,9 @@ navneliste er ikke alene nok til å tas inn i standardkatalogen.
 Datakilder:
 
 - SSB tabell 10467: Fødte etter jente- og guttenavn.
+- SSB tabell 10501: Årlige bestandstall for navn som allerede finnes i
+  fødselskatalogen. Tabellen beriker navnene, men kan ikke legge til nye navn
+  eller påvirke fødselstrend, forslag eller skoleestimat.
 - SSB tabell 05803: Levendefødte i alt.
 - SSB tabell 09745: Levendefødte etter kjønn fra 1986.
 

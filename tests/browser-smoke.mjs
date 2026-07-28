@@ -64,6 +64,11 @@ try {
     await page.click("#toggleSearchFilters");
     const searchOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     assert(searchOverflow <= 1, `${width}px search overflows by ${searchOverflow}px`);
+    await page.fill("#searchViewInput", "Nora");
+    await page.locator("#searchResultList .nameMain").first().click();
+    await page.locator(".populationCard").scrollIntoViewIfNeeded();
+    const detailOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    assert(detailOverflow <= 1, `${width}px enriched detail overflows by ${detailOverflow}px`);
     assert(errors.length === 0, `${width}px home JS errors: ${errors.join("; ")}`);
     await context.close();
   }
@@ -89,6 +94,23 @@ try {
     await page.fill("#searchViewInput", "Nora");
     await page.locator("#searchResultList .nameMain").first().click();
     assert((await page.locator("#subTitle").textContent()) === "Nora", "Name detail did not open from search");
+    const populationDetail = await page.locator(".populationCard").textContent();
+    assert(populationDetail.includes("I befolkningen"), "Population enrichment is missing from name detail");
+    assert(populationDetail.includes("Blant nyfødte") && populationDetail.includes("I hele befolkningen"), "Birth and population ranks are not clearly separated");
+    assert(populationDetail.includes("ikke antall barn som fikk navnet"), "Population caveat is missing");
+    assert(await page.locator(".populationMiniChart svg").count() === 1, "Population history chart is missing");
+    const catalogue = await page.evaluate(async () => {
+      const data = await (await fetch("assets/names-data.json")).json();
+      return {
+        names: data.names.length,
+        boys: data.names.filter((item) => item.sex === "gutt").length,
+        enriched: data.names.filter((item) => item.coverage?.populationSeries).length,
+        invalidPopulationOnly: data.names.filter((item) => item.coverage?.populationSeries && !item.coverage?.birthSeries).length,
+      };
+    });
+    assert(catalogue.names === 1974 && catalogue.boys === 932, `Population enrichment changed the birth catalogue: ${JSON.stringify(catalogue)}`);
+    assert(catalogue.enriched > 1900, `Too few birth names were enriched: ${catalogue.enriched}`);
+    assert(catalogue.invalidPopulationOnly === 0, `Population-only names leaked into the catalogue: ${catalogue.invalidPopulationOnly}`);
     await page.click("#subBack");
     assert((await page.locator("#searchViewInput").inputValue()) === "Nora", "Search state was not restored after detail");
 

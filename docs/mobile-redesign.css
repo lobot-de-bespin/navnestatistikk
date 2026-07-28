@@ -1902,6 +1902,140 @@ input[type="range"] {
   font-weight: 720;
 }
 
+.populationCard {
+  display: grid;
+  gap: 13px;
+  overflow: hidden;
+  background: linear-gradient(145deg, #f3f8ee, #fffdf8 72%);
+}
+
+.populationHeading {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 11px;
+  align-items: center;
+}
+
+.populationHeading .sourcePeople {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 15px;
+  background: #dfeeda;
+  color: #416c50;
+}
+
+.populationHeading .sourcePeople svg {
+  width: 24px;
+  height: 24px;
+}
+
+.populationHeading small {
+  color: #66805e;
+  font-size: 0.64rem;
+  font-weight: 820;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.populationHeading h3 {
+  margin: 2px 0 3px;
+  color: #173f35;
+  font-size: 1rem;
+}
+
+.populationHeading p,
+.populationNote {
+  margin: 0;
+  color: #64716a;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.populationRankCompare,
+.populationChange {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.populationRankCompare span,
+.populationChange span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 9px 7px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: inset 0 0 0 1px rgba(205, 223, 197, 0.78);
+  text-align: center;
+}
+
+.populationRankCompare small,
+.populationRankCompare em,
+.populationChange small {
+  color: #6c776f;
+  font-size: 0.61rem;
+  font-style: normal;
+}
+
+.populationRankCompare b,
+.populationChange b {
+  overflow: hidden;
+  color: #173f35;
+  font-size: 1rem;
+  text-overflow: ellipsis;
+}
+
+.populationChange {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.populationMiniChart {
+  min-height: 130px;
+  padding: 2px 0 0;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.populationMiniChart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.populationAxis {
+  stroke: #d4dfcf;
+  stroke-width: 1;
+}
+
+.populationLine {
+  fill: none;
+  stroke: #4f8765;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+.populationDot {
+  fill: #d97867;
+  stroke: #fff;
+  stroke-width: 2;
+}
+
+.populationAxisLabel {
+  fill: #6a786f;
+  font-size: 11px;
+  font-weight: 680;
+  stroke: none;
+}
+
+.populationNote {
+  padding-top: 1px;
+  border-top: 1px solid rgba(205, 223, 197, 0.85);
+}
+
 .subTabs {
   display: flex;
   gap: 4px;

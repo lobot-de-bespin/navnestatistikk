@@ -18,6 +18,7 @@ DATA_OUT = DOCS / "assets" / "names-data.json"
 API_V0 = "https://data.ssb.no/api/v0/no/table"
 API_V2 = "https://data.ssb.no/api/pxwebapi/v2/tables"
 NAME_TABLE = "10467"
+POPULATION_NAMES_TABLE = "10501"
 BIRTHS_TABLE = "05803"
 SEX_BIRTHS_TABLE = "09745"
 SOURCE_CATALOG = {
@@ -27,6 +28,13 @@ SOURCE_CATALOG = {
         "url": f"https://www.ssb.no/statbank/table/{NAME_TABLE}/",
         "license": "CC BY 4.0",
         "provides": ["norwayUse", "birthSeries"],
+    },
+    "ssb-10501": {
+        "label": "Navnebærere i befolkningen",
+        "publisher": "Statistisk sentralbyrå",
+        "url": f"https://www.ssb.no/statbank/table/{POPULATION_NAMES_TABLE}/",
+        "license": "CC BY 4.0",
+        "provides": ["populationSeries"],
     },
 }
 
@@ -91,11 +99,14 @@ def clean_name_id(code: str) -> tuple[str, str]:
 def attach_catalog_metadata(record: dict) -> None:
     """Describe what is documented without coupling the UI to a source."""
     source_refs = ["ssb-10467"] if record.get("series") else []
+    if record.get("populationSeries"):
+        source_refs.append("ssb-10501")
     record["gender"] = record["sex"]
     record["coverage"] = {
         "identity": True,
         "norwayUse": bool(source_refs),
         "birthSeries": bool(record.get("series")),
+        "populationSeries": bool(record.get("populationSeries")),
         "meaning": False,
         "origin": False,
         "pronunciation": False,
@@ -106,6 +117,7 @@ def attach_catalog_metadata(record: dict) -> None:
         "gender": source_refs,
         "norwayUse": source_refs,
         "birthSeries": ["ssb-10467"] if record.get("series") else [],
+        "populationSeries": ["ssb-10501"] if record.get("populationSeries") else [],
     }
 
 
@@ -123,6 +135,8 @@ def validate_catalog(payload: dict) -> None:
             raise ValueError(f"Identity coverage missing for {record['id']}")
         if coverage.get("birthSeries") != bool(record.get("series")):
             raise ValueError(f"Birth-series coverage mismatch for {record['id']}")
+        if coverage.get("populationSeries") != bool(record.get("populationSeries")):
+            raise ValueError(f"Population-series coverage mismatch for {record['id']}")
         if not set(record.get("sourceRefs", [])).issubset(source_ids):
             raise ValueError(f"Unknown source reference for {record['id']}")
         for refs in record.get("factSources", {}).values():
@@ -132,6 +146,7 @@ def validate_catalog(payload: dict) -> None:
 
 def build() -> dict:
     metadata = request_json(f"{API_V2}/{NAME_TABLE}/metadata?lang=no")
+    population_metadata = request_json(f"{API_V2}/{POPULATION_NAMES_TABLE}/metadata?lang=no")
     name_data = post_table(
         NAME_TABLE,
         [
@@ -247,6 +262,64 @@ def build() -> dict:
             }
         )
 
+    population_year_codes = sorted_codes(population_metadata["dimension"]["Tid"]["category"])
+    population_data = post_table(
+        POPULATION_NAMES_TABLE,
+        [
+            all_query("Fornavn"),
+            item_query("ContentsCode", ["Personer"]),
+            item_query("Tid", population_year_codes),
+        ],
+    )
+    population_codes = sorted_codes(population_data["dimension"]["Fornavn"]["category"])
+    population_values = population_data.get("value", [])
+    population_shape = population_data["size"]
+    population_rows = []
+    for ni, code in enumerate(population_codes):
+        population_series = []
+        for yi, year in enumerate(population_year_codes):
+            value = value_at(population_values, population_shape, (ni, 0, yi))
+            if value is not None:
+                population_series.append([int(year), int(value)])
+        if not population_series:
+            continue
+        population_rows.append(
+            {
+                "id": code,
+                "sex": clean_name_id(code)[0],
+                "populationSeries": population_series,
+                "populationCount": population_series[-1][1]
+                if population_series[-1][0] == int(population_year_codes[-1])
+                else None,
+            }
+        )
+
+    population_ranks = {}
+    for sex in ("jente", "gutt"):
+        rows = sorted(
+            (row for row in population_rows if row["sex"] == sex and row["populationCount"] is not None),
+            key=lambda row: (-row["populationCount"], row["id"]),
+        )
+        previous_count = None
+        previous_rank = 0
+        for position, row in enumerate(rows, start=1):
+            rank = previous_rank if row["populationCount"] == previous_count else position
+            population_ranks[row["id"]] = rank
+            previous_count = row["populationCount"]
+            previous_rank = rank
+
+    # 10501 enriches only names already admitted through the birth-series
+    # catalogue. It must never expand the catalogue by itself.
+    records_by_id = {record["id"]: record for record in records}
+    for row in population_rows:
+        record = records_by_id.get(row["id"])
+        if not record:
+            continue
+        record["populationSeries"] = row["populationSeries"]
+        if row["populationCount"] is not None:
+            record["populationCount"] = row["populationCount"]
+            record["populationRank"] = population_ranks[row["id"]]
+
     for record in records:
         attach_catalog_metadata(record)
     records.sort(key=lambda r: (r["sex"], r["name"], r["id"]))
@@ -258,9 +331,14 @@ def build() -> dict:
             "license": "CC BY 4.0",
             "sourceCatalog": SOURCE_CATALOG,
             "nameTable": NAME_TABLE,
+            "populationNamesTable": POPULATION_NAMES_TABLE,
             "birthsTable": BIRTHS_TABLE,
             "sexBirthsTable": SEX_BIRTHS_TABLE,
             "nameTableUpdated": metadata.get("updated"),
+            "populationNamesTableUpdated": population_metadata.get("updated"),
+            "populationYear": int(population_year_codes[-1]),
+            "populationHistoryNames": sum(1 for record in records if record.get("populationSeries")),
+            "populationCurrentNames": sum(1 for record in records if record.get("populationCount") is not None),
             "notes": metadata.get("note", []),
         },
         "years": years,

@@ -3,7 +3,7 @@ const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
 const SCHOOL_STORAGE_KEY = "navnestatistikk:schoolSettings:v1";
-const SW_VERSION = "2026-07-28.8";
+const SW_VERSION = "2026-07-28.9";
 const MAX_COMPARE_ITEMS = 12;
 
 const state = {
@@ -1081,6 +1081,7 @@ function detailMarkup(item) {
       <span><small>Siste år</small><b>${item.lastYear ?? item.lastDataYear}</b></span>
     </section>
     ${schoolCardMarkup(item)}
+    ${populationHistoryMarkup(item, latest)}
     ${sourceListMarkup(item)}
     <button class="primaryWide" data-add="${item.id}" type="button">Legg til i vår liste</button>
     <button class="secondaryWide" data-similar="${item.id}" type="button">Finn lignende navn</button>
@@ -2127,6 +2128,78 @@ function hasCapability(item, key) {
 
 function hasHistory(item) {
   return hasCapability(item, "birthSeries");
+}
+
+function hasPopulationHistory(item) {
+  return hasCapability(item, "populationSeries") && Boolean(item?.populationSeries?.length);
+}
+
+function populationHistoryStats(item) {
+  if (!hasPopulationHistory(item)) return null;
+  const first = item.populationSeries[0];
+  const last = item.populationSeries[item.populationSeries.length - 1];
+  return {
+    firstYear: first[0],
+    firstCount: first[1],
+    lastYear: last[0],
+    lastCount: last[1],
+    change: last[1] - first[1],
+  };
+}
+
+function populationHistoryMarkup(item, latestBirthPoint) {
+  const stats = populationHistoryStats(item);
+  if (!stats) return "";
+  const birthRank = latestBirthPoint?.[2] ? `#${formatNumber(latestBirthPoint[2])}` : "–";
+  const populationRank = item.populationRank ? `#${formatNumber(item.populationRank)}` : "–";
+  return `
+    <section class="subCard populationCard">
+      <div class="populationHeading">
+        <span class="sourcePeople"><svg aria-hidden="true"><use href="#icon-people"></use></svg></span>
+        <div>
+          <small>I befolkningen</small>
+          <h3>${formatNumber(stats.lastCount)} navnebærere i ${stats.lastYear}</h3>
+          <p>Alle registrerte personer, uansett alder.</p>
+        </div>
+      </div>
+      <div class="populationRankCompare" aria-label="Rangering blant nyfødte og i befolkningen">
+        <span><small>Blant nyfødte</small><b>${birthRank}</b><em>${state.latestYear}</em></span>
+        <span><small>I hele befolkningen</small><b>${populationRank}</b><em>${stats.lastYear}</em></span>
+      </div>
+      <div class="populationMiniChart">${populationSparklineSvg(item)}</div>
+      <div class="populationChange">
+        <span><small>${stats.firstYear}</small><b>${formatNumber(stats.firstCount)}</b></span>
+        <span><small>${stats.lastYear}</small><b>${formatNumber(stats.lastCount)}</b></span>
+        <span><small>Endring</small><b>${stats.change > 0 ? "+" : ""}${formatNumber(stats.change)}</b></span>
+      </div>
+      <p class="populationNote">Dette er bestand ved årets slutt, ikke antall barn som fikk navnet. Kurven påvirkes også av innvandring, dødsfall og navneendringer, og brukes derfor ikke i trend- eller skoleberegningene.</p>
+    </section>
+  `;
+}
+
+function populationSparklineSvg(item, width = 330, height = 150) {
+  const rows = item?.populationSeries || [];
+  if (!rows.length) return "";
+  const padX = 18;
+  const padTop = 16;
+  const padBottom = 24;
+  const minYear = rows[0][0];
+  const maxYear = rows[rows.length - 1][0];
+  const counts = rows.map((row) => row[1]);
+  const minCount = Math.min(...counts);
+  const maxCount = Math.max(...counts);
+  const x = (year) => padX + ((year - minYear) / Math.max(1, maxYear - minYear)) * (width - padX * 2);
+  const y = (count) => padTop + (1 - ((count - minCount) / Math.max(1, maxCount - minCount))) * (height - padTop - padBottom);
+  const points = rows.map(([year, count]) => `${x(year).toFixed(1)},${y(count).toFixed(1)}`).join(" ");
+  return `
+    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Navnebærere i befolkningen fra ${minYear} til ${maxYear}">
+      <line x1="${padX}" y1="${height - padBottom}" x2="${width - padX}" y2="${height - padBottom}" class="populationAxis"></line>
+      <polyline points="${points}" class="populationLine"></polyline>
+      <circle cx="${x(rows.at(-1)[0]).toFixed(1)}" cy="${y(rows.at(-1)[1]).toFixed(1)}" r="4" class="populationDot"></circle>
+      <text x="${padX}" y="${height - 5}" class="populationAxisLabel">${minYear}</text>
+      <text x="${width - padX}" y="${height - 5}" text-anchor="end" class="populationAxisLabel">${maxYear}</text>
+    </svg>
+  `;
 }
 
 function availableTrendScore(item) {

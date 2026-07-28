@@ -3,7 +3,8 @@ const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
 const SCHOOL_STORAGE_KEY = "navnestatistikk:schoolSettings:v1";
-const SW_VERSION = "2026-07-28.2";
+const SW_VERSION = "2026-07-28.3";
+const MAX_COMPARE_ITEMS = 12;
 
 const state = {
   data: null,
@@ -95,7 +96,7 @@ function bindChrome() {
     renderExplore();
   });
   $("#openFilter")?.addEventListener("click", openFilters);
-  $("#candidateCard")?.addEventListener("click", addFilteredRowsToWork);
+  $("#candidateCard")?.addEventListener("click", openCandidateBuilder);
   $("#openCandidateList")?.addEventListener("click", openFilters);
   $("[data-popular-sex='jente']")?.addEventListener("click", () => setPopularSex("jente"));
   $("[data-popular-sex='gutt']")?.addEventListener("click", () => setPopularSex("gutt"));
@@ -253,7 +254,8 @@ function findNameFromUrlToken(value) {
 function updateUrl() {
   const params = new URLSearchParams();
   if (state.query) params.set("q", state.query);
-  if (state.selected.size) params.set("names", [...state.selected].join(","));
+  if (state.selected.size && state.selected.size <= 100) params.set("names", [...state.selected].join(","));
+  if (state.selected.size > 100) params.set("selected", String(state.selected.size));
   params.set("metric", state.compare.metric);
   params.set("from", String(state.compare.fromYear));
   params.set("to", String(state.compare.toYear));
@@ -477,28 +479,33 @@ function hasActiveExploreFilters() {
 function updateCandidateCard(rows = filteredRows(), isFiltered = hasActiveExploreFilters()) {
   const card = $("#candidateCard");
   if (!card) return;
-  const count = Math.min(rows.length, 80);
+  const count = rows.length;
   card.hidden = !isFiltered;
   card.disabled = count === 0;
   card.innerHTML = `
     <span class="miniIcon"><svg><use href="#icon-list"></use></svg></span>
-      <span><strong>Legg treff til vår liste</strong><small>${count ? `${formatNumber(count)} navn fra gjeldende søk og filtre` : "Ingen treff å legge til"}</small></span>
-    <em>${count ? "Legg til" : "Tomt"}</em>
+      <span><strong>Åpne hele trefflisten</strong><small>${count ? `${formatNumber(count)} navn fra gjeldende søk og filtre` : "Ingen treff å vise"}</small></span>
+    <em>${count ? "Se alle" : "Tomt"}</em>
   `;
 }
 
-function addFilteredRowsToWork() {
-  const rows = filteredRows().slice(0, 80);
+function addCandidateRowsToWork(rows, startReview = false) {
   if (!rows.length) {
     toast("Ingen treff å legge til");
     return;
   }
+  rows.forEach((item) => {
+    if (state.status[item.id] === "rejected") delete state.status[item.id];
+  });
   rows.forEach((item) => state.selected.add(item.id));
   resetReviewDeck();
   saveWorkSelection();
-  toast(`${formatNumber(rows.length)} navn lagt til i vår liste`);
+  saveStatus();
+  toast(`${formatNumber(rows.length)} navn lagt til i utvalget`);
+  closeSubscreen();
   renderAll();
   updateUrl();
+  if (startReview) setTab("review");
 }
 
 function setPopularSex(sex) {
@@ -747,7 +754,7 @@ function normalizeComparePeriod() {
 
 function compareItems() {
   const selected = [...state.selected].map((id) => state.itemsById.get(id)).filter(Boolean);
-  return selected;
+  return selected.slice(0, MAX_COMPARE_ITEMS);
 }
 
 function ensureSimilarReference(items = compareItems()) {
@@ -785,6 +792,13 @@ function renderCompareChips(items) {
     chip.append(open, remove);
     return chip;
   }));
+  const total = workItems().length;
+  if (total > items.length) {
+    const summary = document.createElement("span");
+    summary.className = "emptyChip";
+    summary.textContent = `Viser ${formatNumber(items.length)} av ${formatNumber(total)}`;
+    rail.append(summary);
+  }
 }
 
 function renderCompareSimilar(items) {
@@ -1149,26 +1163,47 @@ function openFilters() {
 }
 
 function openCandidateBuilder() {
-  const rows = filteredRows().slice(0, 248);
+  const rows = filteredRows();
   state.candidateRows = rows;
-  openSubscreen("Kandidatliste", `
+  openSubscreen("Alle treff", `
     <section class="subCard candidateSummary">
       <strong>${formatNumber(rows.length)} navn</strong>
-      <small>${state.filters.sex === "alle" ? "Jenter og gutter" : state.filters.sex} · ${state.filters.fromYear}-${state.filters.toYear}</small>
+      <small>${{ alle: "Jente- og guttenavn", jente: "Jentenavn", gutt: "Guttenavn" }[state.filters.sex] || "Alle navn"} · hele trefflisten</small>
     </section>
+    <div class="candidateBulkActions">
+      <button class="primaryWide" id="addAllCandidates" type="button">Legg alle til utvalget</button>
+      <button class="secondaryWide" id="reviewAllCandidates" type="button">Vurder alle</button>
+    </div>
+    <p id="candidateProgress" class="candidateProgress"></p>
     <div id="candidateList" class="nameRows"></div>
-    <button class="primaryWide" id="addAllCandidates" type="button">Legg til alle (${formatNumber(rows.length)})</button>
+    <button class="secondaryWide candidateLoadMore" id="loadMoreCandidates" type="button"></button>
   `);
-  $("#candidateList").replaceChildren(...rows.slice(0, 80).map((item) => nameRow(item)));
-  $("#addAllCandidates").addEventListener("click", () => {
-    rows.forEach((item) => state.selected.add(item.id));
-    resetReviewDeck();
-    saveWorkSelection();
-    toast(`${formatNumber(rows.length)} navn lagt til`);
-    closeSubscreen();
-    renderAll();
-    updateUrl();
-  });
+  const list = $("#candidateList");
+  const progress = $("#candidateProgress");
+  const loadMore = $("#loadMoreCandidates");
+  const batchSize = 100;
+  let visible = 0;
+  let observer = null;
+  const renderNextBatch = () => {
+    const next = rows.slice(visible, visible + batchSize);
+    list.append(...next.map((item) => nameRow(item)));
+    visible += next.length;
+    progress.textContent = `Viser ${formatNumber(visible)} av ${formatNumber(rows.length)}`;
+    const remaining = rows.length - visible;
+    loadMore.hidden = remaining <= 0;
+    loadMore.textContent = remaining > 0 ? `Vis ${formatNumber(Math.min(batchSize, remaining))} til` : "";
+    if (remaining <= 0) observer?.disconnect();
+  };
+  renderNextBatch();
+  loadMore.addEventListener("click", renderNextBatch);
+  if ("IntersectionObserver" in window && rows.length > batchSize) {
+    observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) renderNextBatch();
+    }, { rootMargin: "240px 0px" });
+    observer.observe(loadMore);
+  }
+  $("#addAllCandidates").addEventListener("click", () => addCandidateRowsToWork(rows));
+  $("#reviewAllCandidates").addEventListener("click", () => addCandidateRowsToWork(rows, true));
 }
 
 function openCompareSettings() {
@@ -1656,6 +1691,7 @@ function smoothLabel(value) {
 
 function filteredRows() {
   let rows = state.query ? searchRows(state.query) : state.data.names.slice();
+  rows = rows.filter((item) => state.status[item.id] !== "rejected");
   rows = rows.filter((item) => {
     if (hasHistory(item)) {
       return allPoints(item).some((point) => point.year >= state.filters.fromYear && point.year <= state.filters.toYear && (point.count != null || point.shareSex != null));

@@ -3,7 +3,7 @@ const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
 const SCHOOL_STORAGE_KEY = "navnestatistikk:schoolSettings:v1";
-const SW_VERSION = "2026-07-28.3";
+const SW_VERSION = "2026-07-28.4";
 const MAX_COMPARE_ITEMS = 12;
 
 const state = {
@@ -20,6 +20,8 @@ const state = {
   tab: "explore",
   popularSex: "jente",
   query: "",
+  searchShowAll: false,
+  searchFiltersOpen: false,
   filters: {
     sex: "alle",
     fromYear: 1900,
@@ -52,6 +54,8 @@ const state = {
     swiping: false,
   },
   candidateRows: [],
+  subscreenMode: "default",
+  returnToSearch: false,
 };
 
 const $ = (selector, root = document) => root.querySelector(selector);
@@ -66,6 +70,7 @@ async function init() {
   await loadData();
   restoreFromUrl();
   renderAll();
+  if (state.query) requestAnimationFrame(openSearchView);
   lockPortraitOrientation();
   registerServiceWorker();
 }
@@ -90,16 +95,15 @@ function bindChrome() {
   $$(".tabBar button").forEach((button) => {
     button.addEventListener("click", () => setTab(button.dataset.tab));
   });
-  $("#searchInput")?.addEventListener("input", (event) => {
-    state.query = event.target.value.trim();
-    if (state.query) rememberSearch(state.query);
-    renderExplore();
+  $("#openSearchView")?.addEventListener("click", openSearchView);
+  $("#openFilter")?.addEventListener("click", openGlobalFilters);
+  $("#openGlobalCoverage")?.addEventListener("click", openGlobalFilters);
+  $$("[data-global-sex]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.filters.sex = button.dataset.globalSex;
+      renderExplore();
+    });
   });
-  $("#openFilter")?.addEventListener("click", openFilters);
-  $("#candidateCard")?.addEventListener("click", openCandidateBuilder);
-  $("#openCandidateList")?.addEventListener("click", openFilters);
-  $("[data-popular-sex='jente']")?.addEventListener("click", () => setPopularSex("jente"));
-  $("[data-popular-sex='gutt']")?.addEventListener("click", () => setPopularSex("gutt"));
   $$("[data-metric]").forEach((button) => {
     button.addEventListener("click", () => {
       state.compare.metric = button.dataset.metric;
@@ -223,7 +227,7 @@ function restoreFromUrl() {
   const params = new URLSearchParams(location.search);
   if (params.has("q")) {
     state.query = params.get("q") || "";
-    $("#searchInput").value = state.query;
+    state.searchShowAll = true;
   }
   if (params.has("names")) {
     params
@@ -267,6 +271,8 @@ function setTab(tab) {
   state.tab = tab;
   $$(".screen").forEach((screen) => screen.classList.toggle("active", screen.dataset.view === tab));
   $$(".tabBar button").forEach((button) => button.classList.toggle("active", button.dataset.tab === tab));
+  state.returnToSearch = false;
+  state.subscreenMode = "default";
   closeSubscreen(false);
   if (tab === "review") ensureReviewDeck();
   renderAll();
@@ -305,7 +311,7 @@ function workflowSummaryMarkup(counts) {
 
 function workflowPathMarkup(active) {
   const steps = [
-    ["explore", "Finn", "Start bredt"],
+    ["explore", "Oppdag", "Start bredt"],
     ["compare", "Sammenlign", "Se mønstre"],
     ["review", "Vurder", "Velg shortlist"],
   ];
@@ -335,7 +341,7 @@ function renderWorkflowCards() {
   if (compare) {
     compare.innerHTML = counts.work
       ? `${workflowPathMarkup("compare")}${workflowSummaryMarkup(counts)}<button class="workflowCta" data-go-tab="review" type="button">Vurder valgte</button>`
-      : `${workflowPathMarkup("compare")}<section class="taskPrompt"><strong>Legg inn navn først</strong><small>Søk etter et navn, eller bruk startpunktene for å fylle utvalget.</small><button data-go-tab="explore" type="button">Finn navn</button></section>`;
+      : `${workflowPathMarkup("compare")}<section class="taskPrompt"><strong>Legg inn navn først</strong><small>Søk etter et navn, eller bruk forslagene for å fylle utvalget.</small><button data-go-tab="explore" type="button">Oppdag navn</button></section>`;
   }
   const mine = $("#mineWorkflow");
   if (mine) {
@@ -360,7 +366,7 @@ function handleWorkflowNavigation(event) {
   const focusSearch = event.target.closest("[data-focus-search]");
   if (focusSearch) {
     event.preventDefault();
-    $("#searchInput")?.focus();
+    openSearchView();
     return;
   }
   const advancedSimilar = event.target.closest("[data-toggle-advanced-similar]");
@@ -380,44 +386,18 @@ function nextMineStep(counts) {
   if (counts.work >= 2) return { tab: "compare", label: "Utforsk utvalg" };
   if (counts.work === 1) return { tab: "review", label: "Vurder navnet" };
   if (counts.shortlist) return { tab: "compare", label: "Utforsk aktuelle" };
-  return { tab: "explore", label: "Finn navn" };
+  return { tab: "explore", label: "Oppdag navn" };
 }
 
 function renderExplore() {
   renderRecentSearches();
   renderExploreStarter();
-  $("[data-popular-sex='jente']")?.classList.toggle("active", state.popularSex === "jente");
-  $("[data-popular-sex='gutt']")?.classList.toggle("active", state.popularSex === "gutt");
-  const list = $("#popularList");
-  if (!list) return;
-  const rows = filteredRows();
-  const isFiltered = hasActiveExploreFilters();
-  $("#exploreListTitle").textContent = isFiltered ? `Treff (${formatNumber(rows.length)})` : "Forslag akkurat nå";
-  $("#popularSexToggle").hidden = true;
-  $("#openCandidateList").textContent = "Filtre";
-  updateCandidateCard(rows, isFiltered);
-  if (!rows.length) {
-    list.classList.remove("discoveryGrid");
-    list.innerHTML = `
-      <div class="emptyState compact">
-        <p>Ingen navn matcher søk og filtre.</p>
-        <div class="emptyActions">
-          <button data-filter-preset="popular" type="button">Populære</button>
-          <button data-filter-preset="rising" type="button">Stigende</button>
-          <button data-filter-preset="clear" type="button">Nullstill</button>
-        </div>
-      </div>
-    `;
-    return;
-  }
-  list.classList.toggle("discoveryGrid", !isFiltered);
-  list.replaceChildren(
-    ...rows.slice(0, 24).map((item, index) => nameRow(item, {
-      rank: index + 1,
-      detail: true,
-      feature: !isFiltered && index < 4,
-    })),
-  );
+  $$("[data-global-sex]").forEach((button) => button.classList.toggle("active", button.dataset.globalSex === state.filters.sex));
+  const coverageButton = $("#openGlobalCoverage span");
+  if (coverageButton) coverageButton.textContent = coverageFilterLabel(state.filters.coverage);
+  const searchLabel = $("#homeSearchLabel");
+  if (searchLabel) searchLabel.textContent = state.query ? `Søk videre etter «${state.query}»` : "Søk etter navn";
+  renderDiscoverySections();
 }
 
 function renderExploreStarter() {
@@ -425,6 +405,7 @@ function renderExploreStarter() {
   if (!panel) return;
   const work = workItems().slice(0, 3);
   if (work.length) {
+    panel.hidden = false;
     panel.innerHTML = `
       <div class="heroArt chart" aria-hidden="true"></div>
       <div class="lensCopy">
@@ -442,51 +423,19 @@ function renderExploreStarter() {
     `;
     return;
   }
-  panel.innerHTML = `
-    <div class="heroArt magnifier" aria-hidden="true"></div>
-    <div class="starterIntro">
-      <small>Norske navnedata · 1880-${state.latestYear}</small>
-      <strong>Hva føles riktig?</strong>
-      <span>Mykt, tidløst, sjeldent eller på vei opp?</span>
-    </div>
-    <div class="starterGrid">
-      <button data-filter-preset="popular" type="button"><strong>Trygt</strong><small>Kjent og lett å bruke</small></button>
-      <button data-filter-preset="rising" type="button"><strong>Varm trend</strong><small>Flere velger det nå</small></button>
-      <button data-filter-preset="rare" type="button"><strong>Særpreg</strong><small>Færre med samme navn</small></button>
-      <button data-filter-preset="school" type="button"><strong>Luft i klassen</strong><small>Lavere skoleestimat</small></button>
-    </div>
-    <div class="starterFoot">
-      <button data-focus-search type="button">Søk selv</button>
-      <button data-quick-name="Alma" type="button">Prøv Alma</button>
-      <button data-quick-name="Elias" type="button">Prøv Elias</button>
-    </div>
-  `;
+  panel.hidden = true;
+  panel.replaceChildren();
 }
 
-function hasActiveExploreFilters() {
+function hasActiveSearchFilters() {
   return Boolean(
     state.query ||
-      state.filters.sex !== "alle" ||
       state.filters.fromYear !== Math.max(1900, state.firstYear) ||
       state.filters.toYear !== state.latestYear ||
       state.filters.popularity !== "alle" ||
-      state.filters.coverage !== "alle" ||
       state.filters.pattern ||
       state.filters.schoolMax !== "",
   );
-}
-
-function updateCandidateCard(rows = filteredRows(), isFiltered = hasActiveExploreFilters()) {
-  const card = $("#candidateCard");
-  if (!card) return;
-  const count = rows.length;
-  card.hidden = !isFiltered;
-  card.disabled = count === 0;
-  card.innerHTML = `
-    <span class="miniIcon"><svg><use href="#icon-list"></use></svg></span>
-      <span><strong>Åpne hele trefflisten</strong><small>${count ? `${formatNumber(count)} navn fra gjeldende søk og filtre` : "Ingen treff å vise"}</small></span>
-    <em>${count ? "Se alle" : "Tomt"}</em>
-  `;
 }
 
 function addCandidateRowsToWork(rows, startReview = false) {
@@ -515,7 +464,6 @@ function setPopularSex(sex) {
 
 function applyExplorePreset(preset) {
   state.query = "";
-  $("#searchInput").value = "";
   state.filters.sex = "alle";
   state.filters.fromYear = Math.max(1900, state.firstYear);
   state.filters.toYear = state.latestYear;
@@ -523,7 +471,8 @@ function applyExplorePreset(preset) {
   state.filters.coverage = "alle";
   state.filters.schoolMax = preset === "school" ? "2" : "";
   state.filters.popularity = preset === "clear" || preset === "popular" || preset === "school" ? "alle" : preset;
-  renderExplore();
+  state.searchShowAll = true;
+  openSearchView();
   updateUrl();
 }
 
@@ -554,6 +503,129 @@ function popularRows(sex = "jente", limit = 10) {
     .slice(0, limit);
 }
 
+function discoveryBaseRows() {
+  let rows = state.data.names.filter((item) => state.status[item.id] !== "rejected");
+  if (state.filters.sex !== "alle") rows = rows.filter((item) => item.sex === state.filters.sex);
+  if (state.filters.coverage === "births") rows = rows.filter(hasHistory);
+  if (state.filters.coverage === "population") rows = rows.filter(hasRegistryHistory);
+  if (state.filters.coverage === "basic") rows = rows.filter((item) => !hasHistory(item) && !hasRegistryHistory(item));
+  if (state.filters.coverage === "meaning") rows = rows.filter((item) => hasCapability(item, "meaning"));
+  return rows;
+}
+
+function discoveryCollections() {
+  const base = discoveryBaseRows();
+  const birth = base.filter(hasHistory).filter((item) => latestCount(item) > 0);
+  const collections = [
+    {
+      id: "popular",
+      title: "Populære nå",
+      subtitle: `Flest nyfødte i ${state.latestYear}`,
+      rows: birth.slice().sort((a, b) => latestCount(b) - latestCount(a) || a.name.localeCompare(b.name, "no")),
+      metric: (item) => `${formatNumber(latestCount(item))} nyfødte`,
+    },
+    {
+      id: "rising",
+      title: "På vei opp",
+      subtitle: "Størst økning det siste tiåret",
+      rows: birth.filter((item) => trendScore(item) > 0).sort((a, b) => trendScore(b) - trendScore(a) || latestCount(b) - latestCount(a)),
+      metric: (item) => `${signedNumber(trendScore(item))} på ti år`,
+    },
+    {
+      id: "distinctive",
+      title: "Særpreg, fortsatt i bruk",
+      subtitle: "Færre velger dem, men de brukes nå",
+      rows: birth.filter((item) => latestCount(item) >= 4 && latestCount(item) < 25).sort((a, b) => latestCount(b) - latestCount(a) || a.name.localeCompare(b.name, "no")),
+      metric: (item) => `${formatNumber(latestCount(item))} nyfødte`,
+    },
+    {
+      id: "school",
+      title: "Få navnebrødre på skolen",
+      subtitle: `Anslag for ${formatNumber(state.school.gradeSize)} elever per trinn`,
+      rows: birth
+        .map((item) => ({ item, estimate: schoolEstimateForCurrentSettings(item).school }))
+        .filter((row) => row.estimate > 0 && row.estimate <= 2)
+        .sort((a, b) => b.item.currentRank - a.item.currentRank || b.estimate - a.estimate)
+        .map((row) => row.item),
+      metric: (item) => `${formatDecimal(schoolEstimateForCurrentSettings(item).school, 1)} i skoleløpet`,
+    },
+    {
+      id: "documented",
+      title: "Flere navn i bruk i Norge",
+      subtitle: "Dokumentert i befolkningen, uten fødselshistorikk",
+      rows: base.filter((item) => !hasHistory(item) && hasRegistryHistory(item)).sort((a, b) => (b.currentCount ?? 0) - (a.currentCount ?? 0) || a.name.localeCompare(b.name, "no")),
+      metric: (item) => `${formatNumber(item.currentCount)} personer`,
+    },
+  ];
+  const meanings = base.filter((item) => hasCapability(item, "meaning"));
+  if (meanings.length) {
+    collections.push({
+      id: "meaning",
+      title: "Med dokumentert betydning",
+      subtitle: "Språkdata med kilde på opplysningen",
+      rows: meanings,
+      metric: () => "Betydning tilgjengelig",
+    });
+  }
+  return collections.filter((section) => section.rows.length);
+}
+
+function renderDiscoverySections() {
+  const root = $("#discoverySections");
+  if (!root) return;
+  const collections = discoveryCollections();
+  if (!collections.length) {
+    root.innerHTML = `
+      <div class="emptyState compact">
+        <p>Ingen forslag har denne datadekningen og navnetypen ennå.</p>
+        <div class="emptyActions"><button id="resetDiscoveryFilters" type="button">Vis alle navn</button></div>
+      </div>
+    `;
+    $("#resetDiscoveryFilters")?.addEventListener("click", () => {
+      state.filters.sex = "alle";
+      state.filters.coverage = "alle";
+      renderExplore();
+    });
+    return;
+  }
+  root.replaceChildren(...collections.map((section) => discoverySection(section)));
+}
+
+function discoverySection(section) {
+  const container = document.createElement("section");
+  container.className = `discoverySection discovery-${section.id}`;
+  container.innerHTML = `
+    <div class="discoverySectionHead">
+      <span><h3>${escapeHtml(section.title)}</h3><small>${escapeHtml(section.subtitle)}</small></span>
+      <button type="button">Se alle <span>${formatNumber(section.rows.length)}</span></button>
+    </div>
+    <div class="discoveryRail"></div>
+  `;
+  $("button", container).addEventListener("click", () => openCandidateBuilder(section.rows, section.title, section.subtitle));
+  $(".discoveryRail", container).replaceChildren(...section.rows.slice(0, 8).map((item) => discoveryNameCard(item, section.metric(item))));
+  return container;
+}
+
+function discoveryNameCard(item, metric) {
+  const selected = state.selected.has(item.id);
+  const card = document.createElement("article");
+  card.className = `discoveryNameCard ${item.sex} ${selected ? "selected" : ""}`;
+  card.innerHTML = `
+    <button class="discoveryNameMain" type="button">
+      <span class="discoverySex">${sexIconMarkup(item)}</span>
+      <strong>${escapeHtml(item.name)}</strong>
+      <small>${escapeHtml(metric)}</small>
+      <span class="discoveryMiniChart">${hasHistory(item) ? sparklineSvg(item, 118, 34) : hasRegistryHistory(item) ? registryMiniSparkSvg(item, 118, 34) : ""}</span>
+    </button>
+    <button class="discoveryAdd ${selected ? "active" : ""}" type="button" aria-label="${selected ? "Fjern" : "Legg til"} ${escapeHtml(item.name)}">
+      <svg><use href="#icon-${selected ? "check" : "plus"}"></use></svg>
+    </button>
+  `;
+  $(".discoveryNameMain", card).addEventListener("click", () => openNameDetail(item));
+  $(".discoveryAdd", card).addEventListener("click", () => toggleWorkSelection(item));
+  return card;
+}
+
 function renderRecentSearches() {
   const rail = $("#recentSearches");
   if (!rail) return;
@@ -565,8 +637,8 @@ function renderRecentSearches() {
     button.textContent = query;
     button.addEventListener("click", () => {
       state.query = query;
-      $("#searchInput").value = query;
-      renderExplore();
+      state.searchShowAll = true;
+      openSearchView();
     });
     return button;
   }));
@@ -581,17 +653,20 @@ function rememberSearch(query) {
 function nameRow(item, options = {}) {
   const selected = state.selected.has(item.id);
   const history = hasHistory(item);
+  const population = hasRegistryHistory(item);
   const latest = pointInYear(item, state.latestYear);
   const row = document.createElement("article");
-  row.className = `nameRow ${options.feature ? "featureNameCard" : ""} ${selected ? "selected" : ""} ${history ? "birthData" : "populationData"}`;
+  row.className = `nameRow ${item.sex} ${options.feature ? "featureNameCard" : ""} ${selected ? "selected" : ""} ${history ? "birthData" : population ? "populationData" : "identityData"}`;
+  const score = history ? latest?.[1] ?? 0 : population ? item.currentCount : null;
+  const scoreLabel = history ? `fødte ${state.latestYear}` : population ? `personer ${state.data.meta.currentNamesYear}` : "ingen statistikk";
   row.innerHTML = `
-    <span class="rank">${options.rank ?? (history ? "" : '<svg aria-hidden="true"><use href="#icon-people"></use></svg>')}</span>
+    <span class="rank">${options.rank ?? sexIconMarkup(item)}</span>
     <button class="nameMain" type="button">
       <strong>${escapeHtml(item.name)}</strong>
-      <small>${history ? `${escapeHtml(itemMood(item))} · toppår ${item.peakYear}` : registryHistoryLabel(item)}</small>
+      <small>${history ? `${escapeHtml(itemMood(item))} · toppår ${item.peakYear}` : population ? registryHistoryLabel(item) : identityCoverageLabel(item)}</small>
     </button>
-    <span class="spark">${history ? sparklineSvg(item) : registryMiniSparkSvg(item)}</span>
-    <span class="count nameScore"><b>${formatNumber(history ? (latest?.[1] ?? 0) : item.currentCount)}</b><small>${history ? `fødte ${state.latestYear}` : `personer ${state.data.meta.currentNamesYear}`}</small></span>
+    <span class="spark">${history ? sparklineSvg(item) : population ? registryMiniSparkSvg(item) : ""}</span>
+    <span class="count nameScore"><b>${score == null ? "–" : formatNumber(score)}</b><small>${scoreLabel}</small></span>
     <button class="addButton ${selected ? "active" : ""}" type="button" aria-label="${selected ? "Valgt, trykk for å fjerne" : "Legg til"} ${escapeHtml(item.name)}">
       <svg><use href="#icon-${selected ? "check" : "plus"}"></use></svg>
     </button>
@@ -622,6 +697,7 @@ function addToWork(item) {
   saveStatus();
   toast(`${item.name} lagt til i vår liste`);
   renderAll();
+  if (state.subscreenMode === "search") renderSearchResults();
   updateUrl();
 }
 
@@ -631,6 +707,7 @@ function removeFromWork(id, message = "") {
   resetReviewDeck();
   saveWorkSelection();
   renderAll();
+  if (state.subscreenMode === "search") renderSearchResults();
   updateUrl();
   if (message) toast(message);
   else if (item) toast(`${item.name} fjernet fra listen`);
@@ -713,7 +790,13 @@ function renderCompareInsight(items) {
     .map((item) => ({ item, point: pointInYear(item, state.latestYear), trend: trendScore(item) }))
     .filter((row) => row.point);
   if (!latestRows.length) {
-    const populationRows = items.filter((item) => !hasHistory(item));
+    const populationRows = items.filter((item) => !hasHistory(item) && hasRegistryHistory(item));
+    if (!populationRows.length) {
+      panel.innerHTML = `
+        <span class="wide"><small>Datadekning</small><strong>Grunnopplysninger</strong><em>Disse navnene kan vurderes og sammenlignes etter skrivemåte, men mangler statistiske mål.</em></span>
+      `;
+      return;
+    }
     const largest = populationRows.slice().sort((a, b) => (b.currentCount ?? 0) - (a.currentCount ?? 0))[0];
     const fastest = populationRows.slice().sort((a, b) => registryTrendScore(b) - registryTrendScore(a))[0];
     panel.innerHTML = `
@@ -844,7 +927,7 @@ function renderChart(items) {
           <button data-quick-name="Noah" type="button">Noah</button>
           <button data-go-tab="explore" type="button">Søk</button>
         </div>
-        <button class="primaryWide" data-go-tab="explore" type="button">Finn navn</button>
+        <button class="primaryWide" data-go-tab="explore" type="button">Oppdag navn</button>
       </div>
     `;
     chart.dataset.traces = "0";
@@ -866,9 +949,10 @@ function renderChart(items) {
     label.innerHTML = `<i style="background:${chartColor(index, item)}"></i>${escapeHtml(item.name)}`;
     return label;
   }));
-  const registryItems = items.filter((item) => !hasHistory(item));
+  const registryItems = items.filter((item) => !hasHistory(item) && hasRegistryHistory(item));
+  const identityItems = items.filter((item) => !hasHistory(item) && !hasRegistryHistory(item));
   if (populationPanel) {
-    populationPanel.hidden = !registryItems.length;
+    populationPanel.hidden = !registryItems.length && !identityItems.length;
     populationPanel.innerHTML = registryItems.length ? `
       <div class="populationCompareHead">
         <span><small>Datadekning</small><strong>Befolkning over tid</strong></span>
@@ -878,6 +962,12 @@ function renderChart(items) {
       <div class="populationCompareLegend">
         ${registryItems.map((item, index) => `<span><i style="background:${chartColor(index, item)}"></i>${escapeHtml(item.name)} · ${formatNumber(item.currentCount)}</span>`).join("")}
       </div>
+      ${identityItems.length ? `<p class="registryChartNote">${identityItems.map((item) => escapeHtml(item.name)).join(", ")} mangler statistikk og vises derfor ikke i grafen.</p>` : ""}
+    ` : identityItems.length ? `
+      <div class="populationCompareHead">
+        <span><small>Datadekning</small><strong>Ingen sammenlignbare tall</strong></span>
+      </div>
+      <p class="registryChartNote">${identityItems.map((item) => escapeHtml(item.name)).join(", ")} kan fortsatt vurderes og sammenlignes etter skrivemåte.</p>
     ` : "";
   }
 }
@@ -891,12 +981,13 @@ function renderCompareStats(items) {
   table.replaceChildren(...items.map((item) => {
     const point = pointInYear(item, state.compare.toYear);
     const history = hasHistory(item);
+    const population = hasRegistryHistory(item);
     const row = document.createElement("button");
     row.type = "button";
     row.className = "statRow";
     row.innerHTML = `
-      <span><b>${escapeHtml(item.name)}</b><small>${escapeHtml(item.sex)} · ${history ? "fødte" : "befolkning"}</small></span>
-      <span>${history ? formatNumber(point?.[1] ?? 0) : formatNumber(item.currentCount)}</span>
+      <span><b>${escapeHtml(item.name)}</b><small>${escapeHtml(item.sex)} · ${history ? "fødte" : population ? "befolkning" : "grunnopplysninger"}</small></span>
+      <span>${history ? formatNumber(point?.[1] ?? 0) : population ? formatNumber(item.currentCount) : "–"}</span>
       <span>${point?.[2] ? formatNumber(point[2]) : "-"}</span>
       <span>${formatPercent(point?.[3])}</span>
       <span>${history ? item.peakYear : "-"}</span>
@@ -1019,7 +1110,8 @@ function openNameDetail(item) {
 }
 
 function detailMarkup(item) {
-  if (!hasHistory(item)) return registryNameDetailMarkup(item);
+  if (!hasHistory(item) && hasRegistryHistory(item)) return registryNameDetailMarkup(item);
+  if (!hasHistory(item)) return identityNameDetailMarkup(item);
   const latest = pointInYear(item, state.latestYear);
   return `
     <section class="detailHero">
@@ -1043,8 +1135,24 @@ function detailMarkup(item) {
       <span><small>Siste år</small><b>${item.lastYear ?? item.lastDataYear}</b></span>
     </section>
     ${schoolCardMarkup(item)}
+    ${sourceListMarkup(item)}
     <button class="primaryWide" data-add="${item.id}" type="button">Legg til i vår liste</button>
     <button class="secondaryWide" data-similar="${item.id}" type="button">Finn lignende navn</button>
+  `;
+}
+
+function identityNameDetailMarkup(item) {
+  return `
+    <section class="detailHero">
+      <div><h2>${escapeHtml(item.name)} ${sexIconMarkup(item)}</h2><p>${escapeHtml(item.sex)}</p></div>
+    </section>
+    <section class="subCard sourceNote">
+      <h3>Grunnopplysninger</h3>
+      <p>Navnet og kjønnstilknytningen er dokumentert, men katalogen har foreløpig ikke norske fødsels- eller befolkningstall for navnet.</p>
+    </section>
+    ${sourceListMarkup(item)}
+    <button class="primaryWide" data-add="${item.id}" type="button">Legg til i vår liste</button>
+    <button class="secondaryWide" data-similar="${item.id}" type="button">Finn navn med lignende skrivemåte</button>
   `;
 }
 
@@ -1083,6 +1191,7 @@ function registryNameDetailMarkup(item) {
       <p>SSB viser hvor mange personer som har navnet, men ikke hvor mange barn som fikk det hvert år. Endringer i bestanden påvirkes også av innvandring, dødsfall og navneendringer. Derfor beregner vi ikke toppår eller skoleestimat.</p>
       <a href="https://www.ssb.no/statbank/table/${escapeHtml(state.data.meta.currentNamesTable)}/" target="_blank" rel="noopener">Se kildetabellen hos SSB</a>
     </section>
+    ${sourceListMarkup(item)}
     <button class="primaryWide" data-add="${item.id}" type="button">Legg til i vår liste</button>
     <button class="secondaryWide" data-similar="${item.id}" type="button">Finn navn med lignende skrivemåte</button>
   `;
@@ -1128,47 +1237,242 @@ function renderSimilarList(reference, rows) {
   list.replaceChildren(...rows.map((row) => similarResultRow(row, { compact: false })));
 }
 
-function openFilters() {
-  openSubscreen("Søk og filtre", `
-    <form id="filterForm" class="formStack">
-      <p class="subLead">Filtrene lager kandidatlisten. Treffene kan legges til utvalget samlet eller ett og ett.</p>
-      <label>Navn inneholder<input name="query" type="search" value="${escapeHtml(state.query)}" placeholder="f.eks. ell, anna eller leo" /></label>
-      <label>Navnetype<select name="sex"><option value="alle">Jente- og guttenavn</option><option value="jente">Jentenavn</option><option value="gutt">Guttenavn</option></select></label>
-      <label>Datadekning<select name="coverage"><option value="alle">Alle navn</option><option value="births">Årlige fødselstall</option><option value="population">Befolkningstall</option></select></label>
-      <label>Periode med data<div class="rangePair"><input name="fromYear" type="number" min="${state.firstYear}" max="${state.latestYear}" value="${state.filters.fromYear}" /><input name="toYear" type="number" min="${state.firstYear}" max="${state.latestYear}" value="${state.filters.toYear}" /></div></label>
-      <label>Dataprofil<select name="popularity"><option value="alle">Alle profiler</option><option value="top50">Topp 50 blant nyfødte</option><option value="rising">Økning i tilgjengelig serie</option><option value="rare">Under 25 nyfødte siste år</option><option value="population500">Under 500 navnebærere</option></select></label>
-      <label>Mønster i navnet<input name="pattern" type="text" placeholder="Regex: ^El eller a$" value="${escapeHtml(state.filters.pattern)}" /></label>
-      <label>Maks forventet i skoleløpet <small>(krever fødselstall)</small><input name="schoolMax" type="number" min="0" step="0.1" placeholder="f.eks. 2" value="${escapeHtml(state.filters.schoolMax)}" /></label>
-      <button class="primaryWide" type="submit">Vis ${formatNumber(filteredRows().length)} navn</button>
+function openGlobalFilters() {
+  openSubscreen("Grunnvalg", `
+    <form id="globalFilterForm" class="formStack">
+      <p class="subLead">Disse valgene følger deg i både Oppdag og Søk. Forslagsseksjonene beholder sin egen logikk.</p>
+      <label>Navnetype<select name="sex">
+        <option value="alle">Jente- og guttenavn</option>
+        <option value="jente">Jentenavn</option>
+        <option value="gutt">Guttenavn</option>
+      </select></label>
+      <label>Datadekning<select name="coverage">
+        <option value="alle">Alle godkjente navn</option>
+        <option value="births">Med årlige fødselstall</option>
+        <option value="population">Med befolkningstall</option>
+        ${optionalCoverageOptionsMarkup()}
+      </select></label>
+      <button class="primaryWide" type="submit">Bruk grunnvalg</button>
     </form>
   `);
-  $("#filterForm [name='sex']").value = state.filters.sex;
-  $("#filterForm [name='coverage']").value = state.filters.coverage;
-  $("#filterForm [name='popularity']").value = state.filters.popularity;
-  $("#filterForm").addEventListener("submit", (event) => {
+  $("#globalFilterForm [name='sex']").value = state.filters.sex;
+  $("#globalFilterForm [name='coverage']").value = state.filters.coverage;
+  $("#globalFilterForm").addEventListener("submit", (event) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    state.query = String(form.get("query") || "").trim();
     state.filters.sex = String(form.get("sex"));
     state.filters.coverage = String(form.get("coverage"));
-    state.filters.fromYear = clampYear(Number(form.get("fromYear")));
-    state.filters.toYear = clampYear(Number(form.get("toYear")));
-    state.filters.popularity = String(form.get("popularity"));
-    state.filters.pattern = String(form.get("pattern") || "").trim();
-    state.filters.schoolMax = String(form.get("schoolMax") || "").trim();
-    $("#searchInput").value = state.query;
     closeSubscreen();
     renderExplore();
   });
 }
 
-function openCandidateBuilder() {
+function openSearchView() {
+  openSubscreen("Søk", `
+    <section class="searchWorkspace">
+      <div class="searchViewBar">
+        <svg><use href="#icon-search"></use></svg>
+        <input id="searchViewInput" type="search" value="${escapeHtml(state.query)}" placeholder="Søk etter navn..." autocomplete="off" />
+        <button id="toggleSearchFilters" class="${state.searchFiltersOpen ? "active" : ""}" type="button" aria-label="Vis filtre"><svg><use href="#icon-filter"></use></svg></button>
+      </div>
+      <form id="searchFilterForm" class="formStack searchFilterPanel" ${state.searchFiltersOpen ? "" : "hidden"}>
+        <div class="searchFilterGroup">
+          <strong>Grunnvalg</strong>
+          <label>Navnetype<select name="sex">
+            <option value="alle">Jente- og guttenavn</option>
+            <option value="jente">Jentenavn</option>
+            <option value="gutt">Guttenavn</option>
+          </select></label>
+          <label>Datadekning<select name="coverage">
+            <option value="alle">Alle godkjente navn</option>
+            <option value="births">Med årlige fødselstall</option>
+            <option value="population">Med befolkningstall</option>
+            ${optionalCoverageOptionsMarkup()}
+          </select></label>
+        </div>
+        <div class="searchFilterGroup">
+          <strong>Avgrens søket</strong>
+          <label>Periode med data<div class="rangePair"><input name="fromYear" type="number" min="${state.firstYear}" max="${state.latestYear}" value="${state.filters.fromYear}" /><input name="toYear" type="number" min="${state.firstYear}" max="${state.latestYear}" value="${state.filters.toYear}" /></div></label>
+          <label>Dataprofil<select name="popularity">
+            <option value="alle">Alle profiler</option>
+            <option value="top50">Topp 50 blant nyfødte</option>
+            <option value="rising">Økning i tilgjengelig serie</option>
+            <option value="rare">Under 25 nyfødte siste år</option>
+            <option value="population500">Under 500 navnebærere</option>
+          </select></label>
+          <label>Mønster i navnet<input name="pattern" type="text" placeholder="Regex: ^El eller a$" value="${escapeHtml(state.filters.pattern)}" /></label>
+          <label>Maks forventet i skoleløpet <small>(krever fødselstall)</small><input name="schoolMax" type="number" min="0" step="0.1" placeholder="f.eks. 2" value="${escapeHtml(state.filters.schoolMax)}" /></label>
+        </div>
+        <div class="searchFilterActions">
+          <button id="resetSearchFilters" class="secondaryWide" type="button">Nullstill søkefiltre</button>
+          <button class="primaryWide" type="submit">Vis treff</button>
+        </div>
+      </form>
+      <section id="searchEmptyIntro" class="searchEmptyIntro"></section>
+      <section id="searchResults" class="searchResults">
+        <div class="searchResultsHead">
+          <span><h3 id="searchResultTitle">Treff</h3><small id="searchResultScope"></small></span>
+        </div>
+        <div id="searchBulkActions" class="candidateBulkActions"></div>
+        <p id="searchProgress" class="candidateProgress"></p>
+        <div id="searchResultList" class="nameRows"></div>
+        <button id="loadMoreSearchResults" class="secondaryWide candidateLoadMore" type="button"></button>
+      </section>
+    </section>
+  `, null, { mode: "search" });
+  $("#searchFilterForm [name='sex']").value = state.filters.sex;
+  $("#searchFilterForm [name='coverage']").value = state.filters.coverage;
+  $("#searchFilterForm [name='popularity']").value = state.filters.popularity;
+  $("#toggleSearchFilters").addEventListener("click", () => {
+    state.searchFiltersOpen = !state.searchFiltersOpen;
+    $("#searchFilterForm").hidden = !state.searchFiltersOpen;
+    $("#toggleSearchFilters").classList.toggle("active", state.searchFiltersOpen);
+  });
+  $("#searchViewInput").addEventListener("input", (event) => {
+    state.query = event.target.value.trim();
+    state.searchShowAll = Boolean(state.query);
+    if (state.query) rememberSearch(state.query);
+    renderSearchResults();
+    updateUrl();
+  });
+  $("#searchFilterForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    applySearchFilterForm(event.currentTarget);
+    state.searchShowAll = true;
+    renderSearchResults();
+    renderExplore();
+    updateUrl();
+  });
+  $("#resetSearchFilters").addEventListener("click", () => {
+    resetLocalSearchFilters();
+    state.searchShowAll = Boolean(state.query);
+    openSearchView();
+    updateUrl();
+  });
+  renderSearchResults();
+  requestAnimationFrame(() => $("#searchViewInput")?.focus());
+}
+
+function applySearchFilterForm(formElement) {
+  const form = new FormData(formElement);
+  state.filters.sex = String(form.get("sex"));
+  state.filters.coverage = String(form.get("coverage"));
+  state.filters.fromYear = clampYear(Number(form.get("fromYear")));
+  state.filters.toYear = clampYear(Number(form.get("toYear")));
+  state.filters.popularity = String(form.get("popularity"));
+  state.filters.pattern = String(form.get("pattern") || "").trim();
+  state.filters.schoolMax = String(form.get("schoolMax") || "").trim();
+}
+
+function resetLocalSearchFilters() {
+  state.filters.fromYear = Math.max(1900, state.firstYear);
+  state.filters.toYear = state.latestYear;
+  state.filters.popularity = "alle";
+  state.filters.pattern = "";
+  state.filters.schoolMax = "";
+}
+
+function renderSearchResults() {
+  const results = $("#searchResults");
+  const intro = $("#searchEmptyIntro");
+  const shouldShow = state.searchShowAll || hasActiveSearchFilters();
+  if (!shouldShow) {
+    results.hidden = true;
+    intro.hidden = false;
+    intro.innerHTML = `
+      <div>
+        <strong>Søk i ${formatNumber(discoveryBaseRows().length)} navn</strong>
+        <p>Skriv et navn, bruk filtre eller åpne hele katalogen.</p>
+        <button id="showEntireCatalog" class="primaryWide" type="button">Vis alle navn</button>
+      </div>
+      ${state.recent.length ? `<div><small>Siste søk</small><div id="searchRecentChips" class="chipRail"></div></div>` : ""}
+    `;
+    $("#showEntireCatalog").addEventListener("click", () => {
+      state.searchShowAll = true;
+      renderSearchResults();
+    });
+    const recent = $("#searchRecentChips");
+    if (recent) {
+      recent.replaceChildren(...state.recent.map((query) => {
+        const button = document.createElement("button");
+        button.className = "chip";
+        button.type = "button";
+        button.textContent = query;
+        button.addEventListener("click", () => {
+          state.query = query;
+          state.searchShowAll = true;
+          $("#searchViewInput").value = query;
+          renderSearchResults();
+        });
+        return button;
+      }));
+    }
+    return;
+  }
+  intro.hidden = true;
+  results.hidden = false;
   const rows = filteredRows();
   state.candidateRows = rows;
-  openSubscreen("Alle treff", `
+  $("#searchResultTitle").textContent = `${formatNumber(rows.length)} treff`;
+  $("#searchResultScope").textContent = searchScopeLabel();
+  const bulk = $("#searchBulkActions");
+  bulk.innerHTML = rows.length ? `
+    <button class="primaryWide" id="addAllSearchResults" type="button">Legg alle til utvalget</button>
+    <button class="secondaryWide" id="reviewAllSearchResults" type="button">Vurder alle</button>
+  ` : "";
+  $("#addAllSearchResults")?.addEventListener("click", () => addCandidateRowsToWork(rows));
+  $("#reviewAllSearchResults")?.addEventListener("click", () => addCandidateRowsToWork(rows, true));
+  const list = $("#searchResultList");
+  const progress = $("#searchProgress");
+  const loadMore = $("#loadMoreSearchResults");
+  list.replaceChildren();
+  if (!rows.length) {
+    progress.textContent = "";
+    loadMore.hidden = true;
+    list.innerHTML = `<div class="emptyState compact"><p>Ingen navn matcher søket og filtrene.</p></div>`;
+    return;
+  }
+  const batchSize = 100;
+  let visible = 0;
+  let observer = null;
+  const renderNextBatch = () => {
+    const next = rows.slice(visible, visible + batchSize);
+    list.append(...next.map((item) => nameRow(item)));
+    visible += next.length;
+    progress.textContent = `Viser ${formatNumber(visible)} av ${formatNumber(rows.length)}`;
+    const remaining = rows.length - visible;
+    loadMore.hidden = remaining <= 0;
+    loadMore.textContent = remaining > 0 ? `Vis ${formatNumber(Math.min(batchSize, remaining))} til` : "";
+    if (remaining <= 0) observer?.disconnect();
+  };
+  renderNextBatch();
+  loadMore.onclick = renderNextBatch;
+  if ("IntersectionObserver" in window && rows.length > batchSize) {
+    observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) renderNextBatch();
+    }, { root: $("#subContent"), rootMargin: "240px 0px" });
+    observer.observe(loadMore);
+  }
+}
+
+function searchScopeLabel() {
+  const sex = { alle: "alle navnetyper", jente: "jentenavn", gutt: "guttenavn" }[state.filters.sex];
+  return `${sex} · ${coverageFilterLabel(state.filters.coverage).toLowerCase()}`;
+}
+
+function optionalCoverageOptionsMarkup() {
+  const names = state.data?.names || [];
+  const identityOnly = names.some((item) => !hasHistory(item) && !hasRegistryHistory(item));
+  const meanings = names.some((item) => hasCapability(item, "meaning"));
+  return `${identityOnly ? '<option value="basic">Bare grunnopplysninger</option>' : ""}${meanings ? '<option value="meaning">Med dokumentert betydning</option>' : ""}`;
+}
+
+function openCandidateBuilder(rows = filteredRows(), title = "Alle treff", subtitle = "Hele trefflisten") {
+  state.candidateRows = rows;
+  openSubscreen(title, `
     <section class="subCard candidateSummary">
       <strong>${formatNumber(rows.length)} navn</strong>
-      <small>${{ alle: "Jente- og guttenavn", jente: "Jentenavn", gutt: "Guttenavn" }[state.filters.sex] || "Alle navn"} · hele trefflisten</small>
+      <small>${escapeHtml(subtitle)}</small>
     </section>
     <div class="candidateBulkActions">
       <button class="primaryWide" id="addAllCandidates" type="button">Legg alle til utvalget</button>
@@ -1258,12 +1562,12 @@ function renderReview() {
     card.innerHTML = `
       <div class="emptyState">
         <h2>Ingen navn å vurdere</h2>
-        <p>Utvalget er handlelisten din. Finn navn først, så kan du avgjøre dem ett og ett her.</p>
+        <p>Utvalget er handlelisten din. Oppdag eller søk etter navn først, så kan du avgjøre dem ett og ett her.</p>
         <div class="emptyActions">
           <button data-quick-name="Nora" type="button">Nora</button>
           <button data-quick-name="Noah" type="button">Noah</button>
         </div>
-        <button class="primaryWide" data-go-tab="explore" type="button">Finn navn</button>
+        <button class="primaryWide" data-go-tab="explore" type="button">Oppdag navn</button>
       </div>
     `;
     return;
@@ -1271,6 +1575,26 @@ function renderReview() {
   const latest = pointInYear(item, state.latestYear);
   $(".reviewActions").hidden = false;
   if (!hasHistory(item)) {
+    if (!hasRegistryHistory(item)) {
+      card.innerHTML = `
+        <div class="reviewNamePlate">
+          <p class="cardMeta">${state.review.index + 1} av ${state.review.deck.length}</p>
+          <h2>${escapeHtml(item.name)} ${sexIconMarkup(item)}</h2>
+          <span class="trendPill">Grunnopplysninger</span>
+        </div>
+        <section class="reviewRegistryName">
+          <span class="sourcePeople"><svg aria-hidden="true"><use href="#icon-list"></use></svg></span>
+          <div>
+            <small>${escapeHtml(item.sex)}navn</small>
+            <strong>${escapeHtml(item.name)}</strong>
+            <p>Kan vurderes og sammenlignes etter skrivemåte, men mangler statistikk.</p>
+          </div>
+        </section>
+        <p class="reviewSourceNote">Trend, rang, toppår og skoleestimat vises først når kilden dokumenterer slike data.</p>
+      `;
+      bindSubscreenButtons(card);
+      return;
+    }
     const registry = registryHistoryStats(item);
     card.innerHTML = `
       <div class="reviewNamePlate">
@@ -1484,8 +1808,8 @@ function renderMine() {
   if (!rows.length) {
     preview.innerHTML = `
       <div class="emptyState compact">
-        <p>${all.length ? "Ingen navn i denne kategorien ennå." : "Listen er tom. Finn navn dere vil utforske, så samles de her."}</p>
-        <div class="emptyActions"><button data-go-tab="explore" type="button">Finn navn</button></div>
+        <p>${all.length ? "Ingen navn i denne kategorien ennå." : "Listen er tom. Oppdag navn dere vil utforske, så samles de her."}</p>
+        <div class="emptyActions"><button data-go-tab="explore" type="button">Oppdag navn</button></div>
       </div>
     `;
   }
@@ -1497,7 +1821,7 @@ function renderMine() {
         <p>${work.length ? `${formatNumber(work.length)} kandidater klare til vurdering.` : "Listen er tom. Start med navn dere allerede liker, eller finn kandidater med data."}</p>
         <div class="emptyActions">
           <button data-go-tab="review" type="button">Vurder navn</button>
-          <button data-go-tab="explore" type="button">Finn flere</button>
+          <button data-go-tab="explore" type="button">Oppdag flere</button>
         </div>
       </div>
     `;
@@ -1636,10 +1960,14 @@ function openBackup() {
   $("#importJson").addEventListener("click", () => $("#importInput").click());
 }
 
-function openSubscreen(title, html, action) {
+function openSubscreen(title, html, action, options = {}) {
+  const nextMode = options.mode || "default";
+  if (state.subscreenMode === "search" && nextMode !== "search") state.returnToSearch = true;
+  state.subscreenMode = nextMode;
   $("#subTitle").textContent = title;
   $("#subContent").innerHTML = html;
   $("#subscreen").classList.add("open");
+  $("#subscreen").classList.toggle("searchMode", nextMode === "search");
   $("#subscreen").setAttribute("aria-hidden", "false");
   $("#subAction").onclick = action || null;
   $("#subAction").hidden = !action;
@@ -1648,7 +1976,15 @@ function openSubscreen(title, html, action) {
 }
 
 function closeSubscreen(render = true) {
+  if (state.subscreenMode !== "search" && state.returnToSearch) {
+    state.returnToSearch = false;
+    openSearchView();
+    return;
+  }
+  if (state.subscreenMode === "search") state.returnToSearch = false;
+  state.subscreenMode = "default";
   $("#subscreen")?.classList.remove("open");
+  $("#subscreen")?.classList.remove("searchMode");
   $("#subscreen")?.setAttribute("aria-hidden", "true");
   if (render) renderAll();
 }
@@ -1692,11 +2028,14 @@ function smoothLabel(value) {
 function filteredRows() {
   let rows = state.query ? searchRows(state.query) : state.data.names.slice();
   rows = rows.filter((item) => state.status[item.id] !== "rejected");
+  const defaultFromYear = Math.max(1900, state.firstYear);
+  const periodIsRestricted = state.filters.fromYear !== defaultFromYear || state.filters.toYear !== state.latestYear;
   rows = rows.filter((item) => {
     if (hasHistory(item)) {
       return allPoints(item).some((point) => point.year >= state.filters.fromYear && point.year <= state.filters.toYear && (point.count != null || point.shareSex != null));
     }
-    return (item.registrySeries || []).some(([year]) => year >= state.filters.fromYear && year <= state.filters.toYear);
+    if (hasRegistryHistory(item)) return (item.registrySeries || []).some(([year]) => year >= state.filters.fromYear && year <= state.filters.toYear);
+    return !periodIsRestricted;
   });
   if (state.filters.pattern) {
     try {
@@ -1708,11 +2047,13 @@ function filteredRows() {
   }
   if (state.filters.sex !== "alle") rows = rows.filter((item) => item.sex === state.filters.sex);
   if (state.filters.coverage === "births") rows = rows.filter(hasHistory);
-  if (state.filters.coverage === "population") rows = rows.filter((item) => !hasHistory(item));
+  if (state.filters.coverage === "population") rows = rows.filter(hasRegistryHistory);
+  if (state.filters.coverage === "basic") rows = rows.filter((item) => !hasHistory(item) && !hasRegistryHistory(item));
+  if (state.filters.coverage === "meaning") rows = rows.filter((item) => hasCapability(item, "meaning"));
   if (state.filters.popularity === "top50") rows = rows.filter((item) => hasHistory(item) && (pointInYear(item, state.latestYear)?.[2] ?? 9999) <= 50);
   if (state.filters.popularity === "rising") rows = rows.filter((item) => availableTrendScore(item) > 0);
   if (state.filters.popularity === "rare") rows = rows.filter((item) => hasHistory(item) && latestCount(item) < 25);
-  if (state.filters.popularity === "population500") rows = rows.filter((item) => (item.currentCount ?? Infinity) < 500);
+  if (state.filters.popularity === "population500") rows = rows.filter((item) => hasRegistryHistory(item) && (item.currentCount ?? Infinity) < 500);
   if (state.filters.schoolMax !== "") rows = rows.filter((item) => hasHistory(item) && schoolEstimateForCurrentSettings(item).school <= Number(state.filters.schoolMax));
   if (state.query) return rows;
   return rows.sort((a, b) => (a.currentRank ?? 9999) - (b.currentRank ?? 9999) || a.name.localeCompare(b.name, "no"));
@@ -1911,7 +2252,7 @@ function trendScore(item) {
 }
 
 function trendLabel(item) {
-  if (!hasHistory(item)) return "I bruk i Norge";
+  if (!hasHistory(item)) return hasCapability(item, "norwayUse") ? "Dokumentert i Norge" : "Grunnopplysninger";
   const score = trendScore(item);
   if (score > 20) return "Stigende trend siste år";
   if (score < -20) return "Roligere utvikling siste år";
@@ -1919,7 +2260,7 @@ function trendLabel(item) {
 }
 
 function itemMood(item) {
-  if (!hasHistory(item)) return "i bruk i Norge";
+  if (!hasHistory(item)) return hasCapability(item, "norwayUse") ? "i bruk i Norge" : "grunnopplysninger";
   const latest = pointInYear(item, state.latestYear);
   const rank = latest?.[2] ?? 9999;
   const trend = trendScore(item);
@@ -1948,12 +2289,21 @@ function schoolEstimateForCurrentSettings(item) {
   return schoolEstimate(item, state.school.birthYear, state.school.gradeSize, state.school.grades);
 }
 
+function hasCapability(item, key) {
+  if (item?.coverage && Object.prototype.hasOwnProperty.call(item.coverage, key)) return Boolean(item.coverage[key]);
+  if (key === "identity") return Boolean(item?.name && (item?.gender || item?.sex));
+  if (key === "norwayUse") return Boolean(item?.series?.length || item?.registrySeries?.length);
+  if (key === "birthSeries") return Boolean(item?.series?.length);
+  if (key === "populationSeries") return Boolean(item?.registrySeries?.length);
+  return false;
+}
+
 function hasHistory(item) {
-  return Boolean(item?.series?.length);
+  return hasCapability(item, "birthSeries");
 }
 
 function hasRegistryHistory(item) {
-  return Boolean(item?.registrySeries?.length);
+  return hasCapability(item, "populationSeries");
 }
 
 function registryTrendScore(item) {
@@ -1986,6 +2336,37 @@ function registryHistoryStats(item) {
 function registryHistoryLabel(item) {
   const stats = registryHistoryStats(item);
   return stats ? `Befolkning · ${stats.firstYear}–${stats.lastYear}` : "Befolkningstall";
+}
+
+function identityCoverageLabel(item) {
+  const labels = [];
+  if (hasCapability(item, "meaning")) labels.push("betydning");
+  if (hasCapability(item, "origin")) labels.push("opphav");
+  return labels.length ? `Grunnopplysninger · ${labels.join(" og ")}` : "Grunnopplysninger";
+}
+
+function sourceListMarkup(item) {
+  const catalog = state.data?.meta?.sourceCatalog || {};
+  const sources = (item.sourceRefs || []).map((id) => ({ id, ...catalog[id] })).filter((source) => source.label);
+  if (!sources.length) return "";
+  return `
+    <section class="subCard sourceNote">
+      <h3>Kilder og datagrunnlag</h3>
+      <div class="sourceLinks">
+        ${sources.map((source) => `<a href="${escapeHtml(source.url)}" target="_blank" rel="noopener"><strong>${escapeHtml(source.label)}</strong><small>${escapeHtml(source.publisher || "")} · ${escapeHtml(source.license || "")}</small></a>`).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function coverageFilterLabel(value) {
+  return {
+    alle: "Alle data",
+    births: "Fødselstall",
+    population: "Befolkning",
+    basic: "Grunnopplysninger",
+    meaning: "Med betydning",
+  }[value] || "Alle data";
 }
 
 function registryMiniSparkSvg(item, width = 118, height = 32) {

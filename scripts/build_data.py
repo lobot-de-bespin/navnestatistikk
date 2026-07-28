@@ -21,6 +21,22 @@ NAME_TABLE = "10467"
 CURRENT_NAMES_TABLE = "10501"
 BIRTHS_TABLE = "05803"
 SEX_BIRTHS_TABLE = "09745"
+SOURCE_CATALOG = {
+    "ssb-10467": {
+        "label": "Navn brukt på nyfødte",
+        "publisher": "Statistisk sentralbyrå",
+        "url": f"https://www.ssb.no/statbank/table/{NAME_TABLE}/",
+        "license": "CC BY 4.0",
+        "provides": ["norwayUse", "birthSeries"],
+    },
+    "ssb-10501": {
+        "label": "Personer med fornavnet",
+        "publisher": "Statistisk sentralbyrå",
+        "url": f"https://www.ssb.no/statbank/table/{CURRENT_NAMES_TABLE}/",
+        "license": "CC BY 4.0",
+        "provides": ["norwayUse", "populationSeries"],
+    },
+}
 
 
 def request_json(url: str, payload: dict | None = None) -> dict:
@@ -78,6 +94,56 @@ def clean_name_id(code: str) -> tuple[str, str]:
     if code.startswith("2"):
         return "gutt", code[1:]
     return "ukjent", code
+
+
+def attach_catalog_metadata(record: dict) -> None:
+    """Describe what is documented without coupling the UI to a source."""
+    source_refs = []
+    if record.get("series"):
+        source_refs.append("ssb-10467")
+    if record.get("registrySeries"):
+        source_refs.append("ssb-10501")
+    record["gender"] = record["sex"]
+    record["coverage"] = {
+        "identity": True,
+        "norwayUse": bool(source_refs),
+        "birthSeries": bool(record.get("series")),
+        "populationSeries": bool(record.get("registrySeries")),
+        "meaning": False,
+        "origin": False,
+        "pronunciation": False,
+    }
+    record["sourceRefs"] = source_refs
+    record["factSources"] = {
+        "identity": source_refs,
+        "gender": source_refs,
+        "norwayUse": source_refs,
+        "birthSeries": ["ssb-10467"] if record.get("series") else [],
+        "populationSeries": ["ssb-10501"] if record.get("registrySeries") else [],
+    }
+
+
+def validate_catalog(payload: dict) -> None:
+    source_ids = set(payload["meta"]["sourceCatalog"])
+    seen_ids = set()
+    for record in payload["names"]:
+        if not record.get("id") or record["id"] in seen_ids:
+            raise ValueError(f"Invalid or duplicate name id: {record.get('id')!r}")
+        seen_ids.add(record["id"])
+        if not record.get("name") or record.get("gender") not in {"jente", "gutt"}:
+            raise ValueError(f"Missing required identity fields for {record['id']}")
+        coverage = record.get("coverage", {})
+        if not coverage.get("identity"):
+            raise ValueError(f"Identity coverage missing for {record['id']}")
+        if coverage.get("birthSeries") != bool(record.get("series")):
+            raise ValueError(f"Birth-series coverage mismatch for {record['id']}")
+        if coverage.get("populationSeries") != bool(record.get("registrySeries")):
+            raise ValueError(f"Population-series coverage mismatch for {record['id']}")
+        if not set(record.get("sourceRefs", [])).issubset(source_ids):
+            raise ValueError(f"Unknown source reference for {record['id']}")
+        for refs in record.get("factSources", {}).values():
+            if not set(refs).issubset(source_ids):
+                raise ValueError(f"Unknown fact source reference for {record['id']}")
 
 
 def build() -> dict:
@@ -267,16 +333,19 @@ def build() -> dict:
                 "lastYear": None,
                 "firstDataYear": None,
                 "lastDataYear": None,
-                "sourceKind": "currentRegistry",
             }
         )
 
+    for record in records:
+        attach_catalog_metadata(record)
     records.sort(key=lambda r: (r["sex"], r["name"], r["id"]))
-    return {
+    payload = {
         "meta": {
+            "schemaVersion": 2,
             "builtAt": datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
             "source": "Statistisk sentralbyrå",
             "license": "CC BY 4.0",
+            "sourceCatalog": SOURCE_CATALOG,
             "nameTable": NAME_TABLE,
             "currentNamesTable": CURRENT_NAMES_TABLE,
             "birthsTable": BIRTHS_TABLE,
@@ -292,6 +361,8 @@ def build() -> dict:
         "sexBirths": sex_births,
         "names": records,
     }
+    validate_catalog(payload)
+    return payload
 
 
 def main() -> int:

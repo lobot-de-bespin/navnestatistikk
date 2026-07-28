@@ -22,6 +22,7 @@
   <body>
     <svg class="iconSprite" aria-hidden="true" focusable="false">
       <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m16.5 16.5 4 4" /></symbol>
+      <symbol id="icon-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="m15.5 8.5-2 5-5 2 2-5 5-2Z" /></symbol>
       <symbol id="icon-chart" viewBox="0 0 24 24"><path d="M4 18c4-10 7 4 10-6 2-6 4-4 6-2" /><path d="M4 21h16" /></symbol>
       <symbol id="icon-heart" viewBox="0 0 24 24"><path d="M20.8 5.9a5.2 5.2 0 0 0-7.4 0L12 7.3l-1.4-1.4a5.2 5.2 0 0 0-7.4 7.4L12 22l8.8-8.7a5.2 5.2 0 0 0 0-7.4Z" /></symbol>
       <symbol id="icon-star" viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z" /></symbol>
@@ -47,36 +48,29 @@
               <span class="brandMark"><svg><use href="#icon-heart"></use></svg></span>
               <strong>Navnestatistikk</strong>
             </div>
-            <button id="openFilter" class="iconButton heroFilter" type="button" aria-label="Søk og filtre"><svg><use href="#icon-filter"></use></svg></button>
+            <button id="openFilter" class="iconButton heroFilter" type="button" aria-label="Grunnvalg"><svg><use href="#icon-filter"></use></svg></button>
             <div class="heroCopy">
               <h1>Finn navnet som føles riktig</h1>
-              <p>Utforsk norske navn med tall fra SSB – og bygg listen deres underveis.</p>
+              <p>Søk direkte eller oppdag navn fra norske kilder – og bygg listen deres underveis.</p>
             </div>
             <div class="heroBotanical" aria-hidden="true"></div>
           </header>
 
           <section class="phoneSurface">
             <section id="exploreWorkflow" class="workflowCard"></section>
-            <section id="exploreStarter" class="nameLens"></section>
-            <div class="searchBar">
+            <button id="openSearchView" class="searchBar homeSearchTrigger" type="button">
               <svg><use href="#icon-search"></use></svg>
-              <input id="searchInput" type="search" placeholder="Søk etter navn..." autocomplete="off" />
-            </div>
-
-            <div class="sectionRow">
-              <h3 id="exploreListTitle">Navn å utforske</h3>
-              <button id="openCandidateList" type="button">Filtre</button>
-            </div>
-            <div id="popularSexToggle" class="segmented small" role="tablist" aria-label="Kjønn for populære navn">
-              <button class="active" type="button" data-popular-sex="jente">Jenter</button>
-              <button type="button" data-popular-sex="gutt">Gutter</button>
-            </div>
-            <button id="candidateCard" class="softCallout" type="button">
-              <span class="miniIcon"><svg><use href="#icon-list"></use></svg></span>
-              <span><strong>Legg treff til vår liste</strong><small>Samle navnene som matcher søk og filtre.</small></span>
-              <em>Legg til</em>
+              <span><strong id="homeSearchLabel">Søk etter navn</strong><small>Åpne søk, filtre og hele trefflisten</small></span>
+              <em>Finn</em>
             </button>
-            <div id="popularList" class="nameRows"></div>
+            <div id="globalSexFilters" class="globalFilterBar" aria-label="Navnetype">
+              <button class="active" data-global-sex="alle" type="button">Alle</button>
+              <button data-global-sex="jente" type="button">Jenter</button>
+              <button data-global-sex="gutt" type="button">Gutter</button>
+              <button id="openGlobalCoverage" class="coverageFilter" type="button"><svg><use href="#icon-filter"></use></svg><span>Alle data</span></button>
+            </div>
+            <section id="exploreStarter" class="nameLens" hidden></section>
+            <div id="discoverySections" class="discoverySections"></div>
 
             <div class="sectionRow">
               <h3>Siste søk</h3>
@@ -198,7 +192,7 @@
       </main>
 
       <nav class="tabBar" aria-label="Hovednavigasjon">
-        <button class="active" type="button" data-tab="explore"><svg><use href="#icon-search"></use></svg><span>Finn navn</span></button>
+        <button class="active" type="button" data-tab="explore"><svg><use href="#icon-compass"></use></svg><span>Oppdag</span></button>
         <button type="button" data-tab="compare"><svg><use href="#icon-chart"></use></svg><span>Sammenlign</span></button>
         <button type="button" data-tab="review"><svg><use href="#icon-heart"></use></svg><span>Vurder</span></button>
         <button type="button" data-tab="mine"><svg><use href="#icon-star"></use></svg><span>Vår liste</span></button>

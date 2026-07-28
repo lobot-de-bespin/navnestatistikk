@@ -350,6 +350,16 @@ body {
 .featureNameCard:nth-child(3n) .rank { background: #dfeff8; color: #568caf; }
 .featureNameCard:nth-child(4n) .rank { background: #fff0c4; color: #b88313; }
 
+.nameRow .rank .sexIcon {
+  width: 23px;
+  height: 23px;
+  transform: none;
+}
+
+.nameRow.gutt .rank {
+  background: #dfeff8;
+}
+
 .featureNameCard .nameMain,
 .nameRow .nameMain {
   grid-column: auto;
@@ -1021,6 +1031,437 @@ body {
   .nameRow:not(.featureNameCard) {
     grid-template-columns: 39px minmax(0, 1fr) 64px 30px;
     gap: 8px;
+  }
+}
+
+/* Oppdag + source-independent search workspace. */
+.homeSearchTrigger {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  width: 100%;
+  color: var(--ink);
+  text-align: left;
+}
+
+.homeSearchTrigger > span {
+  display: grid;
+  gap: 2px;
+}
+
+.homeSearchTrigger strong {
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 850;
+}
+
+.homeSearchTrigger small {
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 650;
+}
+
+.homeSearchTrigger em {
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: #fff0e8;
+  color: #cf6049;
+  font-size: 0.66rem;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.globalFilterBar {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  padding: 2px 1px 4px;
+  scrollbar-width: none;
+}
+
+.globalFilterBar::-webkit-scrollbar,
+.discoveryRail::-webkit-scrollbar {
+  display: none;
+}
+
+.globalFilterBar button {
+  min-height: 34px;
+  flex: 0 0 auto;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #fff;
+  color: #716a62;
+  font-size: 0.68rem;
+  font-weight: 800;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.globalFilterBar button.active {
+  background: #203f37;
+  color: #fff;
+  box-shadow: none;
+}
+
+.globalFilterBar .coverageFilter {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  background: #f4f1df;
+  color: #61734c;
+}
+
+.coverageFilter svg {
+  width: 15px;
+  height: 15px;
+}
+
+.discoverySections {
+  display: grid;
+  gap: 25px;
+  margin-top: 5px;
+}
+
+.discoverySection {
+  display: grid;
+  gap: 11px;
+  min-width: 0;
+}
+
+.discoverySectionHead {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  padding-inline: 2px;
+}
+
+.discoverySectionHead h3 {
+  margin: 0;
+  color: #243c35;
+  font-size: 1.03rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.discoverySectionHead small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.64rem;
+  font-weight: 650;
+}
+
+.discoverySectionHead button {
+  flex: 0 0 auto;
+  min-height: 31px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #f4f1df;
+  color: #61734c;
+  font-size: 0.64rem;
+  font-weight: 850;
+}
+
+.discoverySectionHead button span {
+  opacity: 0.7;
+}
+
+.discoveryRail {
+  display: flex;
+  gap: 10px;
+  width: calc(100% + 18px);
+  overflow-x: auto;
+  margin-right: -18px;
+  padding: 1px 18px 9px 1px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.discoveryNameCard {
+  position: relative;
+  display: grid;
+  min-width: 146px;
+  flex: 0 0 146px;
+  min-height: 166px;
+  overflow: hidden;
+  border-radius: 24px;
+  background: linear-gradient(155deg, #fffefa, #fff4ec);
+  box-shadow: 0 10px 22px rgba(94, 67, 43, 0.09), inset 0 0 0 1px rgba(234, 216, 195, 0.84);
+  scroll-snap-align: start;
+}
+
+.discoveryNameCard.gutt {
+  background: linear-gradient(155deg, #fbfeff, #edf7fb);
+}
+
+.discoveryNameMain {
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  padding: 13px;
+  color: var(--ink);
+  text-align: left;
+}
+
+.discoverySex {
+  color: #e96954;
+}
+
+.discoveryNameCard.gutt .discoverySex {
+  color: #4b98c2;
+}
+
+.discoverySex .sexIcon {
+  width: 21px;
+  height: 21px;
+}
+
+.discoveryNameMain strong {
+  overflow: hidden;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.35rem;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.discoveryNameMain small {
+  min-height: 2.1em;
+  color: var(--muted);
+  font-size: 0.63rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.discoveryMiniChart {
+  align-self: end;
+  min-height: 35px;
+  margin-top: 8px;
+  opacity: 0.8;
+}
+
+.discoveryMiniChart svg {
+  width: 100%;
+  height: 35px;
+}
+
+.discoveryAdd {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: grid;
+  width: 31px;
+  height: 31px;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff;
+  color: #d96650;
+  box-shadow: 0 5px 13px rgba(86, 61, 39, 0.13);
+}
+
+.discoveryAdd.active {
+  background: #203f37;
+  color: white;
+}
+
+.discoveryAdd svg {
+  width: 16px;
+  height: 16px;
+}
+
+.subscreen.searchMode {
+  inset: 0 0 calc(var(--tab-height) + env(safe-area-inset-bottom)) 0;
+  z-index: 70;
+  padding: 0;
+  background: var(--surface);
+  backdrop-filter: none;
+}
+
+.searchMode .subscreenPanel {
+  width: min(100%, 430px);
+  height: 100%;
+  max-height: none;
+  padding: max(10px, env(safe-area-inset-top)) 16px 22px;
+  border-radius: 0;
+  background: var(--surface);
+  box-shadow: none;
+}
+
+.searchMode .subscreenPanel .navTitle {
+  position: sticky;
+  top: -10px;
+  z-index: 8;
+  margin: -10px -16px 0;
+  padding: max(10px, env(safe-area-inset-top)) 16px 9px;
+  background: rgba(255, 253, 249, 0.96);
+  backdrop-filter: blur(12px);
+}
+
+.searchMode .subContent {
+  gap: 11px;
+}
+
+.searchWorkspace {
+  display: grid;
+  gap: 13px;
+  min-width: 0;
+}
+
+.searchViewBar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 38px;
+  gap: 10px;
+  align-items: center;
+  min-height: 55px;
+  padding: 0 9px 0 16px;
+  border-radius: 25px;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(71, 54, 36, 0.09), inset 0 0 0 1px var(--line);
+}
+
+.searchViewBar > svg {
+  width: 21px;
+  height: 21px;
+  color: #5d625f;
+}
+
+.searchViewBar input {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 750;
+}
+
+.searchViewBar button {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 50%;
+  background: #f4f1df;
+  color: #61734c;
+}
+
+.searchViewBar button.active {
+  background: #203f37;
+  color: #fff;
+}
+
+.searchViewBar button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.searchFilterPanel {
+  padding: 13px;
+  border-radius: 22px;
+  background: #fff9f1;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.searchFilterPanel[hidden],
+.searchResults[hidden],
+.searchEmptyIntro[hidden] {
+  display: none;
+}
+
+.searchFilterGroup {
+  display: grid;
+  gap: 10px;
+}
+
+.searchFilterGroup + .searchFilterGroup {
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+
+.searchFilterGroup > strong {
+  color: #243c35;
+  font-size: 0.75rem;
+}
+
+.searchFilterActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.searchEmptyIntro {
+  display: grid;
+  gap: 18px;
+  padding: 18px;
+  border-radius: 24px;
+  background: #fff9f1;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.searchEmptyIntro strong {
+  color: #243c35;
+  font-size: 1.05rem;
+}
+
+.searchEmptyIntro p {
+  margin: 5px 0 13px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.searchResults {
+  display: grid;
+  gap: 10px;
+}
+
+.searchResultsHead {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+}
+
+.searchResultsHead h3 {
+  margin: 0;
+  color: #243c35;
+  font-size: 1.05rem;
+}
+
+.searchResultsHead small {
+  color: var(--muted);
+  font-size: 0.64rem;
+}
+
+.sourceLinks {
+  display: grid;
+  gap: 8px;
+}
+
+.sourceLinks a {
+  display: grid;
+  gap: 2px;
+  padding: 10px;
+  border-radius: 14px;
+  background: #fff;
+  color: #355c4e;
+  text-decoration: none;
+}
+
+.sourceLinks small {
+  color: var(--muted);
+  font-size: 0.62rem;
+}
+
+@media (max-width: 370px) {
+  .discoveryNameCard {
+    min-width: 138px;
+    flex-basis: 138px;
+  }
+
+  .globalFilterBar button {
+    padding-inline: 10px;
+  }
+
+  .searchFilterActions {
+    grid-template-columns: 1fr;
   }
 }
 

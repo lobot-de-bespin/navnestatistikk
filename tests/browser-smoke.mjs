@@ -28,10 +28,22 @@ try {
     assert(await page.locator(".discoverySection").count() >= 4, "Discovery sections missing");
     assert(await page.locator(".discoveryNameCard").count() >= 20, "Discovery cards missing");
     assert((await page.locator(".discovery-documented .discoverySectionHead button").textContent()).includes("143"), "Population-only suggestion set is incomplete");
+    const discoveryFont = await page.locator(".discoveryNameMain strong").first().evaluate((node) => getComputedStyle(node).fontFamily);
+    assert(!/Georgia|Times|(^|,)\s*serif/i.test(discoveryFont), `Discovery names still use serif: ${discoveryFont}`);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     assert(overflow <= 1, `${width}px home overflows by ${overflow}px`);
     await page.click("#openSearchView");
+    const emptyGeometry = await page.evaluate(() => {
+      const bar = document.querySelector(".searchViewBar").getBoundingClientRect();
+      const intro = document.querySelector(".searchEmptyIntro").getBoundingClientRect();
+      const workspace = document.querySelector(".searchWorkspace").getBoundingClientRect();
+      return { bar: bar.width, intro: intro.width, workspace: workspace.width };
+    });
+    assert(Math.abs(emptyGeometry.bar - emptyGeometry.workspace) <= 1, `${width}px empty search bar changes workspace width`);
+    assert(emptyGeometry.intro < emptyGeometry.workspace, `${width}px empty search prompt is still too wide`);
     await page.fill("#searchViewInput", "Alona");
+    const resultBarWidth = await page.locator(".searchViewBar").evaluate((node) => node.getBoundingClientRect().width);
+    assert(Math.abs(resultBarWidth - emptyGeometry.bar) <= 1, `${width}px search bar width changes after typing`);
     await page.click("#toggleSearchFilters");
     const searchOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     assert(searchOverflow <= 1, `${width}px search overflows by ${searchOverflow}px`);

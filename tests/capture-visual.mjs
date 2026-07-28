@@ -15,6 +15,11 @@ try {
     locale: "no-NO",
     serviceWorkers: "block",
   });
+  if (mode === "empty-recent") {
+    await context.addInitScript((recent) => {
+      localStorage.setItem("navnestatistikk:recentSearches:v2", JSON.stringify(recent));
+    }, ["Fe", "Fer", "Ferd", "Al", "Alo", "Alon"]);
+  }
   const page = await context.newPage();
   await page.goto(url, { waitUntil: "networkidle" });
   await page.waitForSelector(".discoverySection");

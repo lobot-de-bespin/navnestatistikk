@@ -8,11 +8,16 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-async function openPage(width = 390) {
+async function openPage(width = 390, options = {}) {
   const context = await browser.newContext({
     viewport: { width, height: 844 },
     serviceWorkers: "block",
   });
+  if (options.recent?.length) {
+    await context.addInitScript((recent) => {
+      localStorage.setItem("navnestatistikk:recentSearches:v2", JSON.stringify(recent));
+    }, options.recent);
+  }
   const page = await context.newPage();
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.stack || error.message));
@@ -23,7 +28,9 @@ async function openPage(width = 390) {
 
 try {
   for (const width of widths) {
-    const { context, page, errors } = await openPage(width);
+    const { context, page, errors } = await openPage(width, {
+      recent: ["Fe", "Fer", "Ferd", "Al", "Alo", "Alon"],
+    });
     assert(await page.locator(".tabBar [data-tab='explore'] span").textContent() === "Oppdag", "Oppdag label missing");
     assert(await page.locator(".discoverySection").count() >= 4, "Discovery sections missing");
     assert(await page.locator(".discoveryNameCard").count() >= 20, "Discovery cards missing");
@@ -37,13 +44,24 @@ try {
       const bar = document.querySelector(".searchViewBar").getBoundingClientRect();
       const intro = document.querySelector(".searchEmptyIntro").getBoundingClientRect();
       const workspace = document.querySelector(".searchWorkspace").getBoundingClientRect();
-      return { bar: bar.width, intro: intro.width, workspace: workspace.width };
+      const rail = document.querySelector(".searchEmptyIntro .chipRail").getBoundingClientRect();
+      return {
+        bar: { left: bar.left, right: bar.right, width: bar.width },
+        intro: { left: intro.left, right: intro.right, width: intro.width },
+        rail: { left: rail.left, right: rail.right, width: rail.width },
+        workspace: { left: workspace.left, right: workspace.right, width: workspace.width },
+        viewport: innerWidth,
+      };
     });
-    assert(Math.abs(emptyGeometry.bar - emptyGeometry.workspace) <= 1, `${width}px empty search bar changes workspace width`);
-    assert(emptyGeometry.intro < emptyGeometry.workspace, `${width}px empty search prompt is still too wide`);
+    assert(Math.abs(emptyGeometry.bar.width - emptyGeometry.workspace.width) <= 1, `${width}px empty search bar changes workspace width`);
+    assert(emptyGeometry.intro.width < emptyGeometry.workspace.width, `${width}px empty search prompt is still too wide`);
+    assert(emptyGeometry.bar.right <= emptyGeometry.viewport, `${width}px empty search bar is clipped`);
+    assert(emptyGeometry.intro.right <= emptyGeometry.viewport, `${width}px empty search prompt is clipped`);
+    assert(Math.abs(emptyGeometry.intro.left - (emptyGeometry.viewport - emptyGeometry.intro.right)) <= 1, `${width}px empty prompt is not centered`);
+    assert(emptyGeometry.rail.left >= emptyGeometry.intro.left && emptyGeometry.rail.right <= emptyGeometry.intro.right, `${width}px recent-search rail escapes prompt`);
     await page.fill("#searchViewInput", "Alona");
     const resultBarWidth = await page.locator(".searchViewBar").evaluate((node) => node.getBoundingClientRect().width);
-    assert(Math.abs(resultBarWidth - emptyGeometry.bar) <= 1, `${width}px search bar width changes after typing`);
+    assert(Math.abs(resultBarWidth - emptyGeometry.bar.width) <= 1, `${width}px search bar width changes after typing`);
     await page.click("#toggleSearchFilters");
     const searchOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     assert(searchOverflow <= 1, `${width}px search overflows by ${searchOverflow}px`);

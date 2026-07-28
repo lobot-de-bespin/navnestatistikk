@@ -1314,16 +1314,28 @@ body {
 
 .searchMode .subContent {
   gap: 11px;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .searchWorkspace {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 13px;
   width: 100%;
+  max-width: 100%;
   min-width: 0;
+  overflow-x: hidden;
+}
+
+.searchWorkspace > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .searchViewBar {
+  box-sizing: border-box;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) 38px;
   gap: 10px;
@@ -1409,14 +1421,30 @@ body {
 }
 
 .searchEmptyIntro {
+  box-sizing: border-box;
   display: grid;
-  width: min(100%, 310px);
+  width: 310px;
+  max-width: calc(100% - 32px);
+  min-width: 0;
   justify-self: center;
   gap: 15px;
   padding: 20px;
   border-radius: 20px;
   background: #fff9f1;
   box-shadow: inset 0 0 0 1px var(--line), 0 8px 20px rgba(86, 64, 44, 0.04);
+  overflow: hidden;
+}
+
+.searchEmptyIntro > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.searchEmptyIntro .chipRail {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overscroll-behavior-inline: contain;
 }
 
 .searchEmptyIntro strong {

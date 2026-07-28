@@ -1523,65 +1523,12 @@ body {
   }
 }
 
-/* Names documented in the current Norwegian population, without birth history. */
 .nameRow .rank svg {
   width: 20px;
   height: 20px;
 }
 
-.nameRow.noHistory {
-  background: #f4f8f2;
-}
-
-.nameRow.noHistory .rank {
-  background: #e1ecda;
-  color: #638452;
-}
-
-.registryBadge,
-.inlineSource {
-  display: inline-flex;
-  min-height: 25px;
-  align-items: center;
-  justify-content: center;
-  padding: 5px 8px;
-  border-radius: 999px;
-  background: #e8f1e2;
-  color: #5d7c4c;
-  font-size: 0.56rem;
-  font-weight: 820;
-  letter-spacing: 0.025em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.noDataLegend {
-  display: flex !important;
-  width: 100%;
-  align-items: center;
-  gap: 6px;
-  color: #657068;
-  line-height: 1.35;
-}
-
-.noDataLegend svg {
-  width: 18px;
-  height: 18px;
-  flex: 0 0 auto;
-  color: #64864e;
-}
-
-.chartNoHistory {
-  display: grid;
-  min-height: 210px;
-  place-items: center;
-  color: #6c756f;
-  font-size: 0.8rem;
-  font-weight: 750;
-}
-
-.registryNameSource,
-.reviewRegistryName {
+.reviewIdentityName {
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr);
   gap: 13px;
@@ -1604,138 +1551,27 @@ body {
   height: 25px;
 }
 
-.registryNameSource small,
-.reviewRegistryName small {
+.reviewIdentityName small {
   color: #678056;
   font-size: 0.66rem;
   font-weight: 820;
   text-transform: uppercase;
 }
 
-.registryNameSource h3,
-.reviewRegistryName strong {
+.reviewIdentityName strong {
   display: block;
   margin: 2px 0 4px;
   color: #21483b;
   font-size: 1rem;
 }
 
-.registryNameSource p,
-.reviewRegistryName p,
+.reviewIdentityName p,
 .sourceNote p,
 .reviewSourceNote {
   margin: 0;
   color: #657068;
   font-size: 0.75rem;
   line-height: 1.38;
-}
-
-.registryFacts {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  padding: 0;
-  background: transparent;
-}
-
-.registryFacts span {
-  display: grid;
-  min-height: 88px;
-  place-content: center;
-  padding: 10px;
-  border-radius: 18px;
-  background: #fffefa;
-  box-shadow: inset 0 0 0 1px rgba(232, 212, 190, 0.74);
-  text-align: center;
-}
-
-.registryFacts small,
-.registryFacts em {
-  color: #70766f;
-  font-size: 0.65rem;
-  font-style: normal;
-}
-
-.registryFacts b {
-  margin: 2px 0;
-  color: #173f35;
-  font-size: 1.25rem;
-}
-
-.registryMiniChart svg,
-.registryReviewSpark svg {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
-.populationComparePanel {
-  display: grid;
-  gap: 10px;
-  padding: 14px;
-  border-radius: 20px;
-  background: #f1f7ed;
-  box-shadow: inset 0 0 0 1px rgba(194, 215, 183, 0.72);
-}
-
-.populationComparePanel[hidden] {
-  display: none;
-}
-
-.populationCompareHead {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.populationCompareHead span {
-  display: grid;
-}
-
-.populationCompareHead small,
-.populationCompareHead em {
-  color: #6a776b;
-  font-size: 0.65rem;
-  font-style: normal;
-}
-
-.populationCompareHead strong {
-  color: #23483b;
-  font-size: 0.95rem;
-}
-
-.populationCompareChart {
-  overflow: hidden;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.78);
-}
-
-.populationCompareChart svg {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
-.populationCompareLegend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px 12px;
-  color: #52635a;
-  font-size: 0.68rem;
-  font-weight: 720;
-}
-
-.populationCompareLegend span {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.populationCompareLegend i {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
 }
 
 .candidateBulkActions {
@@ -1759,38 +1595,6 @@ body {
   display: none;
 }
 
-.registryAxis {
-  stroke: rgba(47, 78, 61, 0.18);
-  stroke-width: 1;
-}
-
-.registryLine {
-  fill: none;
-  stroke: var(--forest, #315a45);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 4;
-}
-
-.registryDot {
-  fill: var(--coral, #e67969);
-  stroke: var(--cream, #fff8ec);
-  stroke-width: 3;
-}
-
-.registryAxisLabel {
-  fill: var(--muted, #68756d);
-  font-size: 11px;
-  font-weight: 650;
-  stroke: none;
-}
-
-.registryChartNote {
-  color: var(--muted, #68756d);
-  font-size: 0.82rem;
-  margin: 0.55rem 0 0;
-}
-
 .sourceNote a {
   display: inline-block;
   margin-top: 9px;
@@ -1799,14 +1603,10 @@ body {
   font-weight: 760;
 }
 
-.reviewRegistryName {
+.reviewIdentityName {
   margin-top: 10px;
   padding: 14px;
   border-radius: 24px;
-}
-
-.registryNameStats {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .reviewSourceNote {

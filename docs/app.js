@@ -3,7 +3,7 @@ const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
 const SCHOOL_STORAGE_KEY = "navnestatistikk:schoolSettings:v1";
-const SW_VERSION = "2026-07-28.7";
+const SW_VERSION = "2026-07-28.8";
 const MAX_COMPARE_ITEMS = 12;
 
 const state = {
@@ -27,7 +27,6 @@ const state = {
     fromYear: 1900,
     toYear: 2025,
     popularity: "alle",
-    coverage: "alle",
     pattern: "",
     schoolMax: "",
   },
@@ -87,7 +86,7 @@ async function loadData() {
   state.school.birthYear = clampYear(state.school.birthYear || state.latestYear);
   state.itemsById = new Map(state.data.names.map((item) => [item.id, item]));
   state.selected = new Set([...state.selected].filter((id) => state.itemsById.has(id)));
-  ["#openSearchView", "#openFilter", "#openGlobalCoverage"].forEach((selector) => {
+  ["#openSearchView"].forEach((selector) => {
     const control = $(selector);
     if (control) control.disabled = false;
   });
@@ -100,8 +99,6 @@ function bindChrome() {
     button.addEventListener("click", () => setTab(button.dataset.tab));
   });
   $("#openSearchView")?.addEventListener("click", openSearchView);
-  $("#openFilter")?.addEventListener("click", openGlobalFilters);
-  $("#openGlobalCoverage")?.addEventListener("click", openGlobalFilters);
   $$("[data-global-sex]").forEach((button) => {
     button.addEventListener("click", () => {
       state.filters.sex = button.dataset.globalSex;
@@ -397,8 +394,6 @@ function renderExplore() {
   renderRecentSearches();
   renderExploreStarter();
   $$("[data-global-sex]").forEach((button) => button.classList.toggle("active", button.dataset.globalSex === state.filters.sex));
-  const coverageButton = $("#openGlobalCoverage span");
-  if (coverageButton) coverageButton.textContent = coverageFilterLabel(state.filters.coverage);
   const searchLabel = $("#homeSearchLabel");
   if (searchLabel) searchLabel.textContent = state.query ? `Søk videre etter «${state.query}»` : "Søk etter navn";
   renderDiscoverySections();
@@ -472,7 +467,6 @@ function applyExplorePreset(preset) {
   state.filters.fromYear = Math.max(1900, state.firstYear);
   state.filters.toYear = state.latestYear;
   state.filters.pattern = "";
-  state.filters.coverage = "alle";
   state.filters.schoolMax = preset === "school" ? "2" : "";
   state.filters.popularity = preset === "clear" || preset === "popular" || preset === "school" ? "alle" : preset;
   state.searchShowAll = true;
@@ -510,10 +504,6 @@ function popularRows(sex = "jente", limit = 10) {
 function discoveryBaseRows() {
   let rows = state.data.names.filter((item) => state.status[item.id] !== "rejected");
   if (state.filters.sex !== "alle") rows = rows.filter((item) => item.sex === state.filters.sex);
-  if (state.filters.coverage === "births") rows = rows.filter(hasHistory);
-  if (state.filters.coverage === "population") rows = rows.filter(hasRegistryHistory);
-  if (state.filters.coverage === "basic") rows = rows.filter((item) => !hasHistory(item) && !hasRegistryHistory(item));
-  if (state.filters.coverage === "meaning") rows = rows.filter((item) => hasCapability(item, "meaning"));
   return rows;
 }
 
@@ -553,13 +543,6 @@ function discoveryCollections() {
         .map((row) => row.item),
       metric: (item) => `${formatDecimal(schoolEstimateForCurrentSettings(item).school, 1)} i skoleløpet`,
     },
-    {
-      id: "documented",
-      title: "Flere navn i bruk i Norge",
-      subtitle: "Dokumentert i befolkningen, uten fødselshistorikk",
-      rows: base.filter((item) => !hasHistory(item) && hasRegistryHistory(item)).sort((a, b) => (b.currentCount ?? 0) - (a.currentCount ?? 0) || a.name.localeCompare(b.name, "no")),
-      metric: (item) => `${formatNumber(item.currentCount)} personer`,
-    },
   ];
   const meanings = base.filter((item) => hasCapability(item, "meaning"));
   if (meanings.length) {
@@ -587,7 +570,6 @@ function renderDiscoverySections() {
     `;
     $("#resetDiscoveryFilters")?.addEventListener("click", () => {
       state.filters.sex = "alle";
-      state.filters.coverage = "alle";
       renderExplore();
     });
     return;
@@ -619,7 +601,7 @@ function discoveryNameCard(item, metric) {
       <span class="discoverySex">${sexIconMarkup(item)}</span>
       <strong>${escapeHtml(item.name)}</strong>
       <small>${escapeHtml(metric)}</small>
-      <span class="discoveryMiniChart">${hasHistory(item) ? sparklineSvg(item, 118, 34) : hasRegistryHistory(item) ? registryMiniSparkSvg(item, 118, 34) : ""}</span>
+      <span class="discoveryMiniChart">${hasHistory(item) ? sparklineSvg(item, 118, 34) : ""}</span>
     </button>
     <button class="discoveryAdd ${selected ? "active" : ""}" type="button" aria-label="${selected ? "Fjern" : "Legg til"} ${escapeHtml(item.name)}">
       <svg><use href="#icon-${selected ? "check" : "plus"}"></use></svg>
@@ -657,19 +639,18 @@ function rememberSearch(query) {
 function nameRow(item, options = {}) {
   const selected = state.selected.has(item.id);
   const history = hasHistory(item);
-  const population = hasRegistryHistory(item);
   const latest = pointInYear(item, state.latestYear);
   const row = document.createElement("article");
-  row.className = `nameRow ${item.sex} ${options.feature ? "featureNameCard" : ""} ${selected ? "selected" : ""} ${history ? "birthData" : population ? "populationData" : "identityData"}`;
-  const score = history ? latest?.[1] ?? 0 : population ? item.currentCount : null;
-  const scoreLabel = history ? `fødte ${state.latestYear}` : population ? `personer ${state.data.meta.currentNamesYear}` : "ingen statistikk";
+  row.className = `nameRow ${item.sex} ${options.feature ? "featureNameCard" : ""} ${selected ? "selected" : ""} ${history ? "birthData" : "identityData"}`;
+  const score = history ? latest?.[1] ?? 0 : null;
+  const scoreLabel = history ? `fødte ${state.latestYear}` : "ingen statistikk";
   row.innerHTML = `
     <span class="rank">${options.rank ?? sexIconMarkup(item)}</span>
     <button class="nameMain" type="button">
       <strong>${escapeHtml(item.name)}</strong>
-      <small>${history ? `${escapeHtml(itemMood(item))} · toppår ${item.peakYear}` : population ? registryHistoryLabel(item) : identityCoverageLabel(item)}</small>
+      <small>${history ? `${escapeHtml(itemMood(item))} · toppår ${item.peakYear}` : identityCoverageLabel(item)}</small>
     </button>
-    <span class="spark">${history ? sparklineSvg(item) : population ? registryMiniSparkSvg(item) : ""}</span>
+    <span class="spark">${history ? sparklineSvg(item) : ""}</span>
     <span class="count nameScore"><b>${score == null ? "–" : formatNumber(score)}</b><small>${scoreLabel}</small></span>
     <button class="addButton ${selected ? "active" : ""}" type="button" aria-label="${selected ? "Valgt, trykk for å fjerne" : "Legg til"} ${escapeHtml(item.name)}">
       <svg><use href="#icon-${selected ? "check" : "plus"}"></use></svg>
@@ -794,19 +775,8 @@ function renderCompareInsight(items) {
     .map((item) => ({ item, point: pointInYear(item, state.latestYear), trend: trendScore(item) }))
     .filter((row) => row.point);
   if (!latestRows.length) {
-    const populationRows = items.filter((item) => !hasHistory(item) && hasRegistryHistory(item));
-    if (!populationRows.length) {
-      panel.innerHTML = `
-        <span class="wide"><small>Datadekning</small><strong>Grunnopplysninger</strong><em>Disse navnene kan vurderes og sammenlignes etter skrivemåte, men mangler statistiske mål.</em></span>
-      `;
-      return;
-    }
-    const largest = populationRows.slice().sort((a, b) => (b.currentCount ?? 0) - (a.currentCount ?? 0))[0];
-    const fastest = populationRows.slice().sort((a, b) => registryTrendScore(b) - registryTrendScore(a))[0];
     panel.innerHTML = `
-      <span class="wide"><small>Datadekning</small><strong>Befolkningstall</strong><em>Viser registrerte navnebærere ved årets slutt, ikke nyfødte.</em></span>
-      <span><small>Flest navnebærere</small><strong>${escapeHtml(largest?.name ?? "-")}</strong><em>${formatNumber(largest?.currentCount ?? 0)} personer</em></span>
-      <span><small>Størst økning</small><strong>${escapeHtml(fastest?.name ?? "-")}</strong><em>${signedNumber(registryTrendScore(fastest))} i tilgjengelig serie</em></span>
+      <span class="wide"><small>Datadekning</small><strong>Grunnopplysninger</strong><em>Disse navnene kan vurderes og sammenlignes etter skrivemåte, men mangler fødselstall.</em></span>
     `;
     return;
   }
@@ -918,7 +888,6 @@ function renderCompareSimilar(items) {
 
 function renderChart(items) {
   const chart = $("#compareChart");
-  const populationPanel = $("#comparePopulationPanel");
   if (!chart) return;
   if (!items.length) {
     chart.hidden = false;
@@ -936,10 +905,6 @@ function renderChart(items) {
     `;
     chart.dataset.traces = "0";
     $("#compareLegend").replaceChildren();
-    if (populationPanel) {
-      populationPanel.hidden = true;
-      populationPanel.replaceChildren();
-    }
     return;
   }
   const historyItems = items.filter(hasHistory);
@@ -953,27 +918,6 @@ function renderChart(items) {
     label.innerHTML = `<i style="background:${chartColor(index, item)}"></i>${escapeHtml(item.name)}`;
     return label;
   }));
-  const registryItems = items.filter((item) => !hasHistory(item) && hasRegistryHistory(item));
-  const identityItems = items.filter((item) => !hasHistory(item) && !hasRegistryHistory(item));
-  if (populationPanel) {
-    populationPanel.hidden = !registryItems.length && !identityItems.length;
-    populationPanel.innerHTML = registryItems.length ? `
-      <div class="populationCompareHead">
-        <span><small>Datadekning</small><strong>Befolkning over tid</strong></span>
-        <em>personer ved årets slutt</em>
-      </div>
-      <div class="populationCompareChart">${registryComparisonSvg(registryItems, 344, 190, state.compare.fromYear, state.compare.toYear)}</div>
-      <div class="populationCompareLegend">
-        ${registryItems.map((item, index) => `<span><i style="background:${chartColor(index, item)}"></i>${escapeHtml(item.name)} · ${formatNumber(item.currentCount)}</span>`).join("")}
-      </div>
-      ${identityItems.length ? `<p class="registryChartNote">${identityItems.map((item) => escapeHtml(item.name)).join(", ")} mangler statistikk og vises derfor ikke i grafen.</p>` : ""}
-    ` : identityItems.length ? `
-      <div class="populationCompareHead">
-        <span><small>Datadekning</small><strong>Ingen sammenlignbare tall</strong></span>
-      </div>
-      <p class="registryChartNote">${identityItems.map((item) => escapeHtml(item.name)).join(", ")} kan fortsatt vurderes og sammenlignes etter skrivemåte.</p>
-    ` : "";
-  }
 }
 
 function renderCompareStats(items) {
@@ -985,13 +929,12 @@ function renderCompareStats(items) {
   table.replaceChildren(...items.map((item) => {
     const point = pointInYear(item, state.compare.toYear);
     const history = hasHistory(item);
-    const population = hasRegistryHistory(item);
     const row = document.createElement("button");
     row.type = "button";
     row.className = "statRow";
     row.innerHTML = `
-      <span><b>${escapeHtml(item.name)}</b><small>${escapeHtml(item.sex)} · ${history ? "fødte" : population ? "befolkning" : "grunnopplysninger"}</small></span>
-      <span>${history ? formatNumber(point?.[1] ?? 0) : population ? formatNumber(item.currentCount) : "–"}</span>
+      <span><b>${escapeHtml(item.name)}</b><small>${escapeHtml(item.sex)} · ${history ? "fødte" : "grunnopplysninger"}</small></span>
+      <span>${history ? formatNumber(point?.[1] ?? 0) : "–"}</span>
       <span>${point?.[2] ? formatNumber(point[2]) : "-"}</span>
       <span>${formatPercent(point?.[3])}</span>
       <span>${history ? item.peakYear : "-"}</span>
@@ -1058,7 +1001,7 @@ function similarResultRow(row, options = {}) {
     <span>
       <strong>${escapeHtml(item.name)} <small class="sexTag ${item.sex}">${escapeHtml(item.sex)}</small></strong>
       <small>${row.reason}</small>
-      <b class="inlineSpark">${hasHistory(item) ? sparklineSvg(item, sparkWidth, sparkHeight) : registryMiniSparkSvg(item, sparkWidth, sparkHeight)}</b>
+      <b class="inlineSpark">${hasHistory(item) ? sparklineSvg(item, sparkWidth, sparkHeight) : ""}</b>
     </span>
     <em>${formatDecimal(row.similarity * 100, 0)} %</em>
     <i><svg><use href="#icon-plus"></use></svg></i>
@@ -1114,7 +1057,6 @@ function openNameDetail(item) {
 }
 
 function detailMarkup(item) {
-  if (!hasHistory(item) && hasRegistryHistory(item)) return registryNameDetailMarkup(item);
   if (!hasHistory(item)) return identityNameDetailMarkup(item);
   const latest = pointInYear(item, state.latestYear);
   return `
@@ -1152,48 +1094,7 @@ function identityNameDetailMarkup(item) {
     </section>
     <section class="subCard sourceNote">
       <h3>Grunnopplysninger</h3>
-      <p>Navnet og kjønnstilknytningen er dokumentert, men katalogen har foreløpig ikke norske fødsels- eller befolkningstall for navnet.</p>
-    </section>
-    ${sourceListMarkup(item)}
-    <button class="primaryWide" data-add="${item.id}" type="button">Legg til i vår liste</button>
-    <button class="secondaryWide" data-similar="${item.id}" type="button">Finn navn med lignende skrivemåte</button>
-  `;
-}
-
-function registryNameDetailMarkup(item) {
-  const registry = registryHistoryStats(item);
-  return `
-    <section class="detailHero">
-      <div><h2>${escapeHtml(item.name)} ${sexIconMarkup(item)}</h2><p>${escapeHtml(item.sex)}</p></div>
-    </section>
-    <section class="subCard registryNameSource">
-      <span class="sourcePeople"><svg aria-hidden="true"><use href="#icon-people"></use></svg></span>
-      <div>
-        <small>Dokumentert i Norge</small>
-        <h3>${formatNumber(item.currentCount)} personer</h3>
-        <p>Navnet er registrert på personer med norsk personnummer i ${state.data.meta.currentNamesYear}.</p>
-      </div>
-    </section>
-    <section class="subCard registryFacts">
-      <span><small>Rang blant ${escapeHtml(item.sex)}navn</small><b>${formatNumber(item.currentRank)}</b><em>${state.data.meta.currentNamesYear}</em></span>
-      <span><small>Datadekning</small><b>Befolkning</b><em>${registry ? `${registry.firstYear}–${registry.lastYear}` : state.data.meta.currentNamesYear}</em></span>
-    </section>
-    ${registry ? `
-      <section class="subCard">
-        <h3>Personer med navnet over tid</h3>
-        <div class="miniChart registryMiniChart">${registrySparklineSvg(item)}</div>
-        <div class="detailStats">
-          <span><small>${registry.firstYear}</small><b>${formatNumber(registry.firstCount)}</b></span>
-          <span><small>${registry.lastYear}</small><b>${formatNumber(registry.lastCount)}</b></span>
-          <span><small>Endring</small><b>${registry.change > 0 ? "+" : ""}${formatNumber(registry.change)}</b></span>
-        </div>
-        <p class="registryChartNote">Årlig bestand ved årets slutt, ikke antall nyfødte.</p>
-      </section>
-    ` : ""}
-    <section class="subCard sourceNote">
-      <h3>Ingen årlige fødselstall</h3>
-      <p>SSB viser hvor mange personer som har navnet, men ikke hvor mange barn som fikk det hvert år. Endringer i bestanden påvirkes også av innvandring, dødsfall og navneendringer. Derfor beregner vi ikke toppår eller skoleestimat.</p>
-      <a href="https://www.ssb.no/statbank/table/${escapeHtml(state.data.meta.currentNamesTable)}/" target="_blank" rel="noopener">Se kildetabellen hos SSB</a>
+      <p>Navnet og kjønnstilknytningen er dokumentert, men katalogen har foreløpig ikke norske fødselstall for navnet.</p>
     </section>
     ${sourceListMarkup(item)}
     <button class="primaryWide" data-add="${item.id}" type="button">Legg til i vår liste</button>
@@ -1241,37 +1142,6 @@ function renderSimilarList(reference, rows) {
   list.replaceChildren(...rows.map((row) => similarResultRow(row, { compact: false })));
 }
 
-function openGlobalFilters() {
-  if (!state.data) return;
-  openSubscreen("Grunnvalg", `
-    <form id="globalFilterForm" class="formStack">
-      <p class="subLead">Disse valgene følger deg i både Oppdag og Søk. Forslagsseksjonene beholder sin egen logikk.</p>
-      <label>Navnetype<select name="sex">
-        <option value="alle">Jente- og guttenavn</option>
-        <option value="jente">Jentenavn</option>
-        <option value="gutt">Guttenavn</option>
-      </select></label>
-      <label>Datadekning<select name="coverage">
-        <option value="alle">Alle godkjente navn</option>
-        <option value="births">Med årlige fødselstall</option>
-        <option value="population">Med befolkningstall</option>
-        ${optionalCoverageOptionsMarkup()}
-      </select></label>
-      <button class="primaryWide" type="submit">Bruk grunnvalg</button>
-    </form>
-  `);
-  $("#globalFilterForm [name='sex']").value = state.filters.sex;
-  $("#globalFilterForm [name='coverage']").value = state.filters.coverage;
-  $("#globalFilterForm").addEventListener("submit", (event) => {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    state.filters.sex = String(form.get("sex"));
-    state.filters.coverage = String(form.get("coverage"));
-    closeSubscreen();
-    renderExplore();
-  });
-}
-
 function openSearchView() {
   if (!state.data) return;
   openSubscreen("Søk", `
@@ -1289,22 +1159,15 @@ function openSearchView() {
             <option value="jente">Jentenavn</option>
             <option value="gutt">Guttenavn</option>
           </select></label>
-          <label>Datadekning<select name="coverage">
-            <option value="alle">Alle godkjente navn</option>
-            <option value="births">Med årlige fødselstall</option>
-            <option value="population">Med befolkningstall</option>
-            ${optionalCoverageOptionsMarkup()}
-          </select></label>
         </div>
         <div class="searchFilterGroup">
           <strong>Avgrens søket</strong>
-          <label>Periode med data<div class="rangePair"><input name="fromYear" type="number" min="${state.firstYear}" max="${state.latestYear}" value="${state.filters.fromYear}" /><input name="toYear" type="number" min="${state.firstYear}" max="${state.latestYear}" value="${state.filters.toYear}" /></div></label>
+          <label>Fødselsår<div class="rangePair"><input name="fromYear" type="number" min="${state.firstYear}" max="${state.latestYear}" value="${state.filters.fromYear}" /><input name="toYear" type="number" min="${state.firstYear}" max="${state.latestYear}" value="${state.filters.toYear}" /></div></label>
           <label>Dataprofil<select name="popularity">
             <option value="alle">Alle profiler</option>
             <option value="top50">Topp 50 blant nyfødte</option>
-            <option value="rising">Økning i tilgjengelig serie</option>
+            <option value="rising">På vei opp</option>
             <option value="rare">Under 25 nyfødte siste år</option>
-            <option value="population500">Under 500 navnebærere</option>
           </select></label>
           <label>Mønster i navnet<input name="pattern" type="text" placeholder="Regex: ^El eller a$" value="${escapeHtml(state.filters.pattern)}" /></label>
           <label>Maks forventet i skoleløpet <small>(krever fødselstall)</small><input name="schoolMax" type="number" min="0" step="0.1" placeholder="f.eks. 2" value="${escapeHtml(state.filters.schoolMax)}" /></label>
@@ -1327,7 +1190,6 @@ function openSearchView() {
     </section>
   `, null, { mode: "search" });
   $("#searchFilterForm [name='sex']").value = state.filters.sex;
-  $("#searchFilterForm [name='coverage']").value = state.filters.coverage;
   $("#searchFilterForm [name='popularity']").value = state.filters.popularity;
   $("#toggleSearchFilters").addEventListener("click", () => {
     state.searchFiltersOpen = !state.searchFiltersOpen;
@@ -1362,7 +1224,6 @@ function openSearchView() {
 function applySearchFilterForm(formElement) {
   const form = new FormData(formElement);
   state.filters.sex = String(form.get("sex"));
-  state.filters.coverage = String(form.get("coverage"));
   state.filters.fromYear = clampYear(Number(form.get("fromYear")));
   state.filters.toYear = clampYear(Number(form.get("toYear")));
   state.filters.popularity = String(form.get("popularity"));
@@ -1463,14 +1324,7 @@ function renderSearchResults() {
 
 function searchScopeLabel() {
   const sex = { alle: "alle navnetyper", jente: "jentenavn", gutt: "guttenavn" }[state.filters.sex];
-  return `${sex} · ${coverageFilterLabel(state.filters.coverage).toLowerCase()}`;
-}
-
-function optionalCoverageOptionsMarkup() {
-  const names = state.data?.names || [];
-  const identityOnly = names.some((item) => !hasHistory(item) && !hasRegistryHistory(item));
-  const meanings = names.some((item) => hasCapability(item, "meaning"));
-  return `${identityOnly ? '<option value="basic">Bare grunnopplysninger</option>' : ""}${meanings ? '<option value="meaning">Med dokumentert betydning</option>' : ""}`;
+  return `${sex} · fødselstall`;
 }
 
 function openCandidateBuilder(rows = filteredRows(), title = "Alle treff", subtitle = "Hele trefflisten") {
@@ -1581,47 +1435,21 @@ function renderReview() {
   const latest = pointInYear(item, state.latestYear);
   $(".reviewActions").hidden = false;
   if (!hasHistory(item)) {
-    if (!hasRegistryHistory(item)) {
-      card.innerHTML = `
-        <div class="reviewNamePlate">
-          <p class="cardMeta">${state.review.index + 1} av ${state.review.deck.length}</p>
-          <h2>${escapeHtml(item.name)} ${sexIconMarkup(item)}</h2>
-          <span class="trendPill">Grunnopplysninger</span>
-        </div>
-        <section class="reviewRegistryName">
-          <span class="sourcePeople"><svg aria-hidden="true"><use href="#icon-list"></use></svg></span>
-          <div>
-            <small>${escapeHtml(item.sex)}navn</small>
-            <strong>${escapeHtml(item.name)}</strong>
-            <p>Kan vurderes og sammenlignes etter skrivemåte, men mangler statistikk.</p>
-          </div>
-        </section>
-        <p class="reviewSourceNote">Trend, rang, toppår og skoleestimat vises først når kilden dokumenterer slike data.</p>
-      `;
-      bindSubscreenButtons(card);
-      return;
-    }
-    const registry = registryHistoryStats(item);
     card.innerHTML = `
       <div class="reviewNamePlate">
         <p class="cardMeta">${state.review.index + 1} av ${state.review.deck.length}</p>
         <h2>${escapeHtml(item.name)} ${sexIconMarkup(item)}</h2>
-        <span class="trendPill">I bruk i Norge</span>
+        <span class="trendPill">Grunnopplysninger</span>
       </div>
-      <section class="reviewRegistryName">
-        <span class="sourcePeople"><svg aria-hidden="true"><use href="#icon-people"></use></svg></span>
+      <section class="reviewIdentityName">
+        <span class="sourcePeople"><svg aria-hidden="true"><use href="#icon-list"></use></svg></span>
         <div>
-          <small>Befolkningen · ${state.data.meta.currentNamesYear}</small>
-          <strong>${formatNumber(item.currentCount)} personer</strong>
-          <p>Dokumentert på personer med norsk personnummer.</p>
+          <small>${escapeHtml(item.sex)}navn</small>
+          <strong>${escapeHtml(item.name)}</strong>
+          <p>Kan vurderes og sammenlignes etter skrivemåte, men mangler fødselstall.</p>
         </div>
       </section>
-      ${registry ? `<div class="reviewSpark registryReviewSpark">${registrySparklineSvg(item, 420, 120)}</div>` : ""}
-      <div class="reviewStats registryNameStats">
-        <span><small>Antall</small><b>${formatNumber(item.currentCount)}</b><em>personer</em></span>
-        <span><small>Rang</small><b>${formatNumber(item.currentRank)}</b><em>blant ${escapeHtml(item.sex)}navn</em></span>
-      </div>
-      <p class="reviewSourceNote">${registry ? `Befolkningstall ${registry.firstYear}–${registry.lastYear}. ` : ""}Navnet mangler årlige fødselstall, så skoleestimat vises ikke.</p>
+      <p class="reviewSourceNote">Trend, rang, toppår og skoleestimat vises først når kilden dokumenterer slike data.</p>
     `;
     bindSubscreenButtons(card);
     return;
@@ -2040,7 +1868,6 @@ function filteredRows() {
     if (hasHistory(item)) {
       return allPoints(item).some((point) => point.year >= state.filters.fromYear && point.year <= state.filters.toYear && (point.count != null || point.shareSex != null));
     }
-    if (hasRegistryHistory(item)) return (item.registrySeries || []).some(([year]) => year >= state.filters.fromYear && year <= state.filters.toYear);
     return !periodIsRestricted;
   });
   if (state.filters.pattern) {
@@ -2052,14 +1879,9 @@ function filteredRows() {
     }
   }
   if (state.filters.sex !== "alle") rows = rows.filter((item) => item.sex === state.filters.sex);
-  if (state.filters.coverage === "births") rows = rows.filter(hasHistory);
-  if (state.filters.coverage === "population") rows = rows.filter(hasRegistryHistory);
-  if (state.filters.coverage === "basic") rows = rows.filter((item) => !hasHistory(item) && !hasRegistryHistory(item));
-  if (state.filters.coverage === "meaning") rows = rows.filter((item) => hasCapability(item, "meaning"));
   if (state.filters.popularity === "top50") rows = rows.filter((item) => hasHistory(item) && (pointInYear(item, state.latestYear)?.[2] ?? 9999) <= 50);
   if (state.filters.popularity === "rising") rows = rows.filter((item) => availableTrendScore(item) > 0);
   if (state.filters.popularity === "rare") rows = rows.filter((item) => hasHistory(item) && latestCount(item) < 25);
-  if (state.filters.popularity === "population500") rows = rows.filter((item) => hasRegistryHistory(item) && (item.currentCount ?? Infinity) < 500);
   if (state.filters.schoolMax !== "") rows = rows.filter((item) => hasHistory(item) && schoolEstimateForCurrentSettings(item).school <= Number(state.filters.schoolMax));
   if (state.query) return rows;
   return rows.sort((a, b) => (a.currentRank ?? 9999) - (b.currentRank ?? 9999) || a.name.localeCompare(b.name, "no"));
@@ -2298,9 +2120,8 @@ function schoolEstimateForCurrentSettings(item) {
 function hasCapability(item, key) {
   if (item?.coverage && Object.prototype.hasOwnProperty.call(item.coverage, key)) return Boolean(item.coverage[key]);
   if (key === "identity") return Boolean(item?.name && (item?.gender || item?.sex));
-  if (key === "norwayUse") return Boolean(item?.series?.length || item?.registrySeries?.length);
+  if (key === "norwayUse") return Boolean(item?.series?.length);
   if (key === "birthSeries") return Boolean(item?.series?.length);
-  if (key === "populationSeries") return Boolean(item?.registrySeries?.length);
   return false;
 }
 
@@ -2308,40 +2129,13 @@ function hasHistory(item) {
   return hasCapability(item, "birthSeries");
 }
 
-function hasRegistryHistory(item) {
-  return hasCapability(item, "populationSeries");
-}
-
-function registryTrendScore(item) {
-  if (!item?.registrySeries?.length) return 0;
-  return item.registrySeries.at(-1)[1] - item.registrySeries[0][1];
-}
-
 function availableTrendScore(item) {
-  return hasHistory(item) ? trendScore(item) : registryTrendScore(item);
+  return hasHistory(item) ? trendScore(item) : 0;
 }
 
 function signedNumber(value) {
   const number = Number(value) || 0;
   return `${number > 0 ? "+" : ""}${formatNumber(number)}`;
-}
-
-function registryHistoryStats(item) {
-  if (!hasRegistryHistory(item)) return null;
-  const first = item.registrySeries[0];
-  const last = item.registrySeries[item.registrySeries.length - 1];
-  return {
-    firstYear: first[0],
-    firstCount: first[1],
-    lastYear: last[0],
-    lastCount: last[1],
-    change: last[1] - first[1],
-  };
-}
-
-function registryHistoryLabel(item) {
-  const stats = registryHistoryStats(item);
-  return stats ? `Befolkning · ${stats.firstYear}–${stats.lastYear}` : "Befolkningstall";
 }
 
 function identityCoverageLabel(item) {
@@ -2362,88 +2156,6 @@ function sourceListMarkup(item) {
         ${sources.map((source) => `<a href="${escapeHtml(source.url)}" target="_blank" rel="noopener"><strong>${escapeHtml(source.label)}</strong><small>${escapeHtml(source.publisher || "")} · ${escapeHtml(source.license || "")}</small></a>`).join("")}
       </div>
     </section>
-  `;
-}
-
-function coverageFilterLabel(value) {
-  return {
-    alle: "Alle data",
-    births: "Fødselstall",
-    population: "Befolkning",
-    basic: "Grunnopplysninger",
-    meaning: "Med betydning",
-  }[value] || "Alle data";
-}
-
-function registryMiniSparkSvg(item, width = 118, height = 32) {
-  const rows = item?.registrySeries || [];
-  if (!rows.length) return "";
-  const values = rows.map((row) => row[1]);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const coords = values.map((value, index) => {
-    const x = (index / Math.max(1, values.length - 1)) * width;
-    const y = height - ((value - min) / Math.max(1, max - min)) * (height - 6) - 3;
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  });
-  return `<svg viewBox="0 0 ${width} ${height}" aria-hidden="true"><polyline points="${coords.join(" ")}" fill="none" stroke="#52775f" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-}
-
-function registryComparisonSvg(items, width, height, fromYear, toYear) {
-  const rows = items.flatMap((item) =>
-    (item.registrySeries || [])
-      .filter(([year]) => year >= fromYear && year <= toYear)
-      .map(([year, count]) => ({ year, count })),
-  );
-  if (!rows.length) return `<p class="mutedEmpty">Ingen befolkningstall i valgt periode.</p>`;
-  const years = rows.map((row) => row.year);
-  const counts = rows.map((row) => row.count);
-  const minYear = Math.min(...years);
-  const maxYear = Math.max(...years);
-  const minCount = Math.min(...counts);
-  const maxCount = Math.max(...counts);
-  const pad = { left: 18, right: 18, top: 16, bottom: 24 };
-  const x = (year) => pad.left + ((year - minYear) / Math.max(1, maxYear - minYear)) * (width - pad.left - pad.right);
-  const y = (count) => pad.top + (1 - ((count - minCount) / Math.max(1, maxCount - minCount))) * (height - pad.top - pad.bottom);
-  const lines = items.map((item, index) => {
-    const points = (item.registrySeries || [])
-      .filter(([year]) => year >= fromYear && year <= toYear)
-      .map(([year, count]) => `${x(year).toFixed(1)},${y(count).toFixed(1)}`)
-      .join(" ");
-    return points ? `<polyline points="${points}" fill="none" stroke="${chartColor(index, item)}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>` : "";
-  }).join("");
-  return `
-    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Befolkningstall for valgte navn fra ${minYear} til ${maxYear}">
-      <line x1="${pad.left}" y1="${height - pad.bottom}" x2="${width - pad.right}" y2="${height - pad.bottom}" class="registryAxis"></line>
-      ${lines}
-      <text x="${pad.left}" y="${height - 5}" class="registryAxisLabel">${minYear}</text>
-      <text x="${width - pad.right}" y="${height - 5}" text-anchor="end" class="registryAxisLabel">${maxYear}</text>
-    </svg>
-  `;
-}
-
-function registrySparklineSvg(item, width = 330, height = 170) {
-  const rows = item?.registrySeries || [];
-  if (!rows.length) return "";
-  const padX = 18;
-  const padTop = 16;
-  const padBottom = 24;
-  const minYear = rows[0][0];
-  const maxYear = rows[rows.length - 1][0];
-  const counts = rows.map((row) => row[1]);
-  const minCount = Math.min(...counts);
-  const maxCount = Math.max(...counts);
-  const x = (year) => padX + ((year - minYear) / Math.max(1, maxYear - minYear)) * (width - padX * 2);
-  const y = (count) => padTop + (1 - ((count - minCount) / Math.max(1, maxCount - minCount))) * (height - padTop - padBottom);
-  const points = rows.map(([year, count]) => `${x(year).toFixed(1)},${y(count).toFixed(1)}`).join(" ");
-  return `
-    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Antall personer med navnet fra ${minYear} til ${maxYear}">
-      <line x1="${padX}" y1="${height - padBottom}" x2="${width - padX}" y2="${height - padBottom}" class="registryAxis"></line>
-      <polyline points="${points}" class="registryLine"></polyline>
-      <circle cx="${x(rows[rows.length - 1][0]).toFixed(1)}" cy="${y(rows[rows.length - 1][1]).toFixed(1)}" r="4" class="registryDot"></circle>
-      <text x="${padX}" y="${height - 5}" class="registryAxisLabel">${minYear}</text>
-      <text x="${width - padX}" y="${height - 5}" text-anchor="end" class="registryAxisLabel">${maxYear}</text>
-    </svg>
   `;
 }
 

@@ -18,7 +18,6 @@ DATA_OUT = DOCS / "assets" / "names-data.json"
 API_V0 = "https://data.ssb.no/api/v0/no/table"
 API_V2 = "https://data.ssb.no/api/pxwebapi/v2/tables"
 NAME_TABLE = "10467"
-CURRENT_NAMES_TABLE = "10501"
 BIRTHS_TABLE = "05803"
 SEX_BIRTHS_TABLE = "09745"
 SOURCE_CATALOG = {
@@ -28,13 +27,6 @@ SOURCE_CATALOG = {
         "url": f"https://www.ssb.no/statbank/table/{NAME_TABLE}/",
         "license": "CC BY 4.0",
         "provides": ["norwayUse", "birthSeries"],
-    },
-    "ssb-10501": {
-        "label": "Personer med fornavnet",
-        "publisher": "Statistisk sentralbyrå",
-        "url": f"https://www.ssb.no/statbank/table/{CURRENT_NAMES_TABLE}/",
-        "license": "CC BY 4.0",
-        "provides": ["norwayUse", "populationSeries"],
     },
 }
 
@@ -98,17 +90,12 @@ def clean_name_id(code: str) -> tuple[str, str]:
 
 def attach_catalog_metadata(record: dict) -> None:
     """Describe what is documented without coupling the UI to a source."""
-    source_refs = []
-    if record.get("series"):
-        source_refs.append("ssb-10467")
-    if record.get("registrySeries"):
-        source_refs.append("ssb-10501")
+    source_refs = ["ssb-10467"] if record.get("series") else []
     record["gender"] = record["sex"]
     record["coverage"] = {
         "identity": True,
         "norwayUse": bool(source_refs),
         "birthSeries": bool(record.get("series")),
-        "populationSeries": bool(record.get("registrySeries")),
         "meaning": False,
         "origin": False,
         "pronunciation": False,
@@ -119,7 +106,6 @@ def attach_catalog_metadata(record: dict) -> None:
         "gender": source_refs,
         "norwayUse": source_refs,
         "birthSeries": ["ssb-10467"] if record.get("series") else [],
-        "populationSeries": ["ssb-10501"] if record.get("registrySeries") else [],
     }
 
 
@@ -137,8 +123,6 @@ def validate_catalog(payload: dict) -> None:
             raise ValueError(f"Identity coverage missing for {record['id']}")
         if coverage.get("birthSeries") != bool(record.get("series")):
             raise ValueError(f"Birth-series coverage mismatch for {record['id']}")
-        if coverage.get("populationSeries") != bool(record.get("registrySeries")):
-            raise ValueError(f"Population-series coverage mismatch for {record['id']}")
         if not set(record.get("sourceRefs", [])).issubset(source_ids):
             raise ValueError(f"Unknown source reference for {record['id']}")
         for refs in record.get("factSources", {}).values():
@@ -148,7 +132,6 @@ def validate_catalog(payload: dict) -> None:
 
 def build() -> dict:
     metadata = request_json(f"{API_V2}/{NAME_TABLE}/metadata?lang=no")
-    current_metadata = request_json(f"{API_V2}/{CURRENT_NAMES_TABLE}/metadata?lang=no")
     name_data = post_table(
         NAME_TABLE,
         [
@@ -264,78 +247,6 @@ def build() -> dict:
             }
         )
 
-    current_year_codes = sorted_codes(current_metadata["dimension"]["Tid"]["category"])
-    current_year = current_year_codes[-1]
-    current_data = post_table(
-        CURRENT_NAMES_TABLE,
-        [
-            all_query("Fornavn"),
-            item_query("ContentsCode", ["Personer"]),
-            item_query("Tid", current_year_codes),
-        ],
-    )
-    current_codes = sorted_codes(current_data["dimension"]["Fornavn"]["category"])
-    current_labels = current_data["dimension"]["Fornavn"]["category"]["label"]
-    current_values = current_data.get("value", [])
-    current_shape = current_data["size"]
-    current_rows = []
-    for ni, code in enumerate(current_codes):
-        registry_series = []
-        for yi, year in enumerate(current_year_codes):
-            value = value_at(current_values, current_shape, (ni, 0, yi))
-            if value is not None:
-                registry_series.append([int(year), int(value)])
-        count = registry_series[-1][1] if registry_series and registry_series[-1][0] == int(current_year) else None
-        if count is None:
-            continue
-        sex, bare_id = clean_name_id(code)
-        current_rows.append(
-            {
-                "id": code,
-                "key": bare_id,
-                "name": current_labels.get(code, bare_id).replace("_", " "),
-                "sex": sex,
-                "currentCount": int(count),
-                "registrySeries": registry_series,
-            }
-        )
-
-    current_ranks = {}
-    for sex in ("jente", "gutt"):
-        rows = sorted(
-            (row for row in current_rows if row["sex"] == sex),
-            key=lambda row: (-row["currentCount"], row["name"]),
-        )
-        previous_count = None
-        previous_rank = 0
-        for position, row in enumerate(rows, start=1):
-            rank = previous_rank if row["currentCount"] == previous_count else position
-            current_ranks[row["id"]] = rank
-            previous_count = row["currentCount"]
-            previous_rank = rank
-
-    records_by_id = {record["id"]: record for record in records}
-    for row in current_rows:
-        if row["id"] in records_by_id:
-            records_by_id[row["id"]]["currentCount"] = row["currentCount"]
-            records_by_id[row["id"]]["currentRank"] = current_ranks[row["id"]]
-            records_by_id[row["id"]]["registrySeries"] = row["registrySeries"]
-            continue
-        records.append(
-            {
-                **row,
-                "currentRank": current_ranks[row["id"]],
-                "series": [],
-                "total": 0,
-                "peakYear": None,
-                "peakCount": None,
-                "firstYear": None,
-                "lastYear": None,
-                "firstDataYear": None,
-                "lastDataYear": None,
-            }
-        )
-
     for record in records:
         attach_catalog_metadata(record)
     records.sort(key=lambda r: (r["sex"], r["name"], r["id"]))
@@ -347,13 +258,9 @@ def build() -> dict:
             "license": "CC BY 4.0",
             "sourceCatalog": SOURCE_CATALOG,
             "nameTable": NAME_TABLE,
-            "currentNamesTable": CURRENT_NAMES_TABLE,
             "birthsTable": BIRTHS_TABLE,
             "sexBirthsTable": SEX_BIRTHS_TABLE,
             "nameTableUpdated": metadata.get("updated"),
-            "currentNamesTableUpdated": current_metadata.get("updated"),
-            "currentNamesYear": int(current_year),
-            "currentNamesNotes": current_metadata.get("note", []),
             "notes": metadata.get("note", []),
         },
         "years": years,

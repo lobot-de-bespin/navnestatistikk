@@ -8,6 +8,8 @@ Datakilder:
 - SSB tabell 10501: Personer etter jente- og guttenavn. Brukes til å
   inkludere navn som er dokumentert på minst 200 personer med norsk
   personnummer, selv om navnet mangler fødselshistorikk i tabell 10467.
+  Årlig bestandsutvikling 2013–2025 vises, men brukes ikke til skoleestimat
+  fordi tabellen ikke viser hvor mange barn som fikk navnet hvert år.
 - SSB tabell 05803: Levendefødte i alt.
 - SSB tabell 09745: Levendefødte etter kjønn fra 1986.
 

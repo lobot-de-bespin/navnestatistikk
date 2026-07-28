@@ -1163,6 +1163,45 @@ body {
   font-size: 1.25rem;
 }
 
+.registryMiniChart svg,
+.registryReviewSpark svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.registryAxis {
+  stroke: rgba(47, 78, 61, 0.18);
+  stroke-width: 1;
+}
+
+.registryLine {
+  fill: none;
+  stroke: var(--forest, #315a45);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4;
+}
+
+.registryDot {
+  fill: var(--coral, #e67969);
+  stroke: var(--cream, #fff8ec);
+  stroke-width: 3;
+}
+
+.registryAxisLabel {
+  fill: var(--muted, #68756d);
+  font-size: 11px;
+  font-weight: 650;
+  stroke: none;
+}
+
+.registryChartNote {
+  color: var(--muted, #68756d);
+  font-size: 0.82rem;
+  margin: 0.55rem 0 0;
+}
+
 .sourceNote a {
   display: inline-block;
   margin-top: 9px;

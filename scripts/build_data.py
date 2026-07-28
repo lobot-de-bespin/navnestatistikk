@@ -205,7 +205,7 @@ def build() -> dict:
         [
             all_query("Fornavn"),
             item_query("ContentsCode", ["Personer"]),
-            item_query("Tid", [current_year]),
+            item_query("Tid", current_year_codes),
         ],
     )
     current_codes = sorted_codes(current_data["dimension"]["Fornavn"]["category"])
@@ -214,7 +214,12 @@ def build() -> dict:
     current_shape = current_data["size"]
     current_rows = []
     for ni, code in enumerate(current_codes):
-        count = value_at(current_values, current_shape, (ni, 0, 0))
+        registry_series = []
+        for yi, year in enumerate(current_year_codes):
+            value = value_at(current_values, current_shape, (ni, 0, yi))
+            if value is not None:
+                registry_series.append([int(year), int(value)])
+        count = registry_series[-1][1] if registry_series and registry_series[-1][0] == int(current_year) else None
         if count is None:
             continue
         sex, bare_id = clean_name_id(code)
@@ -225,6 +230,7 @@ def build() -> dict:
                 "name": current_labels.get(code, bare_id).replace("_", " "),
                 "sex": sex,
                 "currentCount": int(count),
+                "registrySeries": registry_series,
             }
         )
 
@@ -247,6 +253,7 @@ def build() -> dict:
         if row["id"] in records_by_id:
             records_by_id[row["id"]]["currentCount"] = row["currentCount"]
             records_by_id[row["id"]]["currentRank"] = current_ranks[row["id"]]
+            records_by_id[row["id"]]["registrySeries"] = row["registrySeries"]
             continue
         records.append(
             {

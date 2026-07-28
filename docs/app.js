@@ -580,7 +580,7 @@ function nameRow(item, options = {}) {
     <span class="rank">${history ? (options.rank ?? "") : '<svg aria-hidden="true"><use href="#icon-people"></use></svg>'}</span>
     <button class="nameMain" type="button">
       <strong>${escapeHtml(item.name)}</strong>
-      <small>${history ? `${escapeHtml(itemMood(item))} · toppår ${item.peakYear}` : "I bruk i Norge · ingen historikk"}</small>
+      <small>${history ? `${escapeHtml(itemMood(item))} · toppår ${item.peakYear}` : registryHistoryLabel(item)}</small>
     </button>
     <span class="spark">${history ? sparklineSvg(item) : '<span class="registryBadge">SSB</span>'}</span>
     <span class="count nameScore"><b>${formatNumber(history ? (latest?.[1] ?? 0) : item.currentCount)}</b><small>${history ? state.latestYear : "personer"}</small></span>
@@ -706,7 +706,7 @@ function renderCompareInsight(items) {
     .filter((row) => row.point);
   if (!latestRows.length) {
     panel.innerHTML = `
-      <span class="wide"><small>Sammenligning</small><strong>Ingen fødselshistorikk</strong><em>Navnene er dokumentert i bruk i Norge, men mangler tidsserie i SSB-tabellen.</em></span>
+      <span class="wide"><small>Sammenligning</small><strong>Ingen fødselshistorikk</strong><em>Navnene er dokumentert i bruk i Norge, men mangler årlige fødselstall.</em></span>
     `;
     return;
   }
@@ -1017,6 +1017,7 @@ function detailMarkup(item) {
 }
 
 function registryNameDetailMarkup(item) {
+  const registry = registryHistoryStats(item);
   return `
     <section class="detailHero">
       <div><h2>${escapeHtml(item.name)} ${sexIconMarkup(item)}</h2><p>${escapeHtml(item.sex)}</p></div>
@@ -1033,9 +1034,21 @@ function registryNameDetailMarkup(item) {
       <span><small>Rang blant ${escapeHtml(item.sex)}navn</small><b>${formatNumber(item.currentRank)}</b><em>${state.data.meta.currentNamesYear}</em></span>
       <span><small>Kilde</small><b>SSB</b><em>tabell ${escapeHtml(state.data.meta.currentNamesTable)}</em></span>
     </section>
+    ${registry ? `
+      <section class="subCard">
+        <h3>Personer med navnet over tid</h3>
+        <div class="miniChart registryMiniChart">${registrySparklineSvg(item)}</div>
+        <div class="detailStats">
+          <span><small>${registry.firstYear}</small><b>${formatNumber(registry.firstCount)}</b></span>
+          <span><small>${registry.lastYear}</small><b>${formatNumber(registry.lastCount)}</b></span>
+          <span><small>Endring</small><b>${registry.change > 0 ? "+" : ""}${formatNumber(registry.change)}</b></span>
+        </div>
+        <p class="registryChartNote">Årlig bestand ved årets slutt, ikke antall nyfødte.</p>
+      </section>
+    ` : ""}
     <section class="subCard sourceNote">
-      <h3>Ingen fødselshistorikk</h3>
-      <p>Navnet finnes i befolkningsregisteret, men ikke i SSBs historiske fødselsserie. Derfor viser vi ikke trend, toppår eller skoleestimat.</p>
+      <h3>Ingen årlige fødselstall</h3>
+      <p>SSB viser hvor mange personer som har navnet, men ikke hvor mange barn som fikk det hvert år. Endringer i bestanden påvirkes også av innvandring, dødsfall og navneendringer. Derfor beregner vi ikke toppår eller skoleestimat.</p>
       <a href="https://www.ssb.no/statbank/table/${escapeHtml(state.data.meta.currentNamesTable)}/" target="_blank" rel="noopener">Se kildetabellen hos SSB</a>
     </section>
     <button class="primaryWide" data-add="${item.id}" type="button">Legg til i vår liste</button>
@@ -1202,6 +1215,7 @@ function renderReview() {
   const latest = pointInYear(item, state.latestYear);
   $(".reviewActions").hidden = false;
   if (!hasHistory(item)) {
+    const registry = registryHistoryStats(item);
     card.innerHTML = `
       <div class="reviewNamePlate">
         <p class="cardMeta">${state.review.index + 1} av ${state.review.deck.length}</p>
@@ -1216,11 +1230,12 @@ function renderReview() {
           <p>Dokumentert på personer med norsk personnummer.</p>
         </div>
       </section>
+      ${registry ? `<div class="reviewSpark registryReviewSpark">${registrySparklineSvg(item, 420, 120)}</div>` : ""}
       <div class="reviewStats registryNameStats">
         <span><small>Antall</small><b>${formatNumber(item.currentCount)}</b><em>personer</em></span>
         <span><small>Rang</small><b>${formatNumber(item.currentRank)}</b><em>blant ${escapeHtml(item.sex)}navn</em></span>
       </div>
-      <p class="reviewSourceNote">Navnet mangler fødselshistorikk, så trend og skoleestimat vises ikke.</p>
+      <p class="reviewSourceNote">${registry ? `Befolkningstall ${registry.firstYear}–${registry.lastYear}. ` : ""}Navnet mangler årlige fødselstall, så skoleestimat vises ikke.</p>
     `;
     bindSubscreenButtons(card);
     return;
@@ -1879,6 +1894,53 @@ function schoolEstimateForCurrentSettings(item) {
 
 function hasHistory(item) {
   return Boolean(item?.series?.length);
+}
+
+function hasRegistryHistory(item) {
+  return Boolean(item?.registrySeries?.length);
+}
+
+function registryHistoryStats(item) {
+  if (!hasRegistryHistory(item)) return null;
+  const first = item.registrySeries[0];
+  const last = item.registrySeries[item.registrySeries.length - 1];
+  return {
+    firstYear: first[0],
+    firstCount: first[1],
+    lastYear: last[0],
+    lastCount: last[1],
+    change: last[1] - first[1],
+  };
+}
+
+function registryHistoryLabel(item) {
+  const stats = registryHistoryStats(item);
+  return stats ? `I bruk i Norge · bestand ${stats.firstYear}–${stats.lastYear}` : "I bruk i Norge";
+}
+
+function registrySparklineSvg(item, width = 330, height = 170) {
+  const rows = item?.registrySeries || [];
+  if (!rows.length) return "";
+  const padX = 18;
+  const padTop = 16;
+  const padBottom = 24;
+  const minYear = rows[0][0];
+  const maxYear = rows[rows.length - 1][0];
+  const counts = rows.map((row) => row[1]);
+  const minCount = Math.min(...counts);
+  const maxCount = Math.max(...counts);
+  const x = (year) => padX + ((year - minYear) / Math.max(1, maxYear - minYear)) * (width - padX * 2);
+  const y = (count) => padTop + (1 - ((count - minCount) / Math.max(1, maxCount - minCount))) * (height - padTop - padBottom);
+  const points = rows.map(([year, count]) => `${x(year).toFixed(1)},${y(count).toFixed(1)}`).join(" ");
+  return `
+    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Antall personer med navnet fra ${minYear} til ${maxYear}">
+      <line x1="${padX}" y1="${height - padBottom}" x2="${width - padX}" y2="${height - padBottom}" class="registryAxis"></line>
+      <polyline points="${points}" class="registryLine"></polyline>
+      <circle cx="${x(rows[rows.length - 1][0]).toFixed(1)}" cy="${y(rows[rows.length - 1][1]).toFixed(1)}" r="4" class="registryDot"></circle>
+      <text x="${padX}" y="${height - 5}" class="registryAxisLabel">${minYear}</text>
+      <text x="${width - padX}" y="${height - 5}" text-anchor="end" class="registryAxisLabel">${maxYear}</text>
+    </svg>
+  `;
 }
 
 function renderMiniChart(id, items, metric = "shareSex", fromYear = 1900, smoothWidth = 3) {

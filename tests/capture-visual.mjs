@@ -44,12 +44,16 @@ try {
   const metrics = await page.evaluate(() => {
     const panel = document.querySelector(".searchMode .subscreenPanel")?.getBoundingClientRect();
     const workspace = document.querySelector(".searchWorkspace")?.getBoundingClientRect();
+    const filterPanel = document.querySelector(".searchFilterPanel")?.getBoundingClientRect();
+    const filterRules = [...document.querySelectorAll(".filterRule")].map((node) => node.getBoundingClientRect().height);
     const titleStyle = getComputedStyle(document.querySelector("#subTitle"));
     return {
       viewport: [innerWidth, innerHeight],
       documentWidth: document.documentElement.scrollWidth,
       panel: panel && [panel.left, panel.right, panel.width],
       workspace: workspace && [workspace.left, workspace.right, workspace.width],
+      filterPanelHeight: filterPanel?.height || 0,
+      filterRuleHeights: filterRules,
       titleFont: [titleStyle.fontFamily, titleStyle.fontStyle, titleStyle.fontWeight],
     };
   });

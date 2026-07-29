@@ -66,6 +66,14 @@ try {
     await page.click("#addSearchRule");
     await page.click("#addSearchRule");
     assert(await page.locator(".filterRule").count() === 3, `${width}px filter builder did not retain three rules`);
+    const compactFilterGeometry = await page.evaluate(() => ({
+      panelHeight: document.querySelector(".searchFilterPanel").getBoundingClientRect().height,
+      ruleHeights: [...document.querySelectorAll(".filterRule")].map((node) => node.getBoundingClientRect().height),
+      negateLabels: [...document.querySelectorAll(".filterNegate")].map((node) => node.textContent.replace(/\s+/g, " ").trim()),
+    }));
+    assert(compactFilterGeometry.panelHeight <= 410, `${width}px filter panel is still too tall: ${compactFilterGeometry.panelHeight}px`);
+    assert(compactFilterGeometry.ruleHeights.every((height) => height <= 100), `${width}px rules are not compact: ${compactFilterGeometry.ruleHeights.join(", ")}px`);
+    assert(compactFilterGeometry.negateLabels.every((label) => label === "– Ikke: av"), `${width}px inactive negation is ambiguous: ${compactFilterGeometry.negateLabels.join(", ")}`);
     const searchOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     assert(searchOverflow <= 1, `${width}px modular filters overflow by ${searchOverflow}px`);
     await page.fill("#searchViewInput", "Nora");
@@ -138,6 +146,8 @@ try {
     await thirdRule.locator("[data-rule-prop='op']").selectOption("regex");
     await thirdRule.locator("[data-rule-prop='value']").fill("r$");
     await thirdRule.locator("[data-rule-action='negate']").click();
+    assert((await page.locator(".filterRule").nth(2).locator(".filterNegate").textContent()).replace(/\s+/g, " ").trim() === "✓ Ikke: på", "Active negation is not explicit");
+    assert(await page.locator(".filterRule").nth(2).locator(".filterNegate").getAttribute("aria-pressed") === "true", "Active negation lacks pressed state");
     const negatedRegexCount = Number((await page.locator("#searchResultTitle").textContent()).replace(/\D/g, ""));
     assert(negatedRegexCount > 0 && negatedRegexCount < aBoyCount, `Negated regex did not narrow AND results: ${negatedRegexCount} of ${aBoyCount}`);
     const visibleNames = await page.locator("#searchResultList .nameMain strong").allTextContents();

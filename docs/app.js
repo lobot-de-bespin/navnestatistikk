@@ -3,7 +3,7 @@ const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
 const SCHOOL_STORAGE_KEY = "navnestatistikk:schoolSettings:v1";
-const SW_VERSION = "2026-07-29.1";
+const SW_VERSION = "2026-07-29.2";
 const MAX_COMPARE_ITEMS = 12;
 let searchRuleCounter = 0;
 
@@ -1245,13 +1245,16 @@ function searchRuleMarkup(rule, index) {
   return `
     <article class="filterRule" data-rule-id="${escapeHtml(rule.id)}">
       <div class="filterRuleHead">
-        <small>${index === 0 ? "Vis navn der" : "og"}</small>
-        <button class="filterNegate ${rule.negate ? "active" : ""}" data-rule-action="negate" type="button" aria-pressed="${rule.negate}">Ikke</button>
+        <small>${index === 0 ? "Vis" : "og"}</small>
+        <label class="srOnly" for="${rule.id}-field">Egenskap</label>
+        <select id="${rule.id}-field" data-rule-prop="type" aria-label="Egenskap">${fieldOptions.map(([value, label]) => `<option value="${value}" ${rule.type === value ? "selected" : ""}>${label}</option>`).join("")}</select>
+        <button class="filterNegate ${rule.negate ? "active" : ""}" data-rule-action="negate" type="button" aria-pressed="${rule.negate}" aria-label="Ikke-filter er ${rule.negate ? "på" : "av"}">
+          <span class="filterNegateMark" aria-hidden="true">${rule.negate ? "✓" : "–"}</span>
+          <span>Ikke: ${rule.negate ? "på" : "av"}</span>
+        </button>
         <button class="filterRemove" data-rule-action="remove" type="button" aria-label="Fjern filter"><svg><use href="#icon-x"></use></svg></button>
       </div>
       <div class="filterRuleControls">
-        <label class="srOnly" for="${rule.id}-field">Egenskap</label>
-        <select id="${rule.id}-field" data-rule-prop="type">${fieldOptions.map(([value, label]) => `<option value="${value}" ${rule.type === value ? "selected" : ""}>${label}</option>`).join("")}</select>
         ${searchRuleConditionMarkup(rule)}
       </div>
       <p class="filterRuleError" aria-live="polite"></p>

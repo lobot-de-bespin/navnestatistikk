@@ -62,8 +62,12 @@ try {
     const resultBarWidth = await page.locator(".searchViewBar").evaluate((node) => node.getBoundingClientRect().width);
     assert(Math.abs(resultBarWidth - emptyGeometry.bar.width) <= 1, `${width}px search bar width changes after typing`);
     await page.click("#toggleSearchFilters");
+    await page.click("#addSearchRule");
+    await page.click("#addSearchRule");
+    await page.click("#addSearchRule");
+    assert(await page.locator(".filterRule").count() === 3, `${width}px filter builder did not retain three rules`);
     const searchOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-    assert(searchOverflow <= 1, `${width}px search overflows by ${searchOverflow}px`);
+    assert(searchOverflow <= 1, `${width}px modular filters overflow by ${searchOverflow}px`);
     await page.fill("#searchViewInput", "Nora");
     await page.locator("#searchResultList .nameMain").first().click();
     await page.locator(".populationCard").scrollIntoViewIfNeeded();
@@ -116,10 +120,36 @@ try {
 
     await page.fill("#searchViewInput", "");
     await page.click("#toggleSearchFilters");
-    await page.selectOption("#searchFilterForm [name='sex']", "gutt");
-    await page.click("#searchFilterForm button[type='submit']");
+    await page.click("#addSearchRule");
+    await page.selectOption(".filterRule [data-rule-prop='type']", "gender");
+    await page.selectOption(".filterRule [data-rule-prop='value']", "gutt");
     const boyCount = Number((await page.locator("#searchResultTitle").textContent()).replace(/\D/g, ""));
     assert(boyCount === 932, `Expected 932 boy names, got ${boyCount}`);
+
+    await page.click("#addSearchRule");
+    const secondRule = page.locator(".filterRule").nth(1);
+    await secondRule.locator("[data-rule-prop='op']").selectOption("starts");
+    await secondRule.locator("[data-rule-prop='value']").fill("A");
+    const aBoyCount = Number((await page.locator("#searchResultTitle").textContent()).replace(/\D/g, ""));
+    assert(aBoyCount > 0 && aBoyCount < boyCount, `AND rule did not narrow boy names: ${aBoyCount} of ${boyCount}`);
+
+    await page.click("#addSearchRule");
+    const thirdRule = page.locator(".filterRule").nth(2);
+    await thirdRule.locator("[data-rule-prop='op']").selectOption("regex");
+    await thirdRule.locator("[data-rule-prop='value']").fill("r$");
+    await thirdRule.locator("[data-rule-action='negate']").click();
+    const negatedRegexCount = Number((await page.locator("#searchResultTitle").textContent()).replace(/\D/g, ""));
+    assert(negatedRegexCount > 0 && negatedRegexCount < aBoyCount, `Negated regex did not narrow AND results: ${negatedRegexCount} of ${aBoyCount}`);
+    const visibleNames = await page.locator("#searchResultList .nameMain strong").allTextContents();
+    assert(visibleNames.every((name) => /^a/iu.test(name) && !/r$/iu.test(name)), `Visible rows violate modular filters: ${visibleNames.join(", ")}`);
+
+    await page.locator(".filterRule").nth(2).locator("[data-rule-prop='value']").fill("[");
+    assert((await page.locator("#searchResultTitle").textContent()) === "Sjekk filteret", "Invalid regex was silently accepted");
+    assert(await page.locator(".filterRule.invalid .filterRuleError").isVisible(), "Invalid regex has no inline error");
+    await page.locator(".filterRule").nth(2).locator("[data-rule-prop='value']").fill("r$");
+    await page.locator(".filterRemove").last().click();
+    await page.locator(".filterRemove").last().click();
+    assert(Number((await page.locator("#searchResultTitle").textContent()).replace(/\D/g, "")) === 932, "Removing rules did not restore the gender result set");
     await page.click("#reviewAllSearchResults");
     assert((await page.locator("#reviewCounter").textContent()) === "1 av 932", "Bulk review did not retain complete result set");
     assert(errors.length === 0, `Search JS errors: ${errors.join("; ")}`);

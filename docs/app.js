@@ -3,8 +3,9 @@ const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
 const SCHOOL_STORAGE_KEY = "navnestatistikk:schoolSettings:v1";
-const SW_VERSION = "2026-07-28.9";
+const SW_VERSION = "2026-07-29.1";
 const MAX_COMPARE_ITEMS = 12;
+let searchRuleCounter = 0;
 
 const state = {
   data: null,
@@ -19,16 +20,12 @@ const state = {
   recent: [],
   tab: "explore",
   popularSex: "jente",
+  discoverySex: "alle",
   query: "",
   searchShowAll: false,
   searchFiltersOpen: false,
   filters: {
-    sex: "alle",
-    fromYear: 1900,
-    toYear: 2025,
-    popularity: "alle",
-    pattern: "",
-    schoolMax: "",
+    rules: [],
   },
   compare: {
     metric: "count",
@@ -80,7 +77,6 @@ async function loadData() {
   state.years = state.data.years;
   state.firstYear = state.years[0];
   state.latestYear = state.years.at(-1);
-  state.filters.toYear = state.latestYear;
   state.compare.fromYear = Math.max(1900, state.firstYear);
   state.compare.toYear = state.latestYear;
   state.school.birthYear = clampYear(state.school.birthYear || state.latestYear);
@@ -101,7 +97,7 @@ function bindChrome() {
   $("#openSearchView")?.addEventListener("click", openSearchView);
   $$("[data-global-sex]").forEach((button) => {
     button.addEventListener("click", () => {
-      state.filters.sex = button.dataset.globalSex;
+      state.discoverySex = button.dataset.globalSex;
       renderExplore();
     });
   });
@@ -393,7 +389,7 @@ function nextMineStep(counts) {
 function renderExplore() {
   renderRecentSearches();
   renderExploreStarter();
-  $$("[data-global-sex]").forEach((button) => button.classList.toggle("active", button.dataset.globalSex === state.filters.sex));
+  $$("[data-global-sex]").forEach((button) => button.classList.toggle("active", button.dataset.globalSex === state.discoverySex));
   const searchLabel = $("#homeSearchLabel");
   if (searchLabel) searchLabel.textContent = state.query ? `Søk videre etter «${state.query}»` : "Søk etter navn";
   renderDiscoverySections();
@@ -427,14 +423,7 @@ function renderExploreStarter() {
 }
 
 function hasActiveSearchFilters() {
-  return Boolean(
-    state.query ||
-      state.filters.fromYear !== Math.max(1900, state.firstYear) ||
-      state.filters.toYear !== state.latestYear ||
-      state.filters.popularity !== "alle" ||
-      state.filters.pattern ||
-      state.filters.schoolMax !== "",
-  );
+  return Boolean(state.query || state.filters.rules.length);
 }
 
 function addCandidateRowsToWork(rows, startReview = false) {
@@ -463,13 +452,13 @@ function setPopularSex(sex) {
 
 function applyExplorePreset(preset) {
   state.query = "";
-  state.filters.sex = "alle";
-  state.filters.fromYear = Math.max(1900, state.firstYear);
-  state.filters.toYear = state.latestYear;
-  state.filters.pattern = "";
-  state.filters.schoolMax = preset === "school" ? "2" : "";
-  state.filters.popularity = preset === "clear" || preset === "popular" || preset === "school" ? "alle" : preset;
+  state.filters.rules = [];
+  if (preset === "popular") state.filters.rules.push(createSearchRule("latestRank", { op: "lte", value: "50" }));
+  if (preset === "rising") state.filters.rules.push(createSearchRule("trend", { op: "gte", value: "1" }));
+  if (preset === "rare") state.filters.rules.push(createSearchRule("latestCount", { op: "lte", value: "24" }));
+  if (preset === "school") state.filters.rules.push(createSearchRule("school", { op: "lte", value: "2" }));
   state.searchShowAll = true;
+  state.searchFiltersOpen = state.filters.rules.length > 0;
   openSearchView();
   updateUrl();
 }
@@ -478,7 +467,6 @@ function searchRows(query) {
   const q = normalize(query);
   if (!q) return [];
   return state.data.names
-    .filter((item) => state.filters.sex === "alle" || item.sex === state.filters.sex)
     .filter((item) => !state.status[item.id] || state.status[item.id] !== "rejected")
     .filter((item) => normalize(item.name).includes(q))
     .sort((a, b) => {
@@ -503,7 +491,7 @@ function popularRows(sex = "jente", limit = 10) {
 
 function discoveryBaseRows() {
   let rows = state.data.names.filter((item) => state.status[item.id] !== "rejected");
-  if (state.filters.sex !== "alle") rows = rows.filter((item) => item.sex === state.filters.sex);
+  if (state.discoverySex !== "alle") rows = rows.filter((item) => item.sex === state.discoverySex);
   return rows;
 }
 
@@ -569,7 +557,7 @@ function renderDiscoverySections() {
       </div>
     `;
     $("#resetDiscoveryFilters")?.addEventListener("click", () => {
-      state.filters.sex = "alle";
+      state.discoverySex = "alle";
       renderExplore();
     });
     return;
@@ -1150,34 +1138,20 @@ function openSearchView() {
       <div class="searchViewBar">
         <svg><use href="#icon-search"></use></svg>
         <input id="searchViewInput" type="search" value="${escapeHtml(state.query)}" placeholder="Søk etter navn..." autocomplete="off" />
-        <button id="toggleSearchFilters" class="${state.searchFiltersOpen ? "active" : ""}" type="button" aria-label="Vis filtre"><svg><use href="#icon-filter"></use></svg></button>
+        <button id="toggleSearchFilters" class="${state.searchFiltersOpen || state.filters.rules.length ? "active" : ""}" type="button" aria-label="Vis filtre" aria-expanded="${state.searchFiltersOpen}"><svg><use href="#icon-filter"></use>${state.filters.rules.length ? `<span>${state.filters.rules.length}</span>` : ""}</button>
       </div>
-      <form id="searchFilterForm" class="formStack searchFilterPanel" ${state.searchFiltersOpen ? "" : "hidden"}>
-        <div class="searchFilterGroup">
-          <strong>Grunnvalg</strong>
-          <label>Navnetype<select name="sex">
-            <option value="alle">Jente- og guttenavn</option>
-            <option value="jente">Jentenavn</option>
-            <option value="gutt">Guttenavn</option>
-          </select></label>
+      <section id="searchFilterPanel" class="searchFilterPanel" ${state.searchFiltersOpen ? "" : "hidden"}>
+        <div class="filterBuilderHead">
+          <span>
+            <strong>Filtrer navn</strong>
+            <small>Alle reglene må stemme</small>
+          </span>
+          <button id="addSearchRule" class="filterAddButton" type="button"><svg><use href="#icon-plus"></use></svg>Legg til</button>
         </div>
-        <div class="searchFilterGroup">
-          <strong>Avgrens søket</strong>
-          <label>Fødselsår<div class="rangePair"><input name="fromYear" type="number" min="${state.firstYear}" max="${state.latestYear}" value="${state.filters.fromYear}" /><input name="toYear" type="number" min="${state.firstYear}" max="${state.latestYear}" value="${state.filters.toYear}" /></div></label>
-          <label>Dataprofil<select name="popularity">
-            <option value="alle">Alle profiler</option>
-            <option value="top50">Topp 50 blant nyfødte</option>
-            <option value="rising">På vei opp</option>
-            <option value="rare">Under 25 nyfødte siste år</option>
-          </select></label>
-          <label>Mønster i navnet<input name="pattern" type="text" placeholder="Regex: ^El eller a$" value="${escapeHtml(state.filters.pattern)}" /></label>
-          <label>Maks forventet i skoleløpet <small>(krever fødselstall)</small><input name="schoolMax" type="number" min="0" step="0.1" placeholder="f.eks. 2" value="${escapeHtml(state.filters.schoolMax)}" /></label>
-        </div>
-        <div class="searchFilterActions">
-          <button id="resetSearchFilters" class="secondaryWide" type="button">Nullstill søkefiltre</button>
-          <button class="primaryWide" type="submit">Vis treff</button>
-        </div>
-      </form>
+        <div id="searchRuleList" class="filterRuleList"></div>
+        <p id="filterBuilderEmpty" class="filterBuilderEmpty">Ingen regler ennå – hele katalogen vises.</p>
+        <button id="resetSearchFilters" class="filterClearButton" type="button">Fjern alle filtre</button>
+      </section>
       <section id="searchEmptyIntro" class="searchEmptyIntro"></section>
       <section id="searchResults" class="searchResults">
         <div class="searchResultsHead">
@@ -1190,12 +1164,11 @@ function openSearchView() {
       </section>
     </section>
   `, null, { mode: "search" });
-  $("#searchFilterForm [name='sex']").value = state.filters.sex;
-  $("#searchFilterForm [name='popularity']").value = state.filters.popularity;
   $("#toggleSearchFilters").addEventListener("click", () => {
     state.searchFiltersOpen = !state.searchFiltersOpen;
-    $("#searchFilterForm").hidden = !state.searchFiltersOpen;
-    $("#toggleSearchFilters").classList.toggle("active", state.searchFiltersOpen);
+    $("#searchFilterPanel").hidden = !state.searchFiltersOpen;
+    $("#toggleSearchFilters").classList.toggle("active", state.searchFiltersOpen || state.filters.rules.length > 0);
+    $("#toggleSearchFilters").setAttribute("aria-expanded", String(state.searchFiltersOpen));
   });
   $("#searchViewInput").addEventListener("input", (event) => {
     state.query = event.target.value.trim();
@@ -1204,40 +1177,249 @@ function openSearchView() {
     renderSearchResults();
     updateUrl();
   });
-  $("#searchFilterForm").addEventListener("submit", (event) => {
-    event.preventDefault();
-    applySearchFilterForm(event.currentTarget);
+  $("#addSearchRule").addEventListener("click", () => {
+    state.filters.rules.push(createSearchRule("name"));
     state.searchShowAll = true;
+    renderSearchRuleBuilder();
     renderSearchResults();
-    renderExplore();
-    updateUrl();
+    updateSearchFilterBadge();
   });
+  $("#searchRuleList").addEventListener("click", handleSearchRuleClick);
+  $("#searchRuleList").addEventListener("change", handleSearchRuleChange);
+  $("#searchRuleList").addEventListener("input", handleSearchRuleInput);
   $("#resetSearchFilters").addEventListener("click", () => {
     resetLocalSearchFilters();
     state.searchShowAll = Boolean(state.query);
-    openSearchView();
+    renderSearchRuleBuilder();
+    renderSearchResults();
+    updateSearchFilterBadge();
     updateUrl();
   });
+  renderSearchRuleBuilder();
   renderSearchResults();
   requestAnimationFrame(() => $("#searchViewInput")?.focus());
 }
 
-function applySearchFilterForm(formElement) {
-  const form = new FormData(formElement);
-  state.filters.sex = String(form.get("sex"));
-  state.filters.fromYear = clampYear(Number(form.get("fromYear")));
-  state.filters.toYear = clampYear(Number(form.get("toYear")));
-  state.filters.popularity = String(form.get("popularity"));
-  state.filters.pattern = String(form.get("pattern") || "").trim();
-  state.filters.schoolMax = String(form.get("schoolMax") || "").trim();
+function createSearchRule(type = "name", overrides = {}) {
+  const defaults = {
+    gender: { op: "equals", value: "jente", value2: "" },
+    name: { op: "contains", value: "", value2: "" },
+    birthPeriod: { op: "between", value: "1980", value2: "1999" },
+    latestCount: { op: "lte", value: "25", value2: "" },
+    latestRank: { op: "lte", value: "50", value2: "" },
+    trend: { op: "gte", value: "1", value2: "" },
+    school: { op: "lte", value: "2", value2: "" },
+  };
+  return {
+    id: `filter-${Date.now()}-${searchRuleCounter += 1}`,
+    type,
+    negate: false,
+    ...defaults[type],
+    ...overrides,
+  };
 }
 
 function resetLocalSearchFilters() {
-  state.filters.fromYear = Math.max(1900, state.firstYear);
-  state.filters.toYear = state.latestYear;
-  state.filters.popularity = "alle";
-  state.filters.pattern = "";
-  state.filters.schoolMax = "";
+  state.filters.rules = [];
+}
+
+function renderSearchRuleBuilder() {
+  const list = $("#searchRuleList");
+  if (!list) return;
+  list.innerHTML = state.filters.rules.map((rule, index) => searchRuleMarkup(rule, index)).join("");
+  $("#filterBuilderEmpty").hidden = state.filters.rules.length > 0;
+  $("#resetSearchFilters").hidden = state.filters.rules.length === 0;
+  refreshSearchRuleErrors();
+}
+
+function searchRuleMarkup(rule, index) {
+  const fieldOptions = [
+    ["name", "Navnetekst"],
+    ["gender", "Navnetype"],
+    ["birthPeriod", "Fødselstall i periode"],
+    ["latestCount", `Nyfødte i ${state.latestYear}`],
+    ["latestRank", `Rangering i ${state.latestYear}`],
+    ["trend", "Endring siste tiår"],
+    ["school", "Forventet i skoleløpet"],
+  ];
+  return `
+    <article class="filterRule" data-rule-id="${escapeHtml(rule.id)}">
+      <div class="filterRuleHead">
+        <small>${index === 0 ? "Vis navn der" : "og"}</small>
+        <button class="filterNegate ${rule.negate ? "active" : ""}" data-rule-action="negate" type="button" aria-pressed="${rule.negate}">Ikke</button>
+        <button class="filterRemove" data-rule-action="remove" type="button" aria-label="Fjern filter"><svg><use href="#icon-x"></use></svg></button>
+      </div>
+      <div class="filterRuleControls">
+        <label class="srOnly" for="${rule.id}-field">Egenskap</label>
+        <select id="${rule.id}-field" data-rule-prop="type">${fieldOptions.map(([value, label]) => `<option value="${value}" ${rule.type === value ? "selected" : ""}>${label}</option>`).join("")}</select>
+        ${searchRuleConditionMarkup(rule)}
+      </div>
+      <p class="filterRuleError" aria-live="polite"></p>
+    </article>
+  `;
+}
+
+function searchRuleConditionMarkup(rule) {
+  if (rule.type === "gender") {
+    return `
+      <span class="filterOperatorText">er</span>
+      <select data-rule-prop="value" aria-label="Navnetype">
+        <option value="jente" ${rule.value === "jente" ? "selected" : ""}>Jentenavn</option>
+        <option value="gutt" ${rule.value === "gutt" ? "selected" : ""}>Guttenavn</option>
+      </select>
+    `;
+  }
+  if (rule.type === "birthPeriod") {
+    return `
+      <span class="filterOperatorText">har publiserte fødselstall mellom</span>
+      <div class="filterRange">
+        <input data-rule-prop="value" type="number" min="${state.firstYear}" max="${state.latestYear}" inputmode="numeric" value="${escapeHtml(rule.value)}" aria-label="Fra år" />
+        <span>og</span>
+        <input data-rule-prop="value2" type="number" min="${state.firstYear}" max="${state.latestYear}" inputmode="numeric" value="${escapeHtml(rule.value2)}" aria-label="Til år" />
+      </div>
+    `;
+  }
+  if (rule.type === "name") {
+    const operators = [
+      ["contains", "inneholder"],
+      ["starts", "begynner med"],
+      ["ends", "slutter med"],
+      ["equals", "er nøyaktig"],
+      ["regex", "matcher regex"],
+    ];
+    return `
+      <select data-rule-prop="op" aria-label="Sammenligning">${operators.map(([value, label]) => `<option value="${value}" ${rule.op === value ? "selected" : ""}>${label}</option>`).join("")}</select>
+      <input data-rule-prop="value" type="text" value="${escapeHtml(rule.value)}" placeholder="${rule.op === "regex" ? "^El|a$" : "Skriv tekst"}" aria-label="Tekstverdi" autocomplete="off" autocapitalize="none" />
+    `;
+  }
+  const operators = [
+    ["lte", "er høyst"],
+    ["gte", "er minst"],
+    ["between", "er mellom"],
+  ];
+  const step = rule.type === "school" ? "0.1" : "1";
+  const suffix = rule.type === "trend" ? "navn" : rule.type === "school" ? "elever" : "";
+  return `
+    <select data-rule-prop="op" aria-label="Sammenligning">${operators.map(([value, label]) => `<option value="${value}" ${rule.op === value ? "selected" : ""}>${label}</option>`).join("")}</select>
+    <div class="filterNumeric">
+      <input data-rule-prop="value" type="number" step="${step}" inputmode="decimal" value="${escapeHtml(rule.value)}" aria-label="Tallverdi" />
+      ${rule.op === "between" ? `<span>og</span><input data-rule-prop="value2" type="number" step="${step}" inputmode="decimal" value="${escapeHtml(rule.value2)}" aria-label="Øvre tallverdi" />` : ""}
+      ${suffix ? `<small>${suffix}</small>` : ""}
+    </div>
+  `;
+}
+
+function handleSearchRuleClick(event) {
+  const button = event.target.closest("[data-rule-action]");
+  if (!button) return;
+  const card = button.closest("[data-rule-id]");
+  const index = state.filters.rules.findIndex((rule) => rule.id === card?.dataset.ruleId);
+  if (index < 0) return;
+  if (button.dataset.ruleAction === "remove") state.filters.rules.splice(index, 1);
+  if (button.dataset.ruleAction === "negate") state.filters.rules[index].negate = !state.filters.rules[index].negate;
+  state.searchShowAll = true;
+  renderSearchRuleBuilder();
+  renderSearchResults();
+  updateSearchFilterBadge();
+}
+
+function handleSearchRuleChange(event) {
+  const control = event.target.closest("[data-rule-prop]");
+  if (!control) return;
+  const rule = state.filters.rules.find((item) => item.id === control.closest("[data-rule-id]")?.dataset.ruleId);
+  if (!rule) return;
+  if (control.dataset.ruleProp === "type") {
+    const replacement = createSearchRule(control.value, { id: rule.id, negate: rule.negate });
+    Object.keys(rule).forEach((key) => delete rule[key]);
+    Object.assign(rule, replacement);
+    renderSearchRuleBuilder();
+  } else {
+    rule[control.dataset.ruleProp] = control.value;
+    if (control.dataset.ruleProp === "op") renderSearchRuleBuilder();
+  }
+  state.searchShowAll = true;
+  renderSearchResults();
+  updateSearchFilterBadge();
+}
+
+function handleSearchRuleInput(event) {
+  const control = event.target.closest("[data-rule-prop]");
+  if (!control || control.tagName === "SELECT") return;
+  const rule = state.filters.rules.find((item) => item.id === control.closest("[data-rule-id]")?.dataset.ruleId);
+  if (!rule) return;
+  rule[control.dataset.ruleProp] = control.value;
+  state.searchShowAll = true;
+  refreshSearchRuleErrors();
+  renderSearchResults();
+}
+
+function updateSearchFilterBadge() {
+  const button = $("#toggleSearchFilters");
+  if (!button) return;
+  button.classList.toggle("active", state.searchFiltersOpen || state.filters.rules.length > 0);
+  button.innerHTML = `<svg><use href="#icon-filter"></use></svg>${state.filters.rules.length ? `<span>${state.filters.rules.length}</span>` : ""}`;
+}
+
+function refreshSearchRuleErrors() {
+  $$(".filterRule").forEach((card) => {
+    const rule = state.filters.rules.find((item) => item.id === card.dataset.ruleId);
+    const error = searchRuleError(rule);
+    card.classList.toggle("invalid", Boolean(error));
+    $(".filterRuleError", card).textContent = error;
+  });
+}
+
+function searchRuleError(rule) {
+  if (!rule || rule.type !== "name" || rule.op !== "regex" || !rule.value.trim()) return "";
+  try {
+    new RegExp(rule.value, "iu");
+    return "";
+  } catch {
+    return "Regex-uttrykket er ugyldig.";
+  }
+}
+
+function searchRuleReady(rule) {
+  if (!rule || searchRuleError(rule)) return false;
+  if (rule.type === "gender") return Boolean(rule.value);
+  if (rule.type === "name") return Boolean(rule.value.trim());
+  if (rule.type === "birthPeriod") {
+    return String(rule.value).trim() !== "" && String(rule.value2).trim() !== "" && Number.isFinite(Number(rule.value)) && Number.isFinite(Number(rule.value2));
+  }
+  return String(rule.value).trim() !== "" && Number.isFinite(Number(rule.value)) && (rule.op !== "between" || (String(rule.value2).trim() !== "" && Number.isFinite(Number(rule.value2))));
+}
+
+function compareRuleNumber(value, rule) {
+  const first = Number(rule.value);
+  const second = Number(rule.value2);
+  if (value == null || !Number.isFinite(Number(value))) return false;
+  if (rule.op === "gte") return Number(value) >= first;
+  if (rule.op === "between") return Number(value) >= Math.min(first, second) && Number(value) <= Math.max(first, second);
+  return Number(value) <= first;
+}
+
+function searchRuleMatches(item, rule) {
+  let matches = true;
+  if (rule.type === "gender") matches = item.sex === rule.value;
+  if (rule.type === "name") {
+    const name = normalize(item.name);
+    const value = normalize(rule.value);
+    if (rule.op === "starts") matches = name.startsWith(value);
+    else if (rule.op === "ends") matches = name.endsWith(value);
+    else if (rule.op === "equals") matches = name === value;
+    else if (rule.op === "regex") matches = new RegExp(rule.value, "iu").test(item.name);
+    else matches = name.includes(value);
+  }
+  if (rule.type === "birthPeriod") {
+    const from = Math.min(clampYear(Number(rule.value)), clampYear(Number(rule.value2)));
+    const to = Math.max(clampYear(Number(rule.value)), clampYear(Number(rule.value2)));
+    matches = hasHistory(item) && allPoints(item).some((point) => point.year >= from && point.year <= to && (point.count != null || point.shareSex != null));
+  }
+  if (rule.type === "latestCount") matches = compareRuleNumber(pointInYear(item, state.latestYear)?.[1], rule);
+  if (rule.type === "latestRank") matches = compareRuleNumber(pointInYear(item, state.latestYear)?.[2], rule);
+  if (rule.type === "trend") matches = hasHistory(item) && compareRuleNumber(trendScore(item), rule);
+  if (rule.type === "school") matches = hasHistory(item) && compareRuleNumber(schoolEstimateForCurrentSettings(item).school, rule);
+  return rule.negate ? !matches : matches;
 }
 
 function renderSearchResults() {
@@ -1280,9 +1462,10 @@ function renderSearchResults() {
   intro.hidden = true;
   results.hidden = false;
   const rows = filteredRows();
+  const filterErrors = state.filters.rules.map(searchRuleError).filter(Boolean);
   state.candidateRows = rows;
-  $("#searchResultTitle").textContent = `${formatNumber(rows.length)} treff`;
-  $("#searchResultScope").textContent = searchScopeLabel();
+  $("#searchResultTitle").textContent = filterErrors.length ? "Sjekk filteret" : `${formatNumber(rows.length)} treff`;
+  $("#searchResultScope").textContent = filterErrors.length ? filterErrors[0] : searchScopeLabel();
   const bulk = $("#searchBulkActions");
   bulk.innerHTML = rows.length ? `
     <button class="primaryWide" id="addAllSearchResults" type="button">Legg alle til utvalget</button>
@@ -1297,7 +1480,7 @@ function renderSearchResults() {
   if (!rows.length) {
     progress.textContent = "";
     loadMore.hidden = true;
-    list.innerHTML = `<div class="emptyState compact"><p>Ingen navn matcher søket og filtrene.</p></div>`;
+    list.innerHTML = `<div class="emptyState compact"><p>${filterErrors.length ? "Rett filteret som er markert med rødt." : "Ingen navn matcher søket og filtrene."}</p></div>`;
     return;
   }
   const batchSize = 100;
@@ -1324,8 +1507,8 @@ function renderSearchResults() {
 }
 
 function searchScopeLabel() {
-  const sex = { alle: "alle navnetyper", jente: "jentenavn", gutt: "guttenavn" }[state.filters.sex];
-  return `${sex} · fødselstall`;
+  const ready = state.filters.rules.filter(searchRuleReady).length;
+  return `fødselstall${ready ? ` · ${formatNumber(ready)} ${ready === 1 ? "filter" : "filtre"}` : ""}`;
 }
 
 function openCandidateBuilder(rows = filteredRows(), title = "Alle treff", subtitle = "Hele trefflisten") {
@@ -1863,27 +2046,10 @@ function smoothLabel(value) {
 function filteredRows() {
   let rows = state.query ? searchRows(state.query) : state.data.names.slice();
   rows = rows.filter((item) => state.status[item.id] !== "rejected");
-  const defaultFromYear = Math.max(1900, state.firstYear);
-  const periodIsRestricted = state.filters.fromYear !== defaultFromYear || state.filters.toYear !== state.latestYear;
-  rows = rows.filter((item) => {
-    if (hasHistory(item)) {
-      return allPoints(item).some((point) => point.year >= state.filters.fromYear && point.year <= state.filters.toYear && (point.count != null || point.shareSex != null));
-    }
-    return !periodIsRestricted;
+  if (state.filters.rules.some(searchRuleError)) return [];
+  state.filters.rules.filter(searchRuleReady).forEach((rule) => {
+    rows = rows.filter((item) => searchRuleMatches(item, rule));
   });
-  if (state.filters.pattern) {
-    try {
-      const regex = new RegExp(state.filters.pattern, "i");
-      rows = rows.filter((item) => regex.test(item.name));
-    } catch {
-      rows = [];
-    }
-  }
-  if (state.filters.sex !== "alle") rows = rows.filter((item) => item.sex === state.filters.sex);
-  if (state.filters.popularity === "top50") rows = rows.filter((item) => hasHistory(item) && (pointInYear(item, state.latestYear)?.[2] ?? 9999) <= 50);
-  if (state.filters.popularity === "rising") rows = rows.filter((item) => availableTrendScore(item) > 0);
-  if (state.filters.popularity === "rare") rows = rows.filter((item) => hasHistory(item) && latestCount(item) < 25);
-  if (state.filters.schoolMax !== "") rows = rows.filter((item) => hasHistory(item) && schoolEstimateForCurrentSettings(item).school <= Number(state.filters.schoolMax));
   if (state.query) return rows;
   return rows.sort((a, b) => (a.currentRank ?? 9999) - (b.currentRank ?? 9999) || a.name.localeCompare(b.name, "no"));
 }

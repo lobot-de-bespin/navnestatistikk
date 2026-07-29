@@ -26,6 +26,19 @@ try {
   if (mode !== "home") {
     await page.click("#openSearchView");
     if (mode === "results") await page.fill("#searchViewInput", "e");
+    if (mode === "filters") {
+      await page.click("#toggleSearchFilters");
+      await page.click("#addSearchRule");
+      await page.selectOption(".filterRule [data-rule-prop='type']", "gender");
+      await page.selectOption(".filterRule [data-rule-prop='value']", "gutt");
+      await page.click("#addSearchRule");
+      await page.locator(".filterRule").nth(1).locator("[data-rule-prop='op']").selectOption("starts");
+      await page.locator(".filterRule").nth(1).locator("[data-rule-prop='value']").fill("A");
+      await page.click("#addSearchRule");
+      await page.locator(".filterRule").nth(2).locator("[data-rule-prop='op']").selectOption("regex");
+      await page.locator(".filterRule").nth(2).locator("[data-rule-prop='value']").fill("r$");
+      await page.locator(".filterRule").nth(2).locator("[data-rule-action='negate']").click();
+    }
   }
   await page.screenshot({ path: output, fullPage: false });
   const metrics = await page.evaluate(() => {

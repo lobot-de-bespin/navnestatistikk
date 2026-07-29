@@ -39,6 +39,12 @@ try {
       await page.locator(".filterRule").nth(2).locator("[data-rule-prop='value']").fill("r$");
       await page.locator(".filterRule").nth(2).locator("[data-rule-action='negate']").click();
     }
+    if (mode === "review") {
+      await page.fill("#searchViewInput", "Ferdinand");
+      await page.locator("#searchResultList .addButton").first().click();
+      await page.click(".tabBar [data-tab='review']");
+      await page.waitForTimeout(1800);
+    }
   }
   await page.screenshot({ path: output, fullPage: false });
   const metrics = await page.evaluate(() => {
@@ -46,6 +52,9 @@ try {
     const workspace = document.querySelector(".searchWorkspace")?.getBoundingClientRect();
     const filterPanel = document.querySelector(".searchFilterPanel")?.getBoundingClientRect();
     const filterRules = [...document.querySelectorAll(".filterRule")].map((node) => node.getBoundingClientRect().height);
+    const reviewCard = document.querySelector("#reviewCard")?.getBoundingClientRect();
+    const reviewActions = document.querySelector("#view-review .reviewActions")?.getBoundingClientRect();
+    const tabBar = document.querySelector(".tabBar")?.getBoundingClientRect();
     const titleStyle = getComputedStyle(document.querySelector("#subTitle"));
     return {
       viewport: [innerWidth, innerHeight],
@@ -54,6 +63,9 @@ try {
       workspace: workspace && [workspace.left, workspace.right, workspace.width],
       filterPanelHeight: filterPanel?.height || 0,
       filterRuleHeights: filterRules,
+      reviewCard: reviewCard && [reviewCard.top, reviewCard.bottom, reviewCard.height],
+      reviewActions: reviewActions && [reviewActions.top, reviewActions.bottom, reviewActions.height],
+      tabBarTop: tabBar?.top || 0,
       titleFont: [titleStyle.fontFamily, titleStyle.fontStyle, titleStyle.fontWeight],
     };
   });

@@ -36,6 +36,21 @@ try {
     assert(await page.locator(".discoveryNameCard").count() >= 20, "Discovery cards missing");
     const discoveryFont = await page.locator(".discoveryNameMain strong").first().evaluate((node) => getComputedStyle(node).fontFamily);
     assert(!/Georgia|Times|(^|,)\s*serif/i.test(discoveryFont), `Discovery names still use serif: ${discoveryFont}`);
+    const homeSearchAppearance = await page.locator("#openSearchView").evaluate((node) => {
+      const rect = node.getBoundingClientRect();
+      const style = getComputedStyle(node);
+      const labelStyle = getComputedStyle(node.querySelector("#homeSearchLabel"));
+      return {
+        height: rect.height,
+        radius: Number.parseFloat(style.borderRadius),
+        borderWidth: Number.parseFloat(style.borderTopWidth),
+        label: node.textContent.replace(/\s+/g, " ").trim(),
+        labelWeight: Number(labelStyle.fontWeight),
+        helperCount: node.querySelectorAll("small, em").length,
+      };
+    });
+    assert(homeSearchAppearance.height <= 54 && homeSearchAppearance.radius <= 16 && homeSearchAppearance.borderWidth >= 1, `${width}px Oppdag search does not look like an input: ${JSON.stringify(homeSearchAppearance)}`);
+    assert(homeSearchAppearance.label === "Søk etter navn" && homeSearchAppearance.helperCount === 0 && homeSearchAppearance.labelWeight < 700, `${width}px Oppdag search still reads like a feature card: ${JSON.stringify(homeSearchAppearance)}`);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     assert(overflow <= 1, `${width}px home overflows by ${overflow}px`);
     await page.click("#openSearchView");
@@ -81,6 +96,30 @@ try {
     await page.locator(".populationCard").scrollIntoViewIfNeeded();
     const detailOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     assert(detailOverflow <= 1, `${width}px enriched detail overflows by ${detailOverflow}px`);
+    await page.click("#subBack");
+    await page.fill("#searchViewInput", "Ferdinand");
+    await page.locator("#searchResultList .addButton").first().click();
+    await page.click(".tabBar [data-tab='review']");
+    const reviewGeometry = await page.evaluate(() => {
+      const card = document.querySelector("#reviewCard").getBoundingClientRect();
+      const actions = document.querySelector("#view-review .reviewActions").getBoundingClientRect();
+      const tab = document.querySelector(".tabBar").getBoundingClientRect();
+      return {
+        card: { top: card.top, bottom: card.bottom, height: card.height },
+        actions: { top: actions.top, bottom: actions.bottom, height: actions.height },
+        tabTop: tab.top,
+        viewport: innerHeight,
+        progressDisplay: getComputedStyle(document.querySelector("#reviewCounter")).display,
+        visibleActions: [...document.querySelectorAll("#view-review .reviewAction")].filter((node) => {
+          const rect = node.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0;
+        }).length,
+      };
+    });
+    assert(reviewGeometry.progressDisplay === "none", `${width}px duplicate review progress is still visible`);
+    assert(reviewGeometry.visibleActions === 3, `${width}px review actions are not all visible`);
+    assert(reviewGeometry.card.bottom <= reviewGeometry.actions.top + 1, `${width}px review actions overlap the card: ${JSON.stringify(reviewGeometry)}`);
+    assert(reviewGeometry.actions.bottom <= reviewGeometry.tabTop - 4 && reviewGeometry.actions.bottom <= reviewGeometry.viewport, `${width}px review actions are clipped by navigation: ${JSON.stringify(reviewGeometry)}`);
     assert(errors.length === 0, `${width}px home JS errors: ${errors.join("; ")}`);
     await context.close();
   }

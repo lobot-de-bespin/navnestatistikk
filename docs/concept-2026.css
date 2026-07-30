@@ -722,7 +722,7 @@ body {
   border-radius: 0;
   gap: 7px;
   padding-top: 8px;
-  padding-bottom: calc(var(--tab-height) + 18px + env(safe-area-inset-bottom));
+  padding-bottom: 0;
   overflow: visible;
   background:
     radial-gradient(140px 100px at 100% 0, rgba(255, 218, 199, 0.46), transparent 72%),
@@ -739,7 +739,7 @@ body {
 
 .reviewCard {
   gap: 6px;
-  min-height: 0;
+  min-height: clamp(410px, calc(100dvh - 254px - env(safe-area-inset-bottom)), 610px);
   padding: 13px 14px 11px;
   overflow: hidden;
   border-radius: 24px;
@@ -848,12 +848,14 @@ body {
 }
 
 #view-review .reviewActions {
-  position: static;
-  inset: auto;
-  z-index: 3;
-  width: 100%;
+  position: fixed;
+  right: max(14px, env(safe-area-inset-right));
+  bottom: calc(var(--tab-height) + 12px + env(safe-area-inset-bottom));
+  left: max(14px, env(safe-area-inset-left));
+  z-index: 79;
+  width: min(calc(100% - 28px), 402px);
   gap: 7px;
-  margin: 1px 0 0;
+  margin: 0 auto;
 }
 
 #view-review .reviewActions .reviewAction {
@@ -884,7 +886,7 @@ body {
 }
 
 #view-review .undoLink {
-  min-height: 28px;
+  display: none;
 }
 
 #view-mine .workflowCard {

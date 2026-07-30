@@ -120,6 +120,8 @@ try {
     assert(reviewGeometry.visibleActions === 3, `${width}px review actions are not all visible`);
     assert(reviewGeometry.card.bottom <= reviewGeometry.actions.top + 1, `${width}px review actions overlap the card: ${JSON.stringify(reviewGeometry)}`);
     assert(reviewGeometry.actions.bottom <= reviewGeometry.tabTop - 4 && reviewGeometry.actions.bottom <= reviewGeometry.viewport, `${width}px review actions are clipped by navigation: ${JSON.stringify(reviewGeometry)}`);
+    assert(reviewGeometry.tabTop - reviewGeometry.actions.bottom >= 10 && reviewGeometry.tabTop - reviewGeometry.actions.bottom <= 16, `${width}px review actions are not anchored directly above navigation: ${JSON.stringify(reviewGeometry)}`);
+    assert(reviewGeometry.actions.top - reviewGeometry.card.bottom >= 8 && reviewGeometry.actions.top - reviewGeometry.card.bottom <= 18, `${width}px review card does not fill the space down to the actions: ${JSON.stringify(reviewGeometry)}`);
     assert(errors.length === 0, `${width}px home JS errors: ${errors.join("; ")}`);
     await context.close();
   }
@@ -257,7 +259,7 @@ try {
       reject: document.querySelector("#reviewReject").classList.contains("is-swipe-active"),
       shortlist: document.querySelector("#reviewShortlist").classList.contains("is-swipe-active"),
     }));
-    assert(Number.parseFloat(neutralSwipe.y) < 0 && Number.parseFloat(neutralSwipe.y) > -28, `Review card did not follow the controlled upward curve: ${neutralSwipe.y}`);
+    assert(Number.parseFloat(neutralSwipe.y) > 0 && Number.parseFloat(neutralSwipe.y) < 54, `Review card did not follow the controlled downward curve: ${neutralSwipe.y}`);
     assert(!neutralSwipe.reject && !neutralSwipe.shortlist, "Neutral swipe activated a review action");
     await page.mouse.up();
     await page.waitForTimeout(180);

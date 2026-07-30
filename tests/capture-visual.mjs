@@ -30,7 +30,7 @@ try {
       await page.click("#toggleSearchFilters");
       await page.click("#addSearchRule");
       await page.selectOption(".filterRule [data-rule-prop='type']", "dataset");
-      await page.selectOption(".filterRule [data-rule-prop='value']", "snl-4024");
+      await page.selectOption(".filterRule [data-rule-prop='value']", "snl");
     }
     if (mode === "filters") {
       await page.click("#toggleSearchFilters");
@@ -45,8 +45,8 @@ try {
       await page.locator(".filterRule").nth(2).locator("[data-rule-prop='value']").fill("r$");
       await page.locator(".filterRule").nth(2).locator("[data-rule-action='negate']").click();
     }
-    if (mode === "review" || mode === "swipe") {
-      await page.fill("#searchViewInput", "Ferdinand");
+    if (mode === "review" || mode === "review-identity" || mode === "swipe") {
+      await page.fill("#searchViewInput", mode === "review-identity" ? "Bjartmar" : "Ferdinand");
       await page.locator("#searchResultList .addButton").first().click();
       await page.click(".tabBar [data-tab='review']");
       await page.waitForTimeout(1800);

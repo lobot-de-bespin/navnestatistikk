@@ -180,9 +180,15 @@ try {
     await page.click("#addSearchRule");
     const secondRule = page.locator(".filterRule").nth(1);
     await secondRule.locator("[data-rule-prop='type']").selectOption("dataset");
+    const datasetOptions = await secondRule.locator("[data-rule-prop='value'] option").evaluateAll((options) => options.map((option) => [option.value, option.textContent]));
+    assert(JSON.stringify(datasetOptions) === JSON.stringify([
+      ["ssb-10467", "SSB · fødselstall"],
+      ["ssb-10501", "SSB · befolkning"],
+      ["snl", "Store norske leksikon"],
+    ]), `Dataset filter exposes redundant source variants: ${JSON.stringify(datasetOptions)}`);
     assert(Number((await page.locator("#searchResultTitle").textContent()).replace(/\D/g, "")) === 932, "SSB dataset filter did not isolate birth names");
-    await secondRule.locator("[data-rule-prop='value']").selectOption("snl-4024");
-    assert(Number((await page.locator("#searchResultTitle").textContent()).replace(/\D/g, "")) === 2728, "SNL dataset filter did not isolate the boys overview");
+    await secondRule.locator("[data-rule-prop='value']").selectOption("snl");
+    assert(Number((await page.locator("#searchResultTitle").textContent()).replace(/\D/g, "")) === 2728, "Combined SNL dataset filter did not respect the separate boy-name rule");
     await secondRule.locator("[data-rule-action='remove']").click();
 
     await page.click("#addSearchRule");
@@ -239,6 +245,7 @@ try {
       await page.locator("#searchResultList .addButton").first().click();
     }
     await page.click(".tabBar [data-tab='review']");
+    assert(JSON.stringify(await page.locator(".reviewActions .reviewAction span").allTextContents()) === JSON.stringify(["Uaktuelt", "Hopp over", "Aktuelt"]), "Review buttons do not match left/right swipe directions");
 
     const firstCard = await page.locator("#reviewCard").boundingBox();
     const firstName = await page.locator("#reviewCard h2").textContent();
@@ -265,6 +272,20 @@ try {
     const decisions = await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem("navnestatistikk:nameStatus:v1") || "{}")));
     assert(decisions.includes("shortlist") && decisions.includes("rejected"), `Review swipes did not record both directions: ${decisions.join(", ")}`);
     assert(errors.length === 0, `Review swipe JS errors: ${errors.join("; ")}`);
+    await context.close();
+  }
+
+  {
+    const { context, page, errors } = await openPage();
+    await page.click("#openSearchView");
+    await page.fill("#searchViewInput", "Bjartmar");
+    await page.locator("#searchResultList .addButton").first().click();
+    await page.click(".tabBar [data-tab='review']");
+    const identityCard = await page.locator("#reviewCard").textContent();
+    assert(identityCard.includes("Bjartmar") && identityCard.includes("Uten fødselstall") && identityCard.includes("Store norske leksikon"), `SNL-only review card lacks concise essentials: ${identityCard}`);
+    assert(!/Grunnopplysninger|Kan vurderes|Trend, rang|dokumenterer slike data/.test(identityCard), `SNL-only review card still contains technical TMI: ${identityCard}`);
+    assert(await page.locator(".reviewTitleLine").evaluate((node) => node.firstElementChild?.tagName === "H2" && node.lastElementChild?.classList.contains("trendPill")), "Review name does not precede its data badge");
+    assert(errors.length === 0, `SNL-only review JS errors: ${errors.join("; ")}`);
     await context.close();
   }
 
@@ -312,8 +333,9 @@ try {
     await page.fill("#searchViewInput", "Testnavn");
     await page.locator("#searchResultList .nameMain").click();
     const detail = await page.locator("#subContent").textContent();
-    assert(detail.includes("Grunnopplysninger"), "Identity-only name has no graceful detail state");
-    assert(detail.includes("ikke norske fødselstall"), "Identity-only name was misrepresented as birth statistics");
+    assert(detail.includes("Om navnet"), "Identity-only name has no graceful detail state");
+    assert(detail.includes("ikke fødselstall"), "Identity-only name was misrepresented as birth statistics");
+    assert(!detail.includes("Grunnopplysninger"), "Identity-only detail still exposes a technical coverage label");
     assert(errors.length === 0, `Identity-only JS errors: ${errors.join("; ")}`);
     await context.close();
   }

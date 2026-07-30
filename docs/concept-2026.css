@@ -765,6 +765,17 @@ body {
   gap: 4px;
 }
 
+.reviewTitleLine {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  align-items: baseline;
+}
+
+.reviewTitleLine .trendPill {
+  flex: 0 0 auto;
+}
+
 .reviewCard h2 {
   align-items: center;
   color: #153d33;
@@ -1824,16 +1835,16 @@ body {
 
 .reviewIdentityName {
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr);
+  grid-template-columns: 42px minmax(0, 1fr);
   gap: 13px;
-  align-items: start;
+  align-items: center;
   background: #eff6ea;
 }
 
 .sourcePeople {
   display: grid;
-  width: 46px;
-  height: 46px;
+  width: 40px;
+  height: 40px;
   place-items: center;
   border-radius: 50%;
   background: #dcebd2;
@@ -1841,8 +1852,8 @@ body {
 }
 
 .sourcePeople svg {
-  width: 25px;
-  height: 25px;
+  width: 22px;
+  height: 22px;
 }
 
 .reviewIdentityName small {
@@ -1854,7 +1865,7 @@ body {
 
 .reviewIdentityName strong {
   display: block;
-  margin: 2px 0 4px;
+  margin-top: 2px;
   color: #21483b;
   font-size: 1rem;
 }
@@ -1898,8 +1909,8 @@ body {
 }
 
 .reviewIdentityName {
-  margin-top: 10px;
-  padding: 14px;
+  margin-top: 8px;
+  padding: 12px 14px;
   border-radius: 24px;
 }
 

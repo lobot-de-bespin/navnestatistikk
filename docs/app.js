@@ -3,7 +3,7 @@ const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
 const SCHOOL_STORAGE_KEY = "navnestatistikk:schoolSettings:v1";
-const SW_VERSION = "2026-07-30.2";
+const SW_VERSION = "2026-07-30.3";
 const MAX_COMPARE_ITEMS = 12;
 const REVIEW_SWIPE_DISTANCE = 76;
 const REVIEW_EDGE_FLICK_DISTANCE = 36;
@@ -555,7 +555,7 @@ function renderDiscoverySections() {
   if (!collections.length) {
     root.innerHTML = `
       <div class="emptyState compact">
-        <p>Ingen forslag har denne datadekningen og navnetypen ennå.</p>
+        <p>Ingen forslag med denne kombinasjonen ennå.</p>
         <div class="emptyActions"><button id="resetDiscoveryFilters" type="button">Vis alle navn</button></div>
       </div>
     `;
@@ -634,7 +634,7 @@ function nameRow(item, options = {}) {
   const row = document.createElement("article");
   row.className = `nameRow ${item.sex} ${options.feature ? "featureNameCard" : ""} ${selected ? "selected" : ""} ${history ? "birthData" : "identityData"}`;
   const score = history ? latest?.[1] ?? 0 : null;
-  const scoreLabel = history ? `fødte ${state.latestYear}` : "ingen statistikk";
+  const scoreLabel = history ? `fødte ${state.latestYear}` : "uten fødselstall";
   row.innerHTML = `
     <span class="rank">${options.rank ?? sexIconMarkup(item)}</span>
     <button class="nameMain" type="button">
@@ -767,7 +767,7 @@ function renderCompareInsight(items) {
     .filter((row) => row.point);
   if (!latestRows.length) {
     panel.innerHTML = `
-      <span class="wide"><small>Datadekning</small><strong>Grunnopplysninger</strong><em>Disse navnene kan vurderes og sammenlignes etter skrivemåte, men mangler fødselstall.</em></span>
+      <span class="wide"><strong>Ingen fødselstall å sammenligne</strong></span>
     `;
     return;
   }
@@ -1085,8 +1085,8 @@ function identityNameDetailMarkup(item) {
       <div><h2>${escapeHtml(item.name)} ${sexIconMarkup(item)}</h2><p>${escapeHtml(item.sex)}</p></div>
     </section>
     <section class="subCard sourceNote">
-      <h3>Grunnopplysninger</h3>
-      <p>Navnet og kjønnstilknytningen er dokumentert, men katalogen har foreløpig ikke norske fødselstall for navnet.</p>
+      <h3>Om navnet</h3>
+      <p>Vi har ikke fødselstall for dette navnet.</p>
     </section>
     ${sourceListMarkup(item)}
     <button class="primaryWide" data-add="${item.id}" type="button">Legg til i vår liste</button>
@@ -1278,11 +1278,15 @@ function searchRuleConditionMarkup(rule) {
     `;
   }
   if (rule.type === "dataset") {
-    const sources = Object.entries(state.data?.meta?.sourceCatalog || {});
+    const sources = [
+      ["ssb-10467", "SSB · fødselstall"],
+      ["ssb-10501", "SSB · befolkning"],
+      ["snl", "Store norske leksikon"],
+    ];
     return `
       <span class="filterOperatorText">finnes i</span>
       <select data-rule-prop="value" aria-label="Datasett">
-        ${sources.map(([id, source]) => `<option value="${escapeHtml(id)}" ${rule.value === id ? "selected" : ""}>${escapeHtml(source.label || id)}</option>`).join("")}
+        ${sources.map(([id, label]) => `<option value="${escapeHtml(id)}" ${rule.value === id ? "selected" : ""}>${escapeHtml(label)}</option>`).join("")}
       </select>
     `;
   }
@@ -1418,7 +1422,11 @@ function compareRuleNumber(value, rule) {
 function searchRuleMatches(item, rule) {
   let matches = true;
   if (rule.type === "gender") matches = item.sex === rule.value;
-  if (rule.type === "dataset") matches = item.sourceRefs?.includes(rule.value) || false;
+  if (rule.type === "dataset") {
+    matches = rule.value === "snl"
+      ? item.sourceRefs?.some((source) => source.startsWith("snl-")) || false
+      : item.sourceRefs?.includes(rule.value) || false;
+  }
   if (rule.type === "name") {
     const name = normalize(item.name);
     const value = normalize(rule.value);
@@ -1624,7 +1632,7 @@ function renderReview() {
     card.innerHTML = `
       <div class="emptyState">
         <h2>Ingen navn å vurdere</h2>
-        <p>Utvalget er handlelisten din. Oppdag eller søk etter navn først, så kan du avgjøre dem ett og ett her.</p>
+        <p>Legg til navn i Oppdag for å vurdere dem her.</p>
         <div class="emptyActions">
           <button data-quick-name="Nora" type="button">Nora</button>
           <button data-quick-name="Noah" type="button">Noah</button>
@@ -1640,18 +1648,18 @@ function renderReview() {
     card.innerHTML = `
       <div class="reviewNamePlate">
         <p class="cardMeta">${state.review.index + 1} av ${state.review.deck.length}</p>
-        <h2>${escapeHtml(item.name)} ${sexIconMarkup(item)}</h2>
-        <span class="trendPill">Grunnopplysninger</span>
+        <div class="reviewTitleLine">
+          <h2>${escapeHtml(item.name)} ${sexIconMarkup(item)}</h2>
+          <span class="trendPill">Uten fødselstall</span>
+        </div>
       </div>
       <section class="reviewIdentityName">
         <span class="sourcePeople"><svg aria-hidden="true"><use href="#icon-list"></use></svg></span>
         <div>
           <small>${escapeHtml(item.sex)}navn</small>
-          <strong>${escapeHtml(item.name)}</strong>
-          <p>Kan vurderes og sammenlignes etter skrivemåte, men mangler fødselstall.</p>
+          <strong>Store norske leksikon</strong>
         </div>
       </section>
-      <p class="reviewSourceNote">Trend, rang, toppår og skoleestimat vises først når kilden dokumenterer slike data.</p>
     `;
     bindSubscreenButtons(card);
     return;
@@ -1659,8 +1667,10 @@ function renderReview() {
   card.innerHTML = `
     <div class="reviewNamePlate">
       <p class="cardMeta">${state.review.index + 1} av ${state.review.deck.length}</p>
-      <h2>${escapeHtml(item.name)} ${sexIconMarkup(item)}</h2>
-      <span class="trendPill">${trendLabel(item)}</span>
+      <div class="reviewTitleLine">
+        <h2>${escapeHtml(item.name)} ${sexIconMarkup(item)}</h2>
+        <span class="trendPill">${trendLabel(item)}</span>
+      </div>
     </div>
     <div class="reviewSpark">${sparklineSvg(item, 420, 120)}</div>
     <div class="reviewStats">
@@ -1853,7 +1863,7 @@ function renderMine() {
   if (!rows.length) {
     preview.innerHTML = `
       <div class="emptyState compact">
-        <p>${all.length ? "Ingen navn i denne kategorien ennå." : "Listen er tom. Oppdag navn dere vil utforske, så samles de her."}</p>
+        <p>${all.length ? "Ingen navn i denne kategorien ennå." : "Legg til navn fra Oppdag."}</p>
         <div class="emptyActions"><button data-go-tab="explore" type="button">Oppdag navn</button></div>
       </div>
     `;
@@ -1863,7 +1873,7 @@ function renderMine() {
   if (!state.history.length) {
     recent.innerHTML = `
       <div class="emptyState compact">
-        <p>${work.length ? `${formatNumber(work.length)} kandidater klare til vurdering.` : "Listen er tom. Start med navn dere allerede liker, eller finn kandidater med data."}</p>
+        <p>${work.length ? `${formatNumber(work.length)} kandidater klare til vurdering.` : "Legg til navn fra Oppdag."}</p>
         <div class="emptyActions">
           <button data-go-tab="review" type="button">Vurder navn</button>
           <button data-go-tab="explore" type="button">Oppdag flere</button>
@@ -2274,7 +2284,7 @@ function trendScore(item) {
 }
 
 function trendLabel(item) {
-  if (!hasHistory(item)) return hasCapability(item, "norwayUse") ? "Dokumentert i Norge" : "Grunnopplysninger";
+  if (!hasHistory(item)) return "Uten fødselstall";
   const score = trendScore(item);
   if (score > 20) return "Stigende trend siste år";
   if (score < -20) return "Roligere utvikling siste år";
@@ -2282,7 +2292,7 @@ function trendLabel(item) {
 }
 
 function itemMood(item) {
-  if (!hasHistory(item)) return hasCapability(item, "norwayUse") ? "i bruk i Norge" : "grunnopplysninger";
+  if (!hasHistory(item)) return `${item.sex}navn`;
   const latest = pointInYear(item, state.latestYear);
   const rank = latest?.[2] ?? 9999;
   const trend = trendScore(item);
@@ -2408,7 +2418,7 @@ function identityCoverageLabel(item) {
   const labels = [];
   if (hasCapability(item, "meaning")) labels.push("betydning");
   if (hasCapability(item, "origin")) labels.push("opphav");
-  return labels.length ? `Grunnopplysninger · ${labels.join(" og ")}` : "Grunnopplysninger";
+  return labels.length ? labels.join(" og ") : "Uten fødselstall";
 }
 
 function sourceListMarkup(item) {
@@ -2417,7 +2427,7 @@ function sourceListMarkup(item) {
   if (!sources.length) return "";
   return `
     <section class="subCard sourceNote">
-      <h3>Kilder og datagrunnlag</h3>
+      <h3>Kilder</h3>
       <div class="sourceLinks">
         ${sources.map((source) => `<a href="${escapeHtml(source.url)}" target="_blank" rel="noopener"><strong>${escapeHtml(source.label)}</strong><small>${escapeHtml([source.publisher, source.license].filter(Boolean).join(" · "))}</small></a>`).join("")}
       </div>

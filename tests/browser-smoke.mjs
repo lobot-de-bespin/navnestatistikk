@@ -252,6 +252,13 @@ try {
     await page.mouse.move(firstCard.x + firstCard.width / 2, firstCard.y + firstCard.height / 2);
     await page.mouse.down();
     await page.mouse.move(firstCard.x + firstCard.width / 2 + 40, firstCard.y + firstCard.height / 2 + 150, { steps: 3 });
+    const neutralSwipe = await page.evaluate(() => ({
+      y: document.querySelector("#reviewCard").style.getPropertyValue("--swipe-y"),
+      reject: document.querySelector("#reviewReject").classList.contains("is-swipe-active"),
+      shortlist: document.querySelector("#reviewShortlist").classList.contains("is-swipe-active"),
+    }));
+    assert(Number.parseFloat(neutralSwipe.y) < 0 && Number.parseFloat(neutralSwipe.y) > -28, `Review card did not follow the controlled upward curve: ${neutralSwipe.y}`);
+    assert(!neutralSwipe.reject && !neutralSwipe.shortlist, "Neutral swipe activated a review action");
     await page.mouse.up();
     await page.waitForTimeout(180);
     assert((await page.locator("#reviewCard h2").textContent()) === firstName, "Neutral middle zone accepted an ambiguous swipe");
@@ -259,6 +266,8 @@ try {
     await page.mouse.move(firstCard.x + firstCard.width / 2, firstCard.y + firstCard.height / 2);
     await page.mouse.down();
     await page.mouse.move(firstCard.x + firstCard.width / 2 + 55, firstCard.y + firstCard.height / 2 + 150, { steps: 3 });
+    assert(await page.locator("#reviewShortlist").evaluate((node) => node.classList.contains("is-swipe-active")), "Right swipe did not visibly activate Aktuelt");
+    assert(!(await page.locator("#reviewReject").evaluate((node) => node.classList.contains("is-swipe-active"))), "Right swipe also activated Uaktuelt");
     await page.mouse.up();
     await page.waitForTimeout(380);
     assert((await page.locator("#reviewCard h2").textContent()) !== firstName, "Diagonal thumb swipe toward the right edge snapped back");
@@ -267,6 +276,8 @@ try {
     await page.mouse.move(secondCard.x + secondCard.width / 2, secondCard.y + secondCard.height / 2);
     await page.mouse.down();
     await page.mouse.move(secondCard.x + secondCard.width / 2 - 90, secondCard.y + secondCard.height / 2, { steps: 3 });
+    assert(await page.locator("#reviewReject").evaluate((node) => node.classList.contains("is-swipe-active")), "Left swipe did not visibly activate Uaktuelt");
+    assert(!(await page.locator("#reviewShortlist").evaluate((node) => node.classList.contains("is-swipe-active"))), "Left swipe also activated Aktuelt");
     await page.mouse.up();
     await page.waitForTimeout(380);
     const decisions = await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem("navnestatistikk:nameStatus:v1") || "{}")));

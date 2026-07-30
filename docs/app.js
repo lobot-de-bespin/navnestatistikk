@@ -3,7 +3,7 @@ const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
 const SCHOOL_STORAGE_KEY = "navnestatistikk:schoolSettings:v1";
-const SW_VERSION = "2026-07-30.3";
+const SW_VERSION = "2026-07-30.4";
 const MAX_COMPARE_ITEMS = 12;
 const REVIEW_SWIPE_DISTANCE = 76;
 const REVIEW_EDGE_FLICK_DISTANCE = 36;
@@ -1720,13 +1720,16 @@ function moveReviewSwipe(event) {
   const card = event.currentTarget;
   reviewSwipe.dx = event.clientX - reviewSwipe.startX;
   reviewSwipe.dy = event.clientY - reviewSwipe.startY;
-  const rotation = Math.max(-16, Math.min(16, reviewSwipe.dx / 14));
+  const distance = Math.abs(reviewSwipe.dx);
+  const curvedY = -Math.min(28, 22 * Math.pow(distance / REVIEW_SWIPE_DISTANCE, 1.4));
+  const rotation = Math.max(-9, Math.min(9, reviewSwipe.dx / 24));
   card.style.setProperty("--swipe-x", `${reviewSwipe.dx}px`);
-  card.style.setProperty("--swipe-y", `${reviewSwipe.dy}px`);
+  card.style.setProperty("--swipe-y", `${curvedY}px`);
   card.style.setProperty("--swipe-rotate", `${rotation}deg`);
   const direction = reviewSwipeDecision(event.clientX);
   card.classList.toggle("hintShortlist", direction === 1);
   card.classList.toggle("hintReject", direction === -1);
+  updateReviewActionState(direction);
   updateReviewSwipeHint(reviewSwipe.dx);
 }
 
@@ -1759,6 +1762,7 @@ function resetReviewSwipe(card = $("#reviewCard")) {
   reviewSwipe.pointerId = null;
   reviewSwipe.dx = 0;
   reviewSwipe.dy = 0;
+  updateReviewActionState(0);
   updateReviewSwipeHint(0);
   if (!card) return;
   card.classList.remove("is-swiping", "hintShortlist", "hintReject", "swipeShortlist", "swipeReject");
@@ -1766,6 +1770,11 @@ function resetReviewSwipe(card = $("#reviewCard")) {
   card.style.removeProperty("--swipe-y");
   card.style.removeProperty("--swipe-rotate");
   card.style.opacity = "";
+}
+
+function updateReviewActionState(direction) {
+  $("#reviewReject")?.classList.toggle("is-swipe-active", direction < 0);
+  $("#reviewShortlist")?.classList.toggle("is-swipe-active", direction > 0);
 }
 
 function updateReviewSwipeHint(dx) {
@@ -1785,6 +1794,7 @@ function commitReviewDecision(status, direction) {
   state.review.swiping = true;
   card.classList.remove("hintShortlist", "hintReject");
   card.classList.add(status === "shortlist" ? "swipeShortlist" : "swipeReject");
+  updateReviewActionState(direction);
   card.style.setProperty("--swipe-x", `${direction * 170}vw`);
   card.style.setProperty("--swipe-y", "-4vh");
   card.style.setProperty("--swipe-rotate", `${direction * 18}deg`);

@@ -729,6 +729,10 @@ body {
     linear-gradient(180deg, #fff3ec 0%, var(--surface) 38%);
 }
 
+.reviewSwipeHint {
+  display: none;
+}
+
 #view-review .reviewProgressLine {
   display: none;
 }
@@ -857,11 +861,26 @@ body {
   padding-block: 7px;
   border-radius: 18px;
   box-shadow: 0 7px 18px rgba(74, 57, 39, 0.07);
+  transition: transform 120ms ease, background 120ms ease, color 120ms ease, box-shadow 120ms ease;
 }
 
 #view-review .reviewActions .reviewAction svg {
   width: 19px;
   height: 19px;
+}
+
+#view-review .reviewAction.no.is-swipe-active {
+  color: #a9283d;
+  background: #ffd9df;
+  box-shadow: 0 0 0 3px rgba(190, 77, 93, 0.22), 0 10px 24px rgba(190, 77, 93, 0.18);
+  transform: translateY(-3px) scale(1.035);
+}
+
+#view-review .reviewAction.yes.is-swipe-active {
+  color: #2f712f;
+  background: #d7f0d4;
+  box-shadow: 0 0 0 3px rgba(79, 130, 61, 0.22), 0 10px 24px rgba(79, 130, 61, 0.18);
+  transform: translateY(-3px) scale(1.035);
 }
 
 #view-review .undoLink {

@@ -45,11 +45,17 @@ try {
       await page.locator(".filterRule").nth(2).locator("[data-rule-prop='value']").fill("r$");
       await page.locator(".filterRule").nth(2).locator("[data-rule-action='negate']").click();
     }
-    if (mode === "review") {
+    if (mode === "review" || mode === "swipe") {
       await page.fill("#searchViewInput", "Ferdinand");
       await page.locator("#searchResultList .addButton").first().click();
       await page.click(".tabBar [data-tab='review']");
       await page.waitForTimeout(1800);
+      if (mode === "swipe") {
+        const card = await page.locator("#reviewCard").boundingBox();
+        await page.mouse.move(card.x + card.width / 2, card.y + card.height / 2);
+        await page.mouse.down();
+        await page.mouse.move(card.x + card.width / 2 + 55, card.y + card.height / 2 + 150, { steps: 3 });
+      }
     }
   }
   await page.screenshot({ path: output, fullPage: false });

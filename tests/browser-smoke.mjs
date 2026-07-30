@@ -232,6 +232,43 @@ try {
   }
 
   {
+    const { context, page, errors } = await openPage();
+    await page.click("#openSearchView");
+    for (const name of ["Noah", "Nora"]) {
+      await page.fill("#searchViewInput", name);
+      await page.locator("#searchResultList .addButton").first().click();
+    }
+    await page.click(".tabBar [data-tab='review']");
+
+    const firstCard = await page.locator("#reviewCard").boundingBox();
+    const firstName = await page.locator("#reviewCard h2").textContent();
+    await page.mouse.move(firstCard.x + firstCard.width / 2, firstCard.y + firstCard.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(firstCard.x + firstCard.width / 2 + 40, firstCard.y + firstCard.height / 2 + 150, { steps: 3 });
+    await page.mouse.up();
+    await page.waitForTimeout(180);
+    assert((await page.locator("#reviewCard h2").textContent()) === firstName, "Neutral middle zone accepted an ambiguous swipe");
+
+    await page.mouse.move(firstCard.x + firstCard.width / 2, firstCard.y + firstCard.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(firstCard.x + firstCard.width / 2 + 55, firstCard.y + firstCard.height / 2 + 150, { steps: 3 });
+    await page.mouse.up();
+    await page.waitForTimeout(380);
+    assert((await page.locator("#reviewCard h2").textContent()) !== firstName, "Diagonal thumb swipe toward the right edge snapped back");
+
+    const secondCard = await page.locator("#reviewCard").boundingBox();
+    await page.mouse.move(secondCard.x + secondCard.width / 2, secondCard.y + secondCard.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(secondCard.x + secondCard.width / 2 - 90, secondCard.y + secondCard.height / 2, { steps: 3 });
+    await page.mouse.up();
+    await page.waitForTimeout(380);
+    const decisions = await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem("navnestatistikk:nameStatus:v1") || "{}")));
+    assert(decisions.includes("shortlist") && decisions.includes("rejected"), `Review swipes did not record both directions: ${decisions.join(", ")}`);
+    assert(errors.length === 0, `Review swipe JS errors: ${errors.join("; ")}`);
+    await context.close();
+  }
+
+  {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: "block" });
     const page = await context.newPage();
     const errors = [];

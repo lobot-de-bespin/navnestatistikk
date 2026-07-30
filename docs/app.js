@@ -3,8 +3,11 @@ const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
 const SCHOOL_STORAGE_KEY = "navnestatistikk:schoolSettings:v1";
-const SW_VERSION = "2026-07-30.1";
+const SW_VERSION = "2026-07-30.2";
 const MAX_COMPARE_ITEMS = 12;
+const REVIEW_SWIPE_DISTANCE = 76;
+const REVIEW_EDGE_FLICK_DISTANCE = 36;
+const REVIEW_EDGE_ZONE_RATIO = 0.38;
 let searchRuleCounter = 0;
 
 const state = {
@@ -1711,19 +1714,28 @@ function moveReviewSwipe(event) {
   card.style.setProperty("--swipe-x", `${reviewSwipe.dx}px`);
   card.style.setProperty("--swipe-y", `${reviewSwipe.dy}px`);
   card.style.setProperty("--swipe-rotate", `${rotation}deg`);
-  card.classList.toggle("hintShortlist", reviewSwipe.dx > 70);
-  card.classList.toggle("hintReject", reviewSwipe.dx < -70);
+  const direction = reviewSwipeDecision(event.clientX);
+  card.classList.toggle("hintShortlist", direction === 1);
+  card.classList.toggle("hintReject", direction === -1);
   updateReviewSwipeHint(reviewSwipe.dx);
+}
+
+function reviewSwipeDecision(endX) {
+  const distance = Math.abs(reviewSwipe.dx);
+  if (distance >= REVIEW_SWIPE_DISTANCE) return reviewSwipe.dx > 0 ? 1 : -1;
+  if (distance < REVIEW_EDGE_FLICK_DISTANCE) return 0;
+  const width = document.documentElement.clientWidth;
+  const landedLeft = reviewSwipe.dx < 0 && endX <= width * REVIEW_EDGE_ZONE_RATIO;
+  const landedRight = reviewSwipe.dx > 0 && endX >= width * (1 - REVIEW_EDGE_ZONE_RATIO);
+  return landedRight ? 1 : landedLeft ? -1 : 0;
 }
 
 function endReviewSwipe(event) {
   if (!reviewSwipe.active || event.pointerId !== reviewSwipe.pointerId) return;
-  const card = event.currentTarget;
-  const horizontal = Math.abs(reviewSwipe.dx) > 76 && Math.abs(reviewSwipe.dx) > Math.abs(reviewSwipe.dy) * 1.25;
-  const status = reviewSwipe.dx > 0 ? "shortlist" : "rejected";
-  const direction = reviewSwipe.dx > 0 ? 1 : -1;
+  const direction = reviewSwipeDecision(event.clientX);
+  const status = direction > 0 ? "shortlist" : "rejected";
   cancelReviewSwipe(event);
-  if (horizontal) commitReviewDecision(status, direction);
+  if (direction) commitReviewDecision(status, direction);
 }
 
 function cancelReviewSwipe(event) {

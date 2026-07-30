@@ -737,9 +737,45 @@ body {
   display: none;
 }
 
+.reviewOrder {
+  z-index: 4;
+  display: inline-grid;
+  grid-template-columns: repeat(3, 28px);
+  gap: 2px;
+  justify-self: center;
+  width: max-content;
+  min-height: 32px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(255, 253, 249, 0.88);
+  box-shadow: inset 0 0 0 1px var(--line), 0 5px 16px rgba(75, 57, 39, 0.06);
+}
+
+.reviewOrder button {
+  display: grid;
+  width: 28px;
+  min-height: 26px;
+  padding: 0;
+  place-items: center;
+  border-radius: 999px;
+  color: #8a8a7e;
+}
+
+.reviewOrder button.active {
+  color: #245e4e;
+  background: #e6f2e2;
+  box-shadow: inset 0 0 0 1px rgba(79, 130, 61, 0.16);
+}
+
+.reviewOrder svg {
+  width: 15px;
+  height: 15px;
+}
+
 .reviewCard {
+  align-content: start;
   gap: 6px;
-  min-height: clamp(410px, calc(100dvh - 254px - env(safe-area-inset-bottom)), 610px);
+  min-height: clamp(360px, calc(100dvh - 293px - env(safe-area-inset-bottom)), 570px);
   padding: 13px 14px 11px;
   overflow: hidden;
   border-radius: 24px;
@@ -760,6 +796,28 @@ body {
   opacity: 0.72;
   mix-blend-mode: multiply;
   pointer-events: none;
+}
+
+.reviewSwipeGuide {
+  position: absolute;
+  right: 0;
+  bottom: 13px;
+  left: 0;
+  margin: 0;
+  color: rgba(54, 88, 77, 0.46);
+  font-size: 0.66rem;
+  font-weight: 760;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.reviewSwipeGuide span {
+  display: inline-block;
+  margin-inline: 6px;
+  font-size: 0.82rem;
+  transform: translateY(0.02em);
 }
 
 .reviewNamePlate {

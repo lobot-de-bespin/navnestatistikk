@@ -242,12 +242,26 @@ try {
   {
     const { context, page, errors } = await openPage();
     await page.click("#openSearchView");
-    for (const name of ["Noah", "Nora"]) {
+    for (const name of ["Nora", "Bjartmar", "Ferdinand"]) {
       await page.fill("#searchViewInput", name);
       await page.locator("#searchResultList .addButton").first().click();
     }
     await page.click(".tabBar [data-tab='review']");
     assert(JSON.stringify(await page.locator(".reviewActions .reviewAction span").allTextContents()) === JSON.stringify(["Uaktuelt", "Hopp over", "Aktuelt"]), "Review buttons do not match left/right swipe directions");
+    assert(JSON.stringify(await page.locator(".reviewOrder button").evaluateAll((nodes) => nodes.map((node) => node.getAttribute("aria-label")))) === JSON.stringify(["Alfabetisk", "Stokket", "Popularitet"]), "Review order controls are incomplete or exposed as text");
+    assert(await page.locator("[data-review-order='alpha']").getAttribute("aria-pressed") === "true", "Alphabetical review order is not the default");
+    assert((await page.locator("#reviewCard h2").textContent()).trim().startsWith("Bjartmar"), "Alphabetical review order did not put Bjartmar first");
+    const identityTitleTop = await page.locator("#reviewCard h2").evaluate((node) => node.getBoundingClientRect().top);
+    await page.click("[data-review-order='popular']");
+    assert((await page.locator("#reviewCard h2").textContent()).trim().startsWith("Nora"), "Popularity review order did not put Nora first");
+    const historyTitleTop = await page.locator("#reviewCard h2").evaluate((node) => node.getBoundingClientRect().top);
+    assert(Math.abs(identityTitleTop - historyTitleTop) <= 1, `Review names are not top-aligned across data profiles: ${identityTitleTop} vs ${historyTitleTop}`);
+    await page.evaluate(() => { Math.random = () => 0; });
+    await page.click("[data-review-order='shuffle']");
+    assert(await page.locator("[data-review-order='shuffle']").getAttribute("aria-pressed") === "true", "Shuffle review order did not activate");
+    assert(await page.evaluate(() => localStorage.getItem("navnestatistikk:reviewOrder:v1")) === "shuffle", "Review order was not persisted");
+    await page.click("[data-review-order='alpha']");
+    assert((await page.locator("#reviewCard h2").textContent()).trim().startsWith("Bjartmar"), "Returning to alphabetical review order failed");
 
     const firstCard = await page.locator("#reviewCard").boundingBox();
     const firstName = await page.locator("#reviewCard h2").textContent();
@@ -259,8 +273,12 @@ try {
       reject: document.querySelector("#reviewReject").classList.contains("is-swipe-active"),
       shortlist: document.querySelector("#reviewShortlist").classList.contains("is-swipe-active"),
     }));
-    assert(Number.parseFloat(neutralSwipe.y) > 0 && Number.parseFloat(neutralSwipe.y) < 54, `Review card did not follow the controlled downward curve: ${neutralSwipe.y}`);
+    assert(Number.parseFloat(neutralSwipe.y) > 0 && Number.parseFloat(neutralSwipe.y) < 10, `Review card did not start on a gentle downward curve: ${neutralSwipe.y}`);
     assert(!neutralSwipe.reject && !neutralSwipe.shortlist, "Neutral swipe activated a review action");
+    await page.mouse.move(firstCard.x + firstCard.width / 2 + 160, firstCard.y + firstCard.height / 2 + 150, { steps: 3 });
+    const extendedCurveY = Number.parseFloat(await page.locator("#reviewCard").evaluate((node) => node.style.getPropertyValue("--swipe-y")));
+    assert(extendedCurveY > Number.parseFloat(neutralSwipe.y) * 8, `Review curve flattened instead of continuing downward: ${neutralSwipe.y} -> ${extendedCurveY}`);
+    await page.mouse.move(firstCard.x + firstCard.width / 2 + 40, firstCard.y + firstCard.height / 2 + 150, { steps: 3 });
     await page.mouse.up();
     await page.waitForTimeout(180);
     assert((await page.locator("#reviewCard h2").textContent()) === firstName, "Neutral middle zone accepted an ambiguous swipe");

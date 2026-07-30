@@ -3,7 +3,8 @@ const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
 const SCHOOL_STORAGE_KEY = "navnestatistikk:schoolSettings:v1";
-const SW_VERSION = "2026-07-30.5";
+const REVIEW_ORDER_STORAGE_KEY = "navnestatistikk:reviewOrder:v1";
+const SW_VERSION = "2026-07-30.6";
 const MAX_COMPARE_ITEMS = 12;
 const REVIEW_SWIPE_DISTANCE = 76;
 const REVIEW_EDGE_FLICK_DISTANCE = 36;
@@ -51,6 +52,7 @@ const state = {
     index: 0,
     undo: [],
     swiping: false,
+    order: "alpha",
   },
   candidateRows: [],
   subscreenMode: "default",
@@ -133,6 +135,9 @@ function bindChrome() {
   $("#reviewUndo")?.addEventListener("click", undoDecision);
   $("#reviewBack")?.addEventListener("click", undoDecision);
   $("#reviewMenu")?.addEventListener("click", () => openNameList("work"));
+  $$("[data-review-order]").forEach((button) => {
+    button.addEventListener("click", () => setReviewOrder(button.dataset.reviewOrder));
+  });
   bindReviewSwipe();
   $("#openBackup")?.addEventListener("click", openBackup);
   $("#openHistory")?.addEventListener("click", openHistory);
@@ -207,6 +212,8 @@ function loadLocalState() {
   } catch {
     state.school = { gradeSize: 100, grades: 7, birthYear: 2025 };
   }
+  const reviewOrder = localStorage.getItem(REVIEW_ORDER_STORAGE_KEY);
+  if (["alpha", "shuffle", "popular"].includes(reviewOrder)) state.review.order = reviewOrder;
 }
 
 function saveStatus() {
@@ -1627,6 +1634,12 @@ function renderReview() {
   $("#reviewCounter").textContent = state.review.deck.length ? `${Math.min(state.review.index + 1, state.review.deck.length)} av ${state.review.deck.length}` : "0 av 0";
   const card = $("#reviewCard");
   resetReviewSwipe(card);
+  $(".reviewOrder").hidden = !item;
+  $$("[data-review-order]").forEach((button) => {
+    const active = button.dataset.reviewOrder === state.review.order;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
   $(".reviewActions").hidden = !item;
   if (!item) {
     card.innerHTML = `
@@ -1660,6 +1673,7 @@ function renderReview() {
           <strong>Store norske leksikon</strong>
         </div>
       </section>
+      <p class="reviewSwipeGuide" aria-hidden="true"><span>←</span> Sveip <span>→</span></p>
     `;
     bindSubscreenButtons(card);
     return;
@@ -1680,6 +1694,7 @@ function renderReview() {
       <span><small>Toppår</small><b>${item.peakYear}</b><em>${formatNumber(item.peakCount)} fødte</em></span>
     </div>
     ${schoolCardMarkup(item)}
+    <p class="reviewSwipeGuide" aria-hidden="true"><span>←</span> Sveip <span>→</span></p>
   `;
   bindSubscreenButtons(card);
 }
@@ -1720,12 +1735,10 @@ function moveReviewSwipe(event) {
   const card = event.currentTarget;
   reviewSwipe.dx = event.clientX - reviewSwipe.startX;
   reviewSwipe.dy = event.clientY - reviewSwipe.startY;
-  const distance = Math.abs(reviewSwipe.dx);
-  const curvedY = Math.min(54, 38 * Math.pow(distance / REVIEW_SWIPE_DISTANCE, 2));
-  const rotation = Math.max(-9, Math.min(9, reviewSwipe.dx / 24));
-  card.style.setProperty("--swipe-x", `${reviewSwipe.dx}px`);
-  card.style.setProperty("--swipe-y", `${curvedY}px`);
-  card.style.setProperty("--swipe-rotate", `${rotation}deg`);
+  const pose = reviewSwipePose(reviewSwipe.dx);
+  card.style.setProperty("--swipe-x", `${pose.x}px`);
+  card.style.setProperty("--swipe-y", `${pose.y}px`);
+  card.style.setProperty("--swipe-rotate", `${pose.rotation}deg`);
   const direction = reviewSwipeDecision(event.clientX);
   card.classList.toggle("hintShortlist", direction === 1);
   card.classList.toggle("hintReject", direction === -1);
@@ -1747,8 +1760,9 @@ function endReviewSwipe(event) {
   if (!reviewSwipe.active || event.pointerId !== reviewSwipe.pointerId) return;
   const direction = reviewSwipeDecision(event.clientX);
   const status = direction > 0 ? "shortlist" : "rejected";
+  const releaseDistance = Math.abs(reviewSwipe.dx);
   cancelReviewSwipe(event);
-  if (direction) commitReviewDecision(status, direction);
+  if (direction) commitReviewDecision(status, direction, releaseDistance);
 }
 
 function cancelReviewSwipe(event) {
@@ -1765,6 +1779,7 @@ function resetReviewSwipe(card = $("#reviewCard")) {
   updateReviewActionState(0);
   updateReviewSwipeHint(0);
   if (!card) return;
+  card.getAnimations?.().forEach((animation) => animation.cancel());
   card.classList.remove("is-swiping", "hintShortlist", "hintReject", "swipeShortlist", "swipeReject");
   card.style.removeProperty("--swipe-x");
   card.style.removeProperty("--swipe-y");
@@ -1777,6 +1792,20 @@ function updateReviewActionState(direction) {
   $("#reviewShortlist")?.classList.toggle("is-swipe-active", direction > 0);
 }
 
+function reviewSwipePose(horizontalDistance, forcedDirection = 0) {
+  const direction = forcedDirection || Math.sign(horizontalDistance) || 1;
+  const radiusX = Math.max(document.documentElement.clientWidth * 1.06, 360);
+  const radiusY = radiusX * 0.92;
+  const distance = Math.min(Math.abs(horizontalDistance), radiusX * 0.999);
+  const angle = Math.asin(distance / radiusX);
+  return {
+    x: direction * distance,
+    y: radiusY * (1 - Math.cos(angle)),
+    rotation: direction * Math.min(18, (angle * 180 / Math.PI) * 0.28),
+    radiusX,
+  };
+}
+
 function updateReviewSwipeHint(dx) {
   const hint = $("#reviewSwipeHint");
   if (!hint) return;
@@ -1787,7 +1816,7 @@ function updateReviewSwipeHint(dx) {
   hint.textContent = dx > 32 ? "Aktuelt" : dx < -32 ? "Uaktuelt" : "";
 }
 
-function commitReviewDecision(status, direction) {
+function commitReviewDecision(status, direction, releaseDistance = 0) {
   if (state.review.swiping) return;
   const card = $("#reviewCard");
   if (!card || !currentReviewItem()) return;
@@ -1795,21 +1824,47 @@ function commitReviewDecision(status, direction) {
   card.classList.remove("hintShortlist", "hintReject");
   card.classList.add(status === "shortlist" ? "swipeShortlist" : "swipeReject");
   updateReviewActionState(direction);
-  card.style.setProperty("--swipe-x", `${direction * 170}vw`);
-  card.style.setProperty("--swipe-y", "10vh");
-  card.style.setProperty("--swipe-rotate", `${direction * 18}deg`);
-  card.style.opacity = "0";
+  const start = Math.min(releaseDistance, reviewSwipePose(0).radiusX * 0.98);
+  const frames = Array.from({ length: 13 }, (_, index) => {
+    const offset = index / 12;
+    const radiusX = reviewSwipePose(0).radiusX;
+    const pose = reviewSwipePose(start + (radiusX - start) * offset, direction);
+    return {
+      offset,
+      transform: `translate(${pose.x}px, ${pose.y}px) rotate(${pose.rotation}deg)`,
+      opacity: offset < 0.72 ? 1 : 1 - (offset - 0.72) / 0.28,
+    };
+  });
+  card.animate?.(frames, { duration: 240, easing: "cubic-bezier(.35, 0, .8, 1)", fill: "forwards" });
   setTimeout(() => {
     state.review.swiping = false;
     decideCurrent(status);
-  }, 180);
+  }, 240);
 }
 
 function ensureReviewDeck() {
   if (state.review.deck.length && state.review.index < state.review.deck.length) return;
-  const work = workItems();
-  state.review.deck = work.map((item) => item.id);
+  state.review.deck = orderedReviewItems(workItems()).map((item) => item.id);
   state.review.index = 0;
+}
+
+function orderedReviewItems(items) {
+  const ordered = [...items];
+  if (state.review.order === "alpha") return ordered.sort((a, b) => a.name.localeCompare(b.name, "no"));
+  if (state.review.order === "popular") return ordered.sort((a, b) => latestCount(b) - latestCount(a) || a.name.localeCompare(b.name, "no"));
+  for (let index = ordered.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [ordered[index], ordered[swapIndex]] = [ordered[swapIndex], ordered[index]];
+  }
+  return ordered;
+}
+
+function setReviewOrder(order) {
+  if (!["alpha", "shuffle", "popular"].includes(order) || state.review.swiping) return;
+  state.review.order = order;
+  localStorage.setItem(REVIEW_ORDER_STORAGE_KEY, order);
+  resetReviewDeck();
+  renderReview();
 }
 
 function currentReviewItem() {

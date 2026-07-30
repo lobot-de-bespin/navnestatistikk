@@ -157,11 +157,15 @@ try {
         boys: data.names.filter((item) => item.sex === "gutt").length,
         enriched: data.names.filter((item) => item.coverage?.populationSeries).length,
         invalidPopulationOnly: data.names.filter((item) => item.coverage?.populationSeries && !item.coverage?.birthSeries).length,
+        snlBoys: data.names.filter((item) => item.sourceRefs?.includes("snl-4024")).length,
+        snlGirls: data.names.filter((item) => item.sourceRefs?.includes("snl-4025")).length,
+        snlOnly: data.names.filter((item) => item.sourceRefs?.some((source) => source.startsWith("snl-")) && !item.coverage?.birthSeries).length,
       };
     });
-    assert(catalogue.names === 1974 && catalogue.boys === 932, `Population enrichment changed the birth catalogue: ${JSON.stringify(catalogue)}`);
+    assert(catalogue.names === 6007 && catalogue.boys === 2870, `SNL catalogue merge produced unexpected counts: ${JSON.stringify(catalogue)}`);
     assert(catalogue.enriched > 1900, `Too few birth names were enriched: ${catalogue.enriched}`);
     assert(catalogue.invalidPopulationOnly === 0, `Population-only names leaked into the catalogue: ${catalogue.invalidPopulationOnly}`);
+    assert(catalogue.snlBoys === 2728 && catalogue.snlGirls === 3046 && catalogue.snlOnly === 4033, `SNL overview names were not merged cleanly: ${JSON.stringify(catalogue)}`);
     await page.click("#subBack");
     assert((await page.locator("#searchViewInput").inputValue()) === "Nora", "Search state was not restored after detail");
 
@@ -171,12 +175,20 @@ try {
     await page.selectOption(".filterRule [data-rule-prop='type']", "gender");
     await page.selectOption(".filterRule [data-rule-prop='value']", "gutt");
     const boyCount = Number((await page.locator("#searchResultTitle").textContent()).replace(/\D/g, ""));
-    assert(boyCount === 932, `Expected 932 boy names, got ${boyCount}`);
+    assert(boyCount === 2870, `Expected 2870 boy names, got ${boyCount}`);
 
     await page.click("#addSearchRule");
     const secondRule = page.locator(".filterRule").nth(1);
-    await secondRule.locator("[data-rule-prop='op']").selectOption("starts");
-    await secondRule.locator("[data-rule-prop='value']").fill("A");
+    await secondRule.locator("[data-rule-prop='type']").selectOption("dataset");
+    assert(Number((await page.locator("#searchResultTitle").textContent()).replace(/\D/g, "")) === 932, "SSB dataset filter did not isolate birth names");
+    await secondRule.locator("[data-rule-prop='value']").selectOption("snl-4024");
+    assert(Number((await page.locator("#searchResultTitle").textContent()).replace(/\D/g, "")) === 2728, "SNL dataset filter did not isolate the boys overview");
+    await secondRule.locator("[data-rule-action='remove']").click();
+
+    await page.click("#addSearchRule");
+    const nameRule = page.locator(".filterRule").nth(1);
+    await nameRule.locator("[data-rule-prop='op']").selectOption("starts");
+    await nameRule.locator("[data-rule-prop='value']").fill("A");
     const aBoyCount = Number((await page.locator("#searchResultTitle").textContent()).replace(/\D/g, ""));
     assert(aBoyCount > 0 && aBoyCount < boyCount, `AND rule did not narrow boy names: ${aBoyCount} of ${boyCount}`);
 
@@ -198,9 +210,9 @@ try {
     await page.locator(".filterRule").nth(2).locator("[data-rule-prop='value']").fill("r$");
     await page.locator(".filterRemove").last().click();
     await page.locator(".filterRemove").last().click();
-    assert(Number((await page.locator("#searchResultTitle").textContent()).replace(/\D/g, "")) === 932, "Removing rules did not restore the gender result set");
+    assert(Number((await page.locator("#searchResultTitle").textContent()).replace(/\D/g, "")) === 2870, "Removing rules did not restore the gender result set");
     await page.click("#reviewAllSearchResults");
-    assert((await page.locator("#reviewCounter").textContent()) === "1 av 932", "Bulk review did not retain complete result set");
+    assert((await page.locator("#reviewCounter").textContent()) === "1 av 2870", "Bulk review did not retain complete result set");
     assert(errors.length === 0, `Search JS errors: ${errors.join("; ")}`);
     await context.close();
   }

@@ -3,7 +3,7 @@ const WORK_STORAGE_KEY = "navnestatistikk:workSelection:v2";
 const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
 const SCHOOL_STORAGE_KEY = "navnestatistikk:schoolSettings:v1";
-const SW_VERSION = "2026-07-29.3";
+const SW_VERSION = "2026-07-30.1";
 const MAX_COMPARE_ITEMS = 12;
 let searchRuleCounter = 0;
 
@@ -1203,6 +1203,7 @@ function openSearchView() {
 function createSearchRule(type = "name", overrides = {}) {
   const defaults = {
     gender: { op: "equals", value: "jente", value2: "" },
+    dataset: { op: "equals", value: "ssb-10467", value2: "" },
     name: { op: "contains", value: "", value2: "" },
     birthPeriod: { op: "between", value: "1980", value2: "1999" },
     latestCount: { op: "lte", value: "25", value2: "" },
@@ -1236,6 +1237,7 @@ function searchRuleMarkup(rule, index) {
   const fieldOptions = [
     ["name", "Navnetekst"],
     ["gender", "Navnetype"],
+    ["dataset", "Datasett"],
     ["birthPeriod", "Fødselstall i periode"],
     ["latestCount", `Nyfødte i ${state.latestYear}`],
     ["latestRank", `Rangering i ${state.latestYear}`],
@@ -1269,6 +1271,15 @@ function searchRuleConditionMarkup(rule) {
       <select data-rule-prop="value" aria-label="Navnetype">
         <option value="jente" ${rule.value === "jente" ? "selected" : ""}>Jentenavn</option>
         <option value="gutt" ${rule.value === "gutt" ? "selected" : ""}>Guttenavn</option>
+      </select>
+    `;
+  }
+  if (rule.type === "dataset") {
+    const sources = Object.entries(state.data?.meta?.sourceCatalog || {});
+    return `
+      <span class="filterOperatorText">finnes i</span>
+      <select data-rule-prop="value" aria-label="Datasett">
+        ${sources.map(([id, source]) => `<option value="${escapeHtml(id)}" ${rule.value === id ? "selected" : ""}>${escapeHtml(source.label || id)}</option>`).join("")}
       </select>
     `;
   }
@@ -1384,7 +1395,7 @@ function searchRuleError(rule) {
 
 function searchRuleReady(rule) {
   if (!rule || searchRuleError(rule)) return false;
-  if (rule.type === "gender") return Boolean(rule.value);
+  if (rule.type === "gender" || rule.type === "dataset") return Boolean(rule.value);
   if (rule.type === "name") return Boolean(rule.value.trim());
   if (rule.type === "birthPeriod") {
     return String(rule.value).trim() !== "" && String(rule.value2).trim() !== "" && Number.isFinite(Number(rule.value)) && Number.isFinite(Number(rule.value2));
@@ -1404,6 +1415,7 @@ function compareRuleNumber(value, rule) {
 function searchRuleMatches(item, rule) {
   let matches = true;
   if (rule.type === "gender") matches = item.sex === rule.value;
+  if (rule.type === "dataset") matches = item.sourceRefs?.includes(rule.value) || false;
   if (rule.type === "name") {
     const name = normalize(item.name);
     const value = normalize(rule.value);
@@ -1511,7 +1523,7 @@ function renderSearchResults() {
 
 function searchScopeLabel() {
   const ready = state.filters.rules.filter(searchRuleReady).length;
-  return `fødselstall${ready ? ` · ${formatNumber(ready)} ${ready === 1 ? "filter" : "filtre"}` : ""}`;
+  return `navnekatalog${ready ? ` · ${formatNumber(ready)} ${ready === 1 ? "filter" : "filtre"}` : ""}`;
 }
 
 function openCandidateBuilder(rows = filteredRows(), title = "Alle treff", subtitle = "Hele trefflisten") {
@@ -2395,7 +2407,7 @@ function sourceListMarkup(item) {
     <section class="subCard sourceNote">
       <h3>Kilder og datagrunnlag</h3>
       <div class="sourceLinks">
-        ${sources.map((source) => `<a href="${escapeHtml(source.url)}" target="_blank" rel="noopener"><strong>${escapeHtml(source.label)}</strong><small>${escapeHtml(source.publisher || "")} · ${escapeHtml(source.license || "")}</small></a>`).join("")}
+        ${sources.map((source) => `<a href="${escapeHtml(source.url)}" target="_blank" rel="noopener"><strong>${escapeHtml(source.label)}</strong><small>${escapeHtml([source.publisher, source.license].filter(Boolean).join(" · "))}</small></a>`).join("")}
       </div>
     </section>
   `;

@@ -27,6 +27,9 @@ Datakilder:
   eller påvirke fødselstrend, forslag eller skoleestimat.
 - SSB tabell 05803: Levendefødte i alt.
 - SSB tabell 09745: Levendefødte etter kjønn fra 1986.
+- Store norske leksikons samleoversikter for guttenavn og jentenavn: tilfører
+  bare navn og kjønnstilknytning. Artikkeltekst, etymologi og andre
+  opplysninger hentes ikke.
 
 Bygg data lokalt:
 

@@ -3,11 +3,15 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
+import re
+import unicodedata
 import urllib.error
 import urllib.request
 from collections import defaultdict
 from datetime import UTC, datetime
+from html.parser import HTMLParser
 from pathlib import Path
 
 
@@ -21,6 +25,18 @@ NAME_TABLE = "10467"
 POPULATION_NAMES_TABLE = "10501"
 BIRTHS_TABLE = "05803"
 SEX_BIRTHS_TABLE = "09745"
+SNL_NAME_TAXONOMIES = {
+    "gutt": {
+        "id": "snl-4024",
+        "label": "SNL · guttenavn",
+        "url": "https://snl.no/.taxonomy/4024",
+    },
+    "jente": {
+        "id": "snl-4025",
+        "label": "SNL · jentenavn",
+        "url": "https://snl.no/.taxonomy/4025",
+    },
+}
 SOURCE_CATALOG = {
     "ssb-10467": {
         "label": "Navn brukt på nyfødte",
@@ -35,6 +51,15 @@ SOURCE_CATALOG = {
         "url": f"https://www.ssb.no/statbank/table/{POPULATION_NAMES_TABLE}/",
         "license": "CC BY 4.0",
         "provides": ["populationSeries"],
+    },
+    **{
+        source["id"]: {
+            "label": source["label"],
+            "publisher": "Store norske leksikon",
+            "url": source["url"],
+            "provides": ["identity", "gender", "norwayUse"],
+        }
+        for source in SNL_NAME_TAXONOMIES.values()
     },
 }
 
@@ -52,6 +77,80 @@ def request_json(url: str, payload: dict | None = None) -> dict:
     except urllib.error.HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace")
         raise RuntimeError(f"HTTP {exc.code} from {url}: {body[:500]}") from exc
+
+
+def request_text(url: str) -> str:
+    req = urllib.request.Request(url, headers={"User-Agent": "lobot-navnestatistikk/1.0"})
+    try:
+        with urllib.request.urlopen(req, timeout=120) as response:
+            return response.read().decode("utf-8")
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"HTTP {exc.code} from {url}: {body[:500]}") from exc
+
+
+class SnlTaxonomyParser(HTMLParser):
+    """Extract only article titles from an SNL taxonomy overview."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.taxonomy_depth = 0
+        self.current_title: list[str] | None = None
+        self.titles: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attributes = dict(attrs)
+        classes = (attributes.get("class") or "").split()
+        if tag == "div" and "l-taxonomy__article-list" in classes:
+            self.taxonomy_depth = 1
+        elif tag == "div" and self.taxonomy_depth:
+            self.taxonomy_depth += 1
+        if tag == "a" and self.taxonomy_depth and "link-list__link" in classes:
+            self.current_title = []
+
+    def handle_data(self, data: str) -> None:
+        if self.current_title is not None:
+            self.current_title.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "a" and self.current_title is not None:
+            self.titles.append("".join(self.current_title).strip())
+            self.current_title = None
+        if tag == "div" and self.taxonomy_depth:
+            self.taxonomy_depth -= 1
+
+
+def clean_snl_name(title: str) -> str:
+    return re.sub(
+        r"\s+\((?:mannsnavn|mannsnamn|kvinnenavn|kvinnenamn|navn)\)\s*$",
+        "",
+        title,
+        flags=re.IGNORECASE,
+    ).strip()
+
+
+def fetch_snl_names() -> dict[str, list[str]]:
+    names_by_sex = {}
+    for sex, source in SNL_NAME_TAXONOMIES.items():
+        parser = SnlTaxonomyParser()
+        parser.feed(request_text(source["url"]))
+        names = sorted(
+            {clean_snl_name(title) for title in parser.titles if clean_snl_name(title)},
+            key=lambda name: name.casefold(),
+        )
+        if len(names) < 1000:
+            raise RuntimeError(f"SNL taxonomy unexpectedly contained only {len(names)} {sex} names")
+        names_by_sex[sex] = names
+    return names_by_sex
+
+
+def name_identity(name: str) -> str:
+    return unicodedata.normalize("NFKC", name).casefold()
+
+
+def snl_name_id(sex: str, name: str) -> str:
+    digest = hashlib.sha1(f"{sex}\0{name_identity(name)}".encode("utf-8")).hexdigest()[:12]
+    return f"snl-{sex}-{digest}"
 
 
 def post_table(table_id: str, query: list[dict]) -> dict:
@@ -101,6 +200,8 @@ def attach_catalog_metadata(record: dict) -> None:
     source_refs = ["ssb-10467"] if record.get("series") else []
     if record.get("populationSeries"):
         source_refs.append("ssb-10501")
+    if record.get("snlListed"):
+        source_refs.append(SNL_NAME_TAXONOMIES[record["sex"]]["id"])
     record["gender"] = record["sex"]
     record["coverage"] = {
         "identity": True,
@@ -320,8 +421,27 @@ def build() -> dict:
             record["populationCount"] = row["populationCount"]
             record["populationRank"] = population_ranks[row["id"]]
 
+    snl_names = fetch_snl_names()
+    records_by_identity = {(record["sex"], name_identity(record["name"])): record for record in records}
+    for sex, names in snl_names.items():
+        for name in names:
+            identity = (sex, name_identity(name))
+            record = records_by_identity.get(identity)
+            if record is None:
+                record = {
+                    "id": snl_name_id(sex, name),
+                    "key": name,
+                    "name": name,
+                    "sex": sex,
+                    "series": [],
+                }
+                records.append(record)
+                records_by_identity[identity] = record
+            record["snlListed"] = True
+
     for record in records:
         attach_catalog_metadata(record)
+        record.pop("snlListed", None)
     records.sort(key=lambda r: (r["sex"], r["name"], r["id"]))
     payload = {
         "meta": {
@@ -339,6 +459,13 @@ def build() -> dict:
             "populationYear": int(population_year_codes[-1]),
             "populationHistoryNames": sum(1 for record in records if record.get("populationSeries")),
             "populationCurrentNames": sum(1 for record in records if record.get("populationCount") is not None),
+            "snlTaxonomies": {
+                sex: {
+                    "url": source["url"],
+                    "names": len(snl_names[sex]),
+                }
+                for sex, source in SNL_NAME_TAXONOMIES.items()
+            },
             "notes": metadata.get("note", []),
         },
         "years": years,

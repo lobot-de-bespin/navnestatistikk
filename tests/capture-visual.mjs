@@ -26,6 +26,12 @@ try {
   if (mode !== "home") {
     await page.click("#openSearchView");
     if (mode === "results") await page.fill("#searchViewInput", "e");
+    if (mode === "dataset") {
+      await page.click("#toggleSearchFilters");
+      await page.click("#addSearchRule");
+      await page.selectOption(".filterRule [data-rule-prop='type']", "dataset");
+      await page.selectOption(".filterRule [data-rule-prop='value']", "snl-4024");
+    }
     if (mode === "filters") {
       await page.click("#toggleSearchFilters");
       await page.click("#addSearchRule");

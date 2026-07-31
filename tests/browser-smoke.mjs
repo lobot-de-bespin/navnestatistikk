@@ -248,6 +248,7 @@ try {
     assert((await page.locator("#subTitle").textContent()) === "Alle navn", "All-names full list did not open");
     assert(await page.locator("#mineListRows .manageNameRow").count() === 7, "All-names full list is incomplete");
     assert(await page.locator("#mineListRows .manageNameRow .moreButton").count() === 7, "Full-list names cannot be moved between lists");
+    assert(await page.locator("[data-clear-list]").count() === 0, "All-names full list exposes a clear-all action");
     await page.locator("#mineListRows .moreButton").first().click();
     await page.locator(".listMenu [data-next='shortlist']").click();
     assert((await page.locator("[data-mine-filter='shortlist']").textContent()).includes("(2)"), "Moving a full-list name to Aktuelle failed");
@@ -259,6 +260,67 @@ try {
     await page.locator(".listMenu [data-next='neutral']").click();
     assert((await page.locator("[data-mine-filter='work']").textContent()).startsWith("Til vurdering"), "Moving a recent decision back to Til vurdering failed");
     assert(errors.length === 0, `Våre navn JS errors: ${errors.join("; ")}`);
+    await context.close();
+  }
+
+  {
+    const { context, page, errors } = await openPage();
+    await page.click("#openSearchView");
+    for (const name of ["Nora", "Noah", "Emma", "Oliver", "Alma", "Elias"]) {
+      await page.fill("#searchViewInput", name);
+      await page.locator("#searchResultList .addButton").first().click();
+    }
+    await page.click(".tabBar [data-tab='review']");
+    for (const action of ["#reviewShortlist", "#reviewShortlist", "#reviewReject", "#reviewReject"]) {
+      await page.click(action);
+      await page.waitForTimeout(380);
+    }
+    await page.click(".tabBar [data-tab='mine']");
+
+    const listState = () => page.evaluate(() => {
+      const selected = new Set(JSON.parse(localStorage.getItem("navnestatistikk:workSelection:v2") || "[]"));
+      const status = JSON.parse(localStorage.getItem("navnestatistikk:nameStatus:v1") || "{}");
+      return {
+        work: [...selected].filter((id) => !status[id]).sort(),
+        shortlist: Object.keys(status).filter((id) => status[id] === "shortlist").sort(),
+        rejected: Object.keys(status).filter((id) => status[id] === "rejected").sort(),
+      };
+    });
+    const before = await listState();
+    assert(before.work.length === 2 && before.shortlist.length === 2 && before.rejected.length === 2, `Clear-list setup failed: ${JSON.stringify(before)}`);
+
+    await page.click("[data-mine-filter='work']");
+    await page.click("#openMineList");
+    assert(await page.locator("[data-clear-list='work']").isVisible(), "Til vurdering clear action is not visible at the top of the full list");
+    const clearTop = await page.locator("[data-clear-list='work']").evaluate((node) => node.getBoundingClientRect().top);
+    const firstRowTop = await page.locator("#mineListRows .manageNameRow").first().evaluate((node) => node.getBoundingClientRect().top);
+    assert(clearTop < firstRowTop, "Til vurdering clear action is still below the list rows");
+    page.once("dialog", (dialog) => dialog.dismiss());
+    await page.click("[data-clear-list='work']");
+    assert(JSON.stringify(await listState()) === JSON.stringify(before), "Dismissed confirmation changed a list");
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.click("[data-clear-list='work']");
+    const afterWork = await listState();
+    assert(afterWork.work.length === 0, "Til vurdering was not emptied");
+    assert(JSON.stringify(afterWork.shortlist) === JSON.stringify(before.shortlist) && JSON.stringify(afterWork.rejected) === JSON.stringify(before.rejected), "Emptying Til vurdering changed another list");
+
+    await page.click("[data-mine-filter='shortlist']");
+    await page.click("#openMineList");
+    assert(await page.locator("[data-clear-list='shortlist']").isVisible(), "Aktuelle clear action is missing");
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.click("[data-clear-list='shortlist']");
+    const afterShortlist = await listState();
+    assert(afterShortlist.shortlist.length === 0, "Aktuelle was not emptied");
+    assert(afterShortlist.work.length === 0 && JSON.stringify(afterShortlist.rejected) === JSON.stringify(before.rejected), "Emptying Aktuelle changed another list");
+
+    await page.click("[data-mine-filter='rejected']");
+    await page.click("#openMineList");
+    assert(await page.locator("[data-clear-list='rejected']").isVisible(), "Uaktuelle clear action is missing");
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.click("[data-clear-list='rejected']");
+    const afterRejected = await listState();
+    assert(afterRejected.work.length === 0 && afterRejected.shortlist.length === 0 && afterRejected.rejected.length === 0, `Uaktuelle was not emptied cleanly: ${JSON.stringify(afterRejected)}`);
+    assert(errors.length === 0, `Clear-list JS errors: ${errors.join("; ")}`);
     await context.close();
   }
 

@@ -4,7 +4,7 @@ const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
 const SCHOOL_STORAGE_KEY = "navnestatistikk:schoolSettings:v1";
 const REVIEW_ORDER_STORAGE_KEY = "navnestatistikk:reviewOrder:v1";
-const SW_VERSION = "2026-07-31.1";
+const SW_VERSION = "2026-07-31.2";
 const MAX_COMPARE_ITEMS = 12;
 const REVIEW_SWIPE_DISTANCE = 76;
 const REVIEW_EDGE_FLICK_DISTANCE = 36;
@@ -2006,8 +2006,8 @@ function openNameList(kind) {
   openSubscreen(title, `
     <p class="subLead">${kind === "all" ? "Alle navn dere har samlet, sortert etter status." : kind === "work" ? "Navn som venter på vurdering. Sammenlign dem med data, eller gå gjennom dem ett og ett." : kind === "shortlist" ? "Navn som fortsatt kjennes aktuelle." : "Navn som er valgt bort."}</p>
     <div class="sectionRow"><h3>${formatNumber(rows.length)} navn</h3><button id="listPrimaryAction" type="button">${kind === "work" || kind === "all" ? "Sammenlign" : "Del liste"}</button></div>
-    <div id="mineListRows" class="nameRows"></div>
     ${rows.length && kind !== "all" ? `<button class="secondaryWide" data-clear-list="${kind}" type="button">${kind === "work" ? "Tøm navn til vurdering" : kind === "shortlist" ? "Tøm aktuelle" : "Tøm uaktuelle"}</button>` : ""}
+    <div id="mineListRows" class="nameRows"></div>
   `);
   $("#mineListRows").replaceChildren(...rows.map((item) => listManageRow(item, itemStatusKind(item))));
   $("#listPrimaryAction").addEventListener("click", () => {
@@ -2027,18 +2027,17 @@ function workItems() {
 function clearNameList(kind) {
   const rows = kind === "work" ? workItems() : itemsWithStatus(kind);
   if (!rows.length) return;
-  if (kind === "work") {
-    rows.forEach((item) => state.selected.delete(item.id));
-  } else {
-    rows.forEach((item) => {
-      delete state.status[item.id];
-      state.selected.add(item.id);
-    });
-    state.history = state.history.filter((entry) => state.status[entry.id]);
-    saveStatus();
-  }
+  const label = kind === "work" ? "Til vurdering" : kind === "shortlist" ? "Aktuelle" : "Uaktuelle";
+  if (!window.confirm(`Tømme «${label}»? ${formatNumber(rows.length)} navn fjernes fra Våre navn. Dette kan ikke angres.`)) return;
+  const ids = new Set(rows.map((item) => item.id));
+  ids.forEach((id) => {
+    state.selected.delete(id);
+    delete state.status[id];
+  });
+  state.history = state.history.filter((entry) => !ids.has(entry.id));
   resetReviewDeck();
   saveWorkSelection();
+  saveStatus();
   closeSubscreen();
   renderAll();
   updateUrl();

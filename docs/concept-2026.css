@@ -994,13 +994,42 @@ body {
 .manageNameRow:nth-child(2n),
 .manageNameRow:nth-child(3n),
 .manageNameRow:nth-child(4n) {
+  grid-template-columns: 43px minmax(0, 1fr) 76px 36px;
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  row-gap: 1px;
   min-height: 70px;
   background: #fffdf9;
 }
 
 .manageNameRow .rank {
+  grid-row: 1 / 3;
   background: #eaf3fb;
   color: #5994b8;
+}
+
+.manageNameRow .nameMain {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
+}
+
+.manageNameRow .spark {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.manageNameRow .manageMeta {
+  grid-column: 2 / 4;
+  grid-row: 2;
+  min-width: 0;
+  overflow: visible;
+  color: #80766c;
+  font-size: 0.61rem;
+  font-weight: 670;
+  line-height: 1.22;
+  text-overflow: clip;
+  white-space: normal;
 }
 
 .manageNameRow.status-shortlist .rank {
@@ -1020,6 +1049,7 @@ body {
 
 .manageNameRow .moreButton {
   grid-column: 4;
+  grid-row: 1 / 3;
   width: 32px;
   height: 32px;
   border-radius: 50%;

@@ -290,6 +290,20 @@ try {
     assert((await page.locator("#view-mine h1").textContent()) === "Våre navn", "Våre navn heading is missing");
     assert((await page.locator(".tabBar [data-tab='mine'] span").textContent()) === "Våre navn", "Våre navn tab label is missing");
     assert(await page.locator("#minePreview .manageNameRow").count() === 5, "Våre navn overview does not use the shorter five-name preview");
+    const manageMetadata = await page.locator("#minePreview .manageNameRow .manageMeta").evaluateAll((nodes) => nodes.map((node) => {
+      const rect = node.getBoundingClientRect();
+      const rowRect = node.closest(".manageNameRow").getBoundingClientRect();
+      return {
+        text: node.textContent,
+        clientWidth: node.clientWidth,
+        scrollWidth: node.scrollWidth,
+        clientHeight: node.clientHeight,
+        scrollHeight: node.scrollHeight,
+        insideRow: rect.left >= rowRect.left && rect.right <= rowRect.right && rect.top >= rowRect.top && rect.bottom <= rowRect.bottom,
+      };
+    }));
+    assert(manageMetadata.length === 5, `Våre navn metadata is missing: ${JSON.stringify(manageMetadata)}`);
+    assert(manageMetadata.every((meta) => !meta.text.includes("…") && meta.scrollWidth <= meta.clientWidth + 1 && meta.scrollHeight <= meta.clientHeight + 1 && meta.insideRow), `Våre navn metadata is clipped: ${JSON.stringify(manageMetadata)}`);
     assert((await page.locator("#openMineList").textContent()) === "Se alle (7)", "All-names full-list action has the wrong count");
     assert(await page.locator("#recentDecisions .decisionRow .moreButton").count() === 2, "Recent decisions cannot be moved between lists");
 

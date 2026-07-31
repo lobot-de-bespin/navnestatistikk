@@ -2056,6 +2056,8 @@ function listManageRow(item, kind) {
   rank.innerHTML = `<svg><use href="#icon-${statusMeta[0]}"></use></svg>`;
   const meta = $(".nameMain small", row);
   meta.textContent = `${statusMeta[1]} · ${meta.textContent}`;
+  meta.className = "manageMeta";
+  row.append(meta);
   $(".addButton", row).remove();
   const menu = document.createElement("button");
   menu.type = "button";

@@ -57,6 +57,18 @@ try {
         await page.mouse.move(card.x + card.width / 2 + 55, card.y + card.height / 2 + 150, { steps: 3 });
       }
     }
+    if (mode === "mine") {
+      for (const name of ["Nora", "Noah", "Emma", "Oliver", "Alma", "Elias", "Sofie"]) {
+        await page.fill("#searchViewInput", name);
+        await page.locator("#searchResultList .addButton").first().click();
+      }
+      await page.click(".tabBar [data-tab='review']");
+      await page.click("#reviewShortlist");
+      await page.waitForTimeout(380);
+      await page.click("#reviewReject");
+      await page.waitForTimeout(380);
+      await page.click(".tabBar [data-tab='mine']");
+    }
   }
   await page.screenshot({ path: output, fullPage: false });
   const metrics = await page.evaluate(() => {
@@ -67,6 +79,11 @@ try {
     const reviewCard = document.querySelector("#reviewCard")?.getBoundingClientRect();
     const reviewActions = document.querySelector("#view-review .reviewActions")?.getBoundingClientRect();
     const tabBar = document.querySelector(".tabBar")?.getBoundingClientRect();
+    const tabs = [...document.querySelectorAll(".tabBar button")].map((button) => {
+      const rect = button.getBoundingClientRect();
+      const label = button.querySelector("span");
+      return [label?.textContent, rect.left, rect.right, rect.width, label?.scrollWidth, label?.clientWidth];
+    });
     const titleStyle = getComputedStyle(document.querySelector("#subTitle"));
     return {
       viewport: [innerWidth, innerHeight],
@@ -78,6 +95,7 @@ try {
       reviewCard: reviewCard && [reviewCard.top, reviewCard.bottom, reviewCard.height],
       reviewActions: reviewActions && [reviewActions.top, reviewActions.bottom, reviewActions.height],
       tabBarTop: tabBar?.top || 0,
+      tabs,
       titleFont: [titleStyle.fontFamily, titleStyle.fontStyle, titleStyle.fontWeight],
     };
   });

@@ -4,7 +4,7 @@ const HISTORY_STORAGE_KEY = "navnestatistikk:decisionHistory:v2";
 const RECENT_STORAGE_KEY = "navnestatistikk:recentSearches:v2";
 const SCHOOL_STORAGE_KEY = "navnestatistikk:schoolSettings:v1";
 const REVIEW_ORDER_STORAGE_KEY = "navnestatistikk:reviewOrder:v1";
-const SW_VERSION = "2026-07-30.6";
+const SW_VERSION = "2026-07-31.1";
 const MAX_COMPARE_ITEMS = 12;
 const REVIEW_SWIPE_DISTANCE = 76;
 const REVIEW_EDGE_FLICK_DISTANCE = 36;
@@ -141,6 +141,7 @@ function bindChrome() {
   bindReviewSwipe();
   $("#openBackup")?.addEventListener("click", openBackup);
   $("#openHistory")?.addEventListener("click", openHistory);
+  $("#openMineList")?.addEventListener("click", () => openNameList(state.mineFilter));
   $$("[data-open-list]").forEach((button) => {
     button.addEventListener("click", () => openNameList(button.dataset.openList));
   });
@@ -309,9 +310,9 @@ function workflowCounts() {
 function workflowSummaryMarkup(counts) {
   return `
     <div class="workflowCounts" aria-label="Status">
-      <span><b>${formatNumber(counts.work)}</b><small>Valgt</small></span>
-      <span><b>${formatNumber(counts.shortlist)}</b><small>Akt.</small></span>
-      <span><b>${formatNumber(counts.rejected)}</b><small>Ute</small></span>
+      <span><b>${formatNumber(counts.work)}</b><small>Til vurdering</small></span>
+      <span><b>${formatNumber(counts.shortlist)}</b><small>Aktuelle</small></span>
+      <span><b>${formatNumber(counts.rejected)}</b><small>Uaktuelle</small></span>
     </div>
   `;
 }
@@ -320,7 +321,7 @@ function workflowPathMarkup(active) {
   const steps = [
     ["explore", "Oppdag", "Start bredt"],
     ["compare", "Sammenlign", "Se mønstre"],
-    ["review", "Vurder", "Velg shortlist"],
+    ["review", "Vurder", "Finn aktuelle"],
   ];
   return `
     <div class="workflowPath" aria-label="Arbeidsflyt">
@@ -347,8 +348,8 @@ function renderWorkflowCards() {
   const compare = $("#compareWorkflow");
   if (compare) {
     compare.innerHTML = counts.work
-      ? `${workflowPathMarkup("compare")}${workflowSummaryMarkup(counts)}<button class="workflowCta" data-go-tab="review" type="button">Vurder valgte</button>`
-      : `${workflowPathMarkup("compare")}<section class="taskPrompt"><strong>Legg inn navn først</strong><small>Søk etter et navn, eller bruk forslagene for å fylle utvalget.</small><button data-go-tab="explore" type="button">Oppdag navn</button></section>`;
+      ? `${workflowPathMarkup("compare")}${workflowSummaryMarkup(counts)}<button class="workflowCta" data-go-tab="review" type="button">Vurder navn</button>`
+      : `${workflowPathMarkup("compare")}<section class="taskPrompt"><strong>Legg inn navn først</strong><small>Søk etter et navn, eller bruk forslagene for å finne navn til vurdering.</small><button data-go-tab="explore" type="button">Oppdag navn</button></section>`;
   }
   const mine = $("#mineWorkflow");
   if (mine) {
@@ -414,8 +415,8 @@ function renderExploreStarter() {
     panel.innerHTML = `
       <div class="heroArt chart" aria-hidden="true"></div>
       <div class="lensCopy">
-        <small>Utvalget</small>
-        <strong>${formatNumber(workItems().length)} navn å kjenne på</strong>
+        <small>Til vurdering</small>
+        <strong>${formatNumber(workItems().length)} navn</strong>
         <span>${work.map((item) => escapeHtml(item.name)).join(", ")}${workItems().length > work.length ? " ..." : ""}</span>
       </div>
       <div class="selectedNameRail">
@@ -448,7 +449,7 @@ function addCandidateRowsToWork(rows, startReview = false) {
   resetReviewDeck();
   saveWorkSelection();
   saveStatus();
-  toast(`${formatNumber(rows.length)} navn lagt til i utvalget`);
+  toast(`${formatNumber(rows.length)} navn lagt til for vurdering`);
   closeSubscreen();
   renderAll();
   updateUrl();
@@ -601,7 +602,7 @@ function discoveryNameCard(item, metric) {
       <small>${escapeHtml(metric)}</small>
       <span class="discoveryMiniChart">${hasHistory(item) ? sparklineSvg(item, 118, 34) : ""}</span>
     </button>
-    <button class="discoveryAdd ${selected ? "active" : ""}" type="button" aria-label="${selected ? "Fjern" : "Legg til"} ${escapeHtml(item.name)}">
+    <button class="discoveryAdd ${selected ? "active" : ""}" type="button" aria-label="${selected ? "Fjern fra vurdering" : "Legg til for vurdering"}: ${escapeHtml(item.name)}">
       <svg><use href="#icon-${selected ? "check" : "plus"}"></use></svg>
     </button>
   `;
@@ -650,7 +651,7 @@ function nameRow(item, options = {}) {
     </button>
     <span class="spark">${history ? sparklineSvg(item) : ""}</span>
     <span class="count nameScore"><b>${score == null ? "–" : formatNumber(score)}</b><small>${scoreLabel}</small></span>
-    <button class="addButton ${selected ? "active" : ""}" type="button" aria-label="${selected ? "Valgt, trykk for å fjerne" : "Legg til"} ${escapeHtml(item.name)}">
+    <button class="addButton ${selected ? "active" : ""}" type="button" aria-label="${selected ? "Fjern fra vurdering" : "Legg til for vurdering"}: ${escapeHtml(item.name)}">
       <svg><use href="#icon-${selected ? "check" : "plus"}"></use></svg>
     </button>
   `;
@@ -665,7 +666,7 @@ function nameRow(item, options = {}) {
 function toggleWorkSelection(item) {
   if (!item) return;
   if (state.selected.has(item.id) && !state.status[item.id]) {
-    removeFromWork(item.id, `${item.name} fjernet fra listen`);
+    removeFromWork(item.id, `${item.name} fjernet fra vurdering`);
     return;
   }
   addToWork(item);
@@ -678,7 +679,7 @@ function addToWork(item) {
   resetReviewDeck();
   saveWorkSelection();
   saveStatus();
-  toast(`${item.name} lagt til i vår liste`);
+  toast(`${item.name} lagt til for vurdering`);
   renderAll();
   if (state.subscreenMode === "search") renderSearchResults();
   updateUrl();
@@ -693,7 +694,20 @@ function removeFromWork(id, message = "") {
   if (state.subscreenMode === "search") renderSearchResults();
   updateUrl();
   if (message) toast(message);
-  else if (item) toast(`${item.name} fjernet fra listen`);
+  else if (item) toast(`${item.name} fjernet fra vurdering`);
+}
+
+function removeFromNames(id) {
+  const item = state.itemsById.get(id);
+  state.selected.delete(id);
+  delete state.status[id];
+  state.history = state.history.filter((entry) => entry.id !== id);
+  resetReviewDeck();
+  saveWorkSelection();
+  saveStatus();
+  renderAll();
+  updateUrl();
+  if (item) toast(`${item.name} fjernet fra Våre navn`);
 }
 
 function applyNameStatus(id, status) {
@@ -721,7 +735,7 @@ function setNameStatus(id, status) {
   const item = state.itemsById.get(id);
   if (item) {
     const messages = {
-      neutral: `${item.name} flyttet til kandidater`,
+      neutral: `${item.name} flyttet til vurdering`,
       shortlist: `${item.name} markert som aktuell`,
       rejected: `${item.name} markert som uaktuell`,
     };
@@ -892,7 +906,7 @@ function renderChart(items) {
     chart.innerHTML = `
       <div class="emptyState">
         <h2>Ingen navn å sammenligne</h2>
-        <p>Legg til minst to kandidater for å se popularitet, trend og skoleestimat side om side.</p>
+        <p>Legg til minst to navn for vurdering for å se popularitet, trend og skoleestimat side om side.</p>
         <div class="emptyActions">
           <button data-quick-name="Nora" type="button">Nora</button>
           <button data-quick-name="Noah" type="button">Noah</button>
@@ -921,7 +935,7 @@ function renderChart(items) {
 function renderCompareStats(items) {
   const table = $("#compareStats");
   if (!items.length) {
-    table.innerHTML = `<p class="mutedEmpty">Utvalget er tomt.</p>`;
+    table.innerHTML = `<p class="mutedEmpty">Ingen navn til vurdering.</p>`;
     return;
   }
   table.replaceChildren(...items.map((item) => {
@@ -1081,7 +1095,7 @@ function detailMarkup(item) {
     ${schoolCardMarkup(item)}
     ${populationHistoryMarkup(item, latest)}
     ${sourceListMarkup(item)}
-    <button class="primaryWide" data-add="${item.id}" type="button">Legg til i vår liste</button>
+    ${detailListActionMarkup(item)}
     <button class="secondaryWide" data-similar="${item.id}" type="button">Finn lignende navn</button>
   `;
 }
@@ -1096,9 +1110,16 @@ function identityNameDetailMarkup(item) {
       <p>Vi har ikke fødselstall for dette navnet.</p>
     </section>
     ${sourceListMarkup(item)}
-    <button class="primaryWide" data-add="${item.id}" type="button">Legg til i vår liste</button>
+    ${detailListActionMarkup(item)}
     <button class="secondaryWide" data-similar="${item.id}" type="button">Finn navn med lignende skrivemåte</button>
   `;
+}
+
+function detailListActionMarkup(item) {
+  const included = state.selected.has(item.id) || Boolean(state.status[item.id]);
+  return included
+    ? `<button class="primaryWide" data-manage="${item.id}" type="button">Flytt eller fjern fra Våre navn</button>`
+    : `<button class="primaryWide" data-add="${item.id}" type="button">Legg til for vurdering</button>`;
 }
 
 function decisionSummaryMarkup(item) {
@@ -1501,7 +1522,7 @@ function renderSearchResults() {
   $("#searchResultScope").textContent = filterErrors.length ? filterErrors[0] : searchScopeLabel();
   const bulk = $("#searchBulkActions");
   bulk.innerHTML = rows.length ? `
-    <button class="primaryWide" id="addAllSearchResults" type="button">Legg alle til utvalget</button>
+    <button class="primaryWide" id="addAllSearchResults" type="button">Legg alle til for vurdering</button>
     <button class="secondaryWide" id="reviewAllSearchResults" type="button">Vurder alle</button>
   ` : "";
   $("#addAllSearchResults")?.addEventListener("click", () => addCandidateRowsToWork(rows));
@@ -1552,7 +1573,7 @@ function openCandidateBuilder(rows = filteredRows(), title = "Alle treff", subti
       <small>${escapeHtml(subtitle)}</small>
     </section>
     <div class="candidateBulkActions">
-      <button class="primaryWide" id="addAllCandidates" type="button">Legg alle til utvalget</button>
+      <button class="primaryWide" id="addAllCandidates" type="button">Legg alle til for vurdering</button>
       <button class="secondaryWide" id="reviewAllCandidates" type="button">Vurder alle</button>
     </div>
     <p id="candidateProgress" class="candidateProgress"></p>
@@ -1645,7 +1666,7 @@ function renderReview() {
     card.innerHTML = `
       <div class="emptyState">
         <h2>Ingen navn å vurdere</h2>
-        <p>Legg til navn i Oppdag for å vurdere dem her.</p>
+        <p>Legg til navn for vurdering i Oppdag for å se dem her.</p>
         <div class="emptyActions">
           <button data-quick-name="Nora" type="button">Nora</button>
           <button data-quick-name="Noah" type="button">Noah</button>
@@ -1919,12 +1940,16 @@ function renderMine() {
   const rows = state.mineFilter === "all" ? all : groups[state.mineFilter] || all;
   $$("[data-mine-filter]").forEach((button) => {
     const count = button.dataset.mineFilter === "all" ? all.length : groups[button.dataset.mineFilter]?.length || 0;
-    const labels = { all: "Alle", work: "Kandidater", shortlist: "Aktuelle", rejected: "Uaktuelle" };
+    const labels = { all: "Alle", work: "Til vurdering", shortlist: "Aktuelle", rejected: "Uaktuelle" };
     button.textContent = `${labels[button.dataset.mineFilter]} (${formatNumber(count)})`;
     button.classList.toggle("active", button.dataset.mineFilter === state.mineFilter);
   });
+  const previewLabels = { all: "Alle navn", work: "Til vurdering", shortlist: "Aktuelle", rejected: "Uaktuelle" };
+  $("#minePreviewTitle").textContent = previewLabels[state.mineFilter];
+  $("#openMineList").textContent = `Se alle (${formatNumber(rows.length)})`;
+  $("#openMineList").hidden = !rows.length;
   const preview = $("#minePreview");
-  preview.replaceChildren(...rows.slice(0, 16).map((item) => listManageRow(item, itemStatusKind(item))));
+  preview.replaceChildren(...rows.slice(0, 5).map((item) => listManageRow(item, itemStatusKind(item))));
   if (!rows.length) {
     preview.innerHTML = `
       <div class="emptyState compact">
@@ -1938,7 +1963,7 @@ function renderMine() {
   if (!state.history.length) {
     recent.innerHTML = `
       <div class="emptyState compact">
-        <p>${work.length ? `${formatNumber(work.length)} kandidater klare til vurdering.` : "Legg til navn fra Oppdag."}</p>
+        <p>${work.length ? `${formatNumber(work.length)} navn klare til vurdering.` : "Legg til navn fra Oppdag."}</p>
         <div class="emptyActions">
           <button data-go-tab="review" type="button">Vurder navn</button>
           <button data-go-tab="explore" type="button">Oppdag flere</button>
@@ -1954,30 +1979,39 @@ function itemStatusKind(item) {
 
 function decisionRow(entry) {
   const item = state.itemsById.get(entry.id);
-  const row = document.createElement("button");
-  row.type = "button";
+  const row = document.createElement("article");
   row.className = "decisionRow";
   row.innerHTML = `
     <span class="miniIcon ${entry.status === "shortlist" ? "green" : "red"}"><svg><use href="#icon-${entry.status === "shortlist" ? "heart" : "x"}"></use></svg></span>
-    <span><strong>${escapeHtml(item?.name ?? "Ukjent")}</strong><small>${entry.status === "shortlist" ? "Aktuelt" : "Uaktuelt"}</small></span>
+    <button class="decisionMain" type="button"><strong>${escapeHtml(item?.name ?? "Ukjent")}</strong><small>${entry.status === "shortlist" ? "Aktuelt" : "Uaktuelt"}</small></button>
     <em>${entry.status === "shortlist" ? "Aktuelt" : "Uaktuelt"}</em>
   `;
-  if (item) row.addEventListener("click", () => openNameDetail(item));
+  if (item) {
+    $(".decisionMain", row).addEventListener("click", () => openNameDetail(item));
+    const menu = document.createElement("button");
+    menu.type = "button";
+    menu.className = "moreButton";
+    menu.setAttribute("aria-label", `Flytt eller fjern ${item.name}`);
+    menu.textContent = "⋯";
+    menu.addEventListener("click", () => openNameActions(item));
+    row.append(menu);
+  }
   return row;
 }
 
 function openNameList(kind) {
-  const title = kind === "work" ? "Kandidater" : kind === "shortlist" ? "Aktuelle" : "Uaktuelle";
-  const rows = kind === "work" ? workItems() : itemsWithStatus(kind);
+  const all = uniqueItems([...workItems(), ...itemsWithStatus("shortlist"), ...itemsWithStatus("rejected")]);
+  const title = kind === "all" ? "Alle navn" : kind === "work" ? "Til vurdering" : kind === "shortlist" ? "Aktuelle" : "Uaktuelle";
+  const rows = kind === "all" ? all : kind === "work" ? workItems() : itemsWithStatus(kind);
   openSubscreen(title, `
-    <p class="subLead">${kind === "work" ? "Navn dere vurderer videre. Sammenlign dem med data, eller gå gjennom dem ett og ett." : kind === "shortlist" ? "Navn som fortsatt kjennes aktuelle." : "Navn som er valgt bort."}</p>
-    <div class="sectionRow"><h3>${formatNumber(rows.length)} navn</h3><button id="listPrimaryAction" type="button">${kind === "work" ? "Utforsk" : "Del liste"}</button></div>
+    <p class="subLead">${kind === "all" ? "Alle navn dere har samlet, sortert etter status." : kind === "work" ? "Navn som venter på vurdering. Sammenlign dem med data, eller gå gjennom dem ett og ett." : kind === "shortlist" ? "Navn som fortsatt kjennes aktuelle." : "Navn som er valgt bort."}</p>
+    <div class="sectionRow"><h3>${formatNumber(rows.length)} navn</h3><button id="listPrimaryAction" type="button">${kind === "work" || kind === "all" ? "Sammenlign" : "Del liste"}</button></div>
     <div id="mineListRows" class="nameRows"></div>
-    ${rows.length ? `<button class="secondaryWide" data-clear-list="${kind}" type="button">${kind === "work" ? "Tøm kandidater" : kind === "shortlist" ? "Tøm aktuelle" : "Tøm uaktuelle"}</button>` : ""}
+    ${rows.length && kind !== "all" ? `<button class="secondaryWide" data-clear-list="${kind}" type="button">${kind === "work" ? "Tøm navn til vurdering" : kind === "shortlist" ? "Tøm aktuelle" : "Tøm uaktuelle"}</button>` : ""}
   `);
-  $("#mineListRows").replaceChildren(...rows.map((item) => listManageRow(item, kind)));
+  $("#mineListRows").replaceChildren(...rows.map((item) => listManageRow(item, itemStatusKind(item))));
   $("#listPrimaryAction").addEventListener("click", () => {
-    if (kind === "work") {
+    if (kind === "work" || kind === "all") {
       closeSubscreen();
       setTab("compare");
     } else {
@@ -2008,17 +2042,17 @@ function clearNameList(kind) {
   closeSubscreen();
   renderAll();
   updateUrl();
-  toast(kind === "work" ? "Kandidatlisten tømt" : kind === "shortlist" ? "Aktuelle tømt" : "Uaktuelle tømt");
+  toast(kind === "work" ? "Navn til vurdering tømt" : kind === "shortlist" ? "Aktuelle tømt" : "Uaktuelle tømt");
 }
 
 function listManageRow(item, kind) {
   const row = nameRow(item);
   row.classList.add("manageNameRow", `status-${kind}`);
   const statusMeta = {
-    work: ["list", "Kandidat"],
+    work: ["list", "Til vurdering"],
     shortlist: ["heart", "Aktuelt"],
     rejected: ["x", "Uaktuelt"],
-  }[kind] || ["list", "Kandidat"];
+  }[kind] || ["list", "Til vurdering"];
   const rank = $(".rank", row);
   rank.innerHTML = `<svg><use href="#icon-${statusMeta[0]}"></use></svg>`;
   const meta = $(".nameMain small", row);
@@ -2027,25 +2061,33 @@ function listManageRow(item, kind) {
   const menu = document.createElement("button");
   menu.type = "button";
   menu.className = "moreButton";
+  menu.setAttribute("aria-label", `Flytt eller fjern ${item.name}`);
   menu.textContent = "⋯";
   menu.addEventListener("click", (event) => {
     event.stopPropagation();
-    openSubscreen(item.name, `
-      <div class="listMenu">
-        <button data-status="${item.id}" data-next="neutral" data-close-after="true" type="button"><span class="miniIcon blue"><svg><use href="#icon-list"></use></svg></span><span><strong>Sett som kandidat</strong><small>Flytt tilbake uten aktuell/uaktuell-status</small></span><em>›</em></button>
-        <button data-status="${item.id}" data-next="shortlist" data-close-after="true" type="button"><span class="miniIcon green"><svg><use href="#icon-heart"></use></svg></span><span><strong>Marker aktuell</strong><small>Flytt til favoritter</small></span><em>›</em></button>
-        <button data-status="${item.id}" data-next="rejected" data-close-after="true" type="button"><span class="miniIcon red"><svg><use href="#icon-x"></use></svg></span><span><strong>Marker uaktuell</strong><small>Skjul fra vanlige forslag</small></span><em>›</em></button>
-        <button data-remove="${item.id}" data-close-after="true" type="button"><span class="miniIcon"><svg><use href="#icon-x"></use></svg></span><span><strong>Fjern fra listen</strong><small>Påvirker ikke vurderingen</small></span><em>›</em></button>
-      </div>
-    `);
-    bindSubscreenButtons();
+    openNameActions(item);
   });
   row.append(menu);
   return row;
 }
 
 function openHistory() {
-  openSubscreen("Vurderingshistorikk", `<div class="decisionRows">${state.history.map((entry) => decisionRow(entry).outerHTML).join("") || '<p class="mutedEmpty">Ingen vurderinger ennå.</p>'}</div>`);
+  openSubscreen("Vurderingshistorikk", '<div id="historyRows" class="decisionRows"></div>');
+  const history = $("#historyRows");
+  if (state.history.length) history.replaceChildren(...state.history.map((entry) => decisionRow(entry)));
+  else history.innerHTML = '<p class="mutedEmpty">Ingen vurderinger ennå.</p>';
+}
+
+function openNameActions(item) {
+  if (!item) return;
+  openSubscreen(item.name, `
+    <div class="listMenu">
+      <button data-status="${item.id}" data-next="neutral" data-close-after="true" type="button"><span class="miniIcon blue"><svg><use href="#icon-list"></use></svg></span><span><strong>Flytt til vurdering</strong><small>Fjern aktuell/uaktuell-status</small></span><em>›</em></button>
+      <button data-status="${item.id}" data-next="shortlist" data-close-after="true" type="button"><span class="miniIcon green"><svg><use href="#icon-heart"></use></svg></span><span><strong>Marker aktuell</strong><small>Flytt til aktuelle navn</small></span><em>›</em></button>
+      <button data-status="${item.id}" data-next="rejected" data-close-after="true" type="button"><span class="miniIcon red"><svg><use href="#icon-x"></use></svg></span><span><strong>Marker uaktuell</strong><small>Flytt til uaktuelle navn</small></span><em>›</em></button>
+      <button data-remove="${item.id}" data-close-after="true" type="button"><span class="miniIcon"><svg><use href="#icon-x"></use></svg></span><span><strong>Fjern fra Våre navn</strong><small>Navnet kan legges til igjen senere</small></span><em>›</em></button>
+    </div>
+  `);
 }
 
 function openBackup() {
@@ -2112,12 +2154,13 @@ function closeSubscreen(render = true) {
 function bindSubscreenButtons(root = document) {
   $$("[data-quick-name]", root).forEach((button) => button.addEventListener("click", () => addQuickName(button.dataset.quickName)));
   $$("[data-add]", root).forEach((button) => button.addEventListener("click", () => addToWork(state.itemsById.get(button.dataset.add))));
+  $$("[data-manage]", root).forEach((button) => button.addEventListener("click", () => openNameActions(state.itemsById.get(button.dataset.manage))));
   $$("[data-status]", root).forEach((button) => button.addEventListener("click", () => {
     setNameStatus(button.dataset.status, button.dataset.next);
     if (button.dataset.closeAfter === "true") closeSubscreen();
   }));
   $$("[data-remove]", root).forEach((button) => button.addEventListener("click", () => {
-    removeFromWork(button.dataset.remove);
+    removeFromNames(button.dataset.remove);
     if (button.dataset.closeAfter === "true") closeSubscreen();
   }));
   $$("[data-clear-list]", root).forEach((button) => button.addEventListener("click", () => clearNameList(button.dataset.clearList)));

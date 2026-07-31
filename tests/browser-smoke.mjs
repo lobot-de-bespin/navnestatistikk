@@ -228,6 +228,43 @@ try {
   {
     const { context, page, errors } = await openPage();
     await page.click("#openSearchView");
+    for (const name of ["Nora", "Noah", "Emma", "Oliver", "Alma", "Elias", "Sofie"]) {
+      await page.fill("#searchViewInput", name);
+      await page.locator("#searchResultList .addButton").first().click();
+    }
+    await page.click(".tabBar [data-tab='review']");
+    await page.click("#reviewShortlist");
+    await page.waitForTimeout(380);
+    await page.click("#reviewReject");
+    await page.waitForTimeout(380);
+    await page.click(".tabBar [data-tab='mine']");
+    assert((await page.locator("#view-mine h1").textContent()) === "Våre navn", "Våre navn heading is missing");
+    assert((await page.locator(".tabBar [data-tab='mine'] span").textContent()) === "Våre navn", "Våre navn tab label is missing");
+    assert(await page.locator("#minePreview .manageNameRow").count() === 5, "Våre navn overview does not use the shorter five-name preview");
+    assert((await page.locator("#openMineList").textContent()) === "Se alle (7)", "All-names full-list action has the wrong count");
+    assert(await page.locator("#recentDecisions .decisionRow .moreButton").count() === 2, "Recent decisions cannot be moved between lists");
+
+    await page.click("#openMineList");
+    assert((await page.locator("#subTitle").textContent()) === "Alle navn", "All-names full list did not open");
+    assert(await page.locator("#mineListRows .manageNameRow").count() === 7, "All-names full list is incomplete");
+    assert(await page.locator("#mineListRows .manageNameRow .moreButton").count() === 7, "Full-list names cannot be moved between lists");
+    await page.locator("#mineListRows .moreButton").first().click();
+    await page.locator(".listMenu [data-next='shortlist']").click();
+    assert((await page.locator("[data-mine-filter='shortlist']").textContent()).includes("(2)"), "Moving a full-list name to Aktuelle failed");
+
+    await page.click("#openHistory");
+    assert(await page.locator("#historyRows .decisionRow").count() === 3, "Complete review history is missing decisions");
+    assert(await page.locator("#historyRows .decisionRow .moreButton").count() === 3, "Complete review history cannot move names between lists");
+    await page.locator("#historyRows .moreButton").first().click();
+    await page.locator(".listMenu [data-next='neutral']").click();
+    assert((await page.locator("[data-mine-filter='work']").textContent()).startsWith("Til vurdering"), "Moving a recent decision back to Til vurdering failed");
+    assert(errors.length === 0, `Våre navn JS errors: ${errors.join("; ")}`);
+    await context.close();
+  }
+
+  {
+    const { context, page, errors } = await openPage();
+    await page.click("#openSearchView");
     await page.fill("#searchViewInput", "Noah");
     await page.locator("#searchResultList .addButton").click();
     await page.fill("#searchViewInput", "Nora");

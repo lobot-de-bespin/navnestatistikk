@@ -122,11 +122,11 @@
             <div class="iconBubble pink"><svg><use href="#icon-heart"></use></svg></div>
             <div>
               <h1>Vurder</h1>
-              <p>Gå gjennom navnene ett og ett og bygg en shortlist dere liker.</p>
+              <p>Gå gjennom navnene ett og ett og finn dem som fortsatt er aktuelle.</p>
             </div>
             <div class="headerActions dual">
               <button id="reviewBack" class="ghostIcon" type="button" aria-label="Forrige"><svg><use href="#icon-back"></use></svg></button>
-              <button id="reviewMenu" class="ghostIcon" type="button" aria-label="Kandidater"><svg><use href="#icon-list"></use></svg></button>
+              <button id="reviewMenu" class="ghostIcon" type="button" aria-label="Til vurdering"><svg><use href="#icon-list"></use></svg></button>
             </div>
           </header>
 
@@ -152,8 +152,8 @@
           <header class="screenHeader mineHeader">
             <div class="iconBubble yellow"><svg><use href="#icon-star"></use></svg></div>
             <div>
-              <h1>Vår liste</h1>
-              <p>Hold orden på kandidater, aktuelle navn og navn som er valgt bort.</p>
+              <h1>Våre navn</h1>
+              <p>Hold orden på navn til vurdering, aktuelle navn og navn som er valgt bort.</p>
             </div>
             <div class="headerActions">
               <button id="openBackup" class="iconButton" type="button" aria-label="Innstillinger"><svg><use href="#icon-gear"></use></svg></button>
@@ -162,16 +162,20 @@
 
           <section class="phoneSurface">
             <section id="mineWorkflow" class="workflowCard"></section>
-            <div id="mineFilters" class="mineFilters" aria-label="Filtrer vår liste">
+            <div id="mineFilters" class="mineFilters" aria-label="Filtrer våre navn">
               <button class="active" type="button" data-mine-filter="all">Alle</button>
-              <button type="button" data-mine-filter="work">Kandidater</button>
+              <button type="button" data-mine-filter="work">Til vurdering</button>
               <button type="button" data-mine-filter="shortlist">Aktuelle</button>
               <button type="button" data-mine-filter="rejected">Uaktuelle</button>
+            </div>
+            <div class="sectionRow minePreviewHeader">
+              <h3 id="minePreviewTitle">Alle navn</h3>
+              <button id="openMineList" type="button">Se alle</button>
             </div>
             <div id="minePreview" class="nameRows minePreview"></div>
             <section class="mineTip">
               <div class="mineTipArt" aria-hidden="true"></div>
-              <span><small>Tips</small><strong>Sammenlign favorittene</strong><p>Se trend, rang og særpreg side om side før dere bestemmer dere.</p></span>
+              <span><small>Tips</small><strong>Sammenlign aktuelle navn</strong><p>Se trend, rang og særpreg side om side før dere bestemmer dere.</p></span>
               <button data-go-tab="compare" type="button">Sammenlign</button>
             </section>
             <div class="sectionRow">
@@ -198,7 +202,7 @@
         <button class="active" type="button" data-tab="explore"><svg><use href="#icon-compass"></use></svg><span>Oppdag</span></button>
         <button type="button" data-tab="compare"><svg><use href="#icon-chart"></use></svg><span>Sammenlign</span></button>
         <button type="button" data-tab="review"><svg><use href="#icon-heart"></use></svg><span>Vurder</span></button>
-        <button type="button" data-tab="mine"><svg><use href="#icon-star"></use></svg><span>Vår liste</span></button>
+        <button type="button" data-tab="mine"><svg><use href="#icon-star"></use></svg><span>Våre navn</span></button>
       </nav>
 
       <p id="toast" class="toast" role="status" aria-live="polite"></p>

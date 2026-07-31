@@ -8,6 +8,47 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
+async function assertMobileNavGeometry(page, width, state) {
+  const geometry = await page.evaluate(() => {
+    const bar = document.querySelector(".tabBar").getBoundingClientRect();
+    const tabs = [...document.querySelectorAll(".tabBar button")].map((button) => {
+      const rect = button.getBoundingClientRect();
+      const icon = button.querySelector("svg").getBoundingClientRect();
+      const label = button.querySelector("span");
+      const labelRect = label.getBoundingClientRect();
+      return {
+        button: { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, width: rect.width },
+        icon: { left: icon.left, right: icon.right, top: icon.top, bottom: icon.bottom },
+        label: { left: labelRect.left, right: labelRect.right, top: labelRect.top, bottom: labelRect.bottom },
+        labelWidths: { client: label.clientWidth, scroll: label.scrollWidth },
+        fontSize: Number.parseFloat(getComputedStyle(label).fontSize),
+        topmost: Boolean(document.elementFromPoint(labelRect.left + labelRect.width / 2, labelRect.top + labelRect.height / 2)?.closest("button") === button),
+      };
+    });
+    return {
+      bar: { left: bar.left, right: bar.right, top: bar.top, bottom: bar.bottom },
+      documentWidth: document.documentElement.scrollWidth,
+      viewportWidth: document.documentElement.clientWidth,
+      tabs,
+    };
+  });
+  assert(geometry.documentWidth === geometry.viewportWidth, `${width}px ${state} document width mismatch: ${JSON.stringify(geometry)}`);
+  assert(geometry.tabs.length === 4, `${width}px ${state} does not have four tabs`);
+  const expectedWidth = geometry.tabs[0].button.width;
+  geometry.tabs.forEach((tab, index) => {
+    assert(Math.abs(tab.button.width - expectedWidth) <= 0.5, `${width}px ${state} tab widths are uneven: ${JSON.stringify(geometry)}`);
+    assert(tab.icon.left >= tab.button.left && tab.icon.right <= tab.button.right, `${width}px ${state} tab ${index} icon escapes its button`);
+    assert(tab.label.left >= tab.button.left && tab.label.right <= tab.button.right, `${width}px ${state} tab ${index} label escapes its button`);
+    assert(tab.icon.top >= geometry.bar.top && tab.label.bottom <= geometry.bar.bottom, `${width}px ${state} tab ${index} content is vertically clipped`);
+    assert(tab.labelWidths.scroll <= tab.labelWidths.client + 1, `${width}px ${state} tab ${index} label is clipped`);
+    assert(tab.fontSize >= 10, `${width}px ${state} tab ${index} label is below readable mobile size: ${tab.fontSize}px`);
+    assert(tab.topmost, `${width}px ${state} tab ${index} label is occluded`);
+    assert(Math.abs((tab.icon.left + tab.icon.right) / 2 - (tab.button.left + tab.button.right) / 2) <= 1, `${width}px ${state} tab ${index} icon is off-center`);
+    assert(Math.abs((tab.label.left + tab.label.right) / 2 - (tab.button.left + tab.button.right) / 2) <= 1, `${width}px ${state} tab ${index} label is off-center`);
+    if (index > 0) assert(tab.label.left >= geometry.tabs[index - 1].label.right, `${width}px ${state} labels overlap`);
+  });
+}
+
 async function openPage(width = 390, options = {}) {
   const context = await browser.newContext({
     viewport: { width, height: 844 },
@@ -74,10 +115,14 @@ try {
     assert(Math.abs(emptyGeometry.intro.left - (emptyGeometry.viewport - emptyGeometry.intro.right)) <= 1, `${width}px empty prompt is not centered`);
     assert(emptyGeometry.rail.left >= emptyGeometry.intro.left && emptyGeometry.rail.right <= emptyGeometry.intro.right, `${width}px recent-search rail escapes prompt`);
     await page.fill("#searchViewInput", "Alona");
+    await assertMobileNavGeometry(page, width, "results");
     const resultBarWidth = await page.locator(".searchViewBar").evaluate((node) => node.getBoundingClientRect().width);
     assert(Math.abs(resultBarWidth - emptyGeometry.bar.width) <= 1, `${width}px search bar width changes after typing`);
     await page.click("#toggleSearchFilters");
     await page.click("#addSearchRule");
+    await page.selectOption(".filterRule [data-rule-prop='type']", "dataset");
+    await page.selectOption(".filterRule [data-rule-prop='value']", "snl");
+    await assertMobileNavGeometry(page, width, "dataset filter");
     await page.click("#addSearchRule");
     await page.click("#addSearchRule");
     assert(await page.locator(".filterRule").count() === 3, `${width}px filter builder did not retain three rules`);
@@ -91,6 +136,7 @@ try {
     assert(compactFilterGeometry.negateLabels.every((label) => label === "– Ikke: av"), `${width}px inactive negation is ambiguous: ${compactFilterGeometry.negateLabels.join(", ")}`);
     const searchOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     assert(searchOverflow <= 1, `${width}px modular filters overflow by ${searchOverflow}px`);
+    await assertMobileNavGeometry(page, width, "filters");
     await page.fill("#searchViewInput", "Nora");
     await page.locator("#searchResultList .nameMain").first().click();
     await page.locator(".populationCard").scrollIntoViewIfNeeded();
@@ -122,6 +168,9 @@ try {
     assert(reviewGeometry.actions.bottom <= reviewGeometry.tabTop - 4 && reviewGeometry.actions.bottom <= reviewGeometry.viewport, `${width}px review actions are clipped by navigation: ${JSON.stringify(reviewGeometry)}`);
     assert(reviewGeometry.tabTop - reviewGeometry.actions.bottom >= 10 && reviewGeometry.tabTop - reviewGeometry.actions.bottom <= 16, `${width}px review actions are not anchored directly above navigation: ${JSON.stringify(reviewGeometry)}`);
     assert(reviewGeometry.actions.top - reviewGeometry.card.bottom >= 8 && reviewGeometry.actions.top - reviewGeometry.card.bottom <= 18, `${width}px review card does not fill the space down to the actions: ${JSON.stringify(reviewGeometry)}`);
+    await assertMobileNavGeometry(page, width, "review");
+    await page.click(".tabBar [data-tab='mine']");
+    await assertMobileNavGeometry(page, width, "mine");
     assert(errors.length === 0, `${width}px home JS errors: ${errors.join("; ")}`);
     await context.close();
   }

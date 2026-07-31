@@ -1129,9 +1129,24 @@ body {
 }
 
 .tabBar button {
+  position: relative;
+  z-index: 1;
+  grid-template-rows: 20px 14px;
+  align-content: center;
+  justify-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: visible;
   border-radius: 16px;
   color: #5f665f;
-  font-size: 0.58rem;
+  font-size: 0.68rem;
+  line-height: 1.2;
+}
+
+.tabBar button span {
+  display: block;
+  max-width: 100%;
+  white-space: nowrap;
 }
 
 .tabBar button.active {

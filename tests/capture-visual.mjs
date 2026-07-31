@@ -82,7 +82,16 @@ try {
     const tabs = [...document.querySelectorAll(".tabBar button")].map((button) => {
       const rect = button.getBoundingClientRect();
       const label = button.querySelector("span");
-      return [label?.textContent, rect.left, rect.right, rect.width, label?.scrollWidth, label?.clientWidth];
+      const labelRect = label?.getBoundingClientRect();
+      const iconRect = button.querySelector("svg")?.getBoundingClientRect();
+      return {
+        label: label?.textContent,
+        button: [rect.left, rect.top, rect.right, rect.bottom, rect.width, rect.height],
+        labelRect: labelRect && [labelRect.left, labelRect.top, labelRect.right, labelRect.bottom, labelRect.width, labelRect.height],
+        iconRect: iconRect && [iconRect.left, iconRect.top, iconRect.right, iconRect.bottom, iconRect.width, iconRect.height],
+        labelWidth: [label?.scrollWidth, label?.clientWidth],
+        topmost: Boolean(document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)?.closest("button") === button),
+      };
     });
     const titleStyle = getComputedStyle(document.querySelector("#subTitle"));
     return {

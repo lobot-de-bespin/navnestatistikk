@@ -49,6 +49,30 @@ async function assertMobileNavGeometry(page, width, state) {
   });
 }
 
+async function assertSquareIconControls(page, selector, width, state) {
+  const controls = await page.locator(selector).evaluateAll((nodes) => nodes
+    .filter((node) => {
+      const rect = node.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    })
+    .map((node) => {
+      const rect = node.getBoundingClientRect();
+      const iconRect = node.querySelector("svg")?.getBoundingClientRect();
+      return {
+        label: node.getAttribute("aria-label") || node.textContent.replace(/\s+/g, " ").trim(),
+        button: { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, width: rect.width, height: rect.height },
+        icon: iconRect && { left: iconRect.left, right: iconRect.right, top: iconRect.top, bottom: iconRect.bottom },
+      };
+    }));
+  assert(controls.length > 0, `${width}px ${state} has no visible icon controls for ${selector}`);
+  controls.forEach((control) => {
+    assert(Math.abs(control.button.width - control.button.height) <= 0.5, `${width}px ${state} icon control is not square: ${JSON.stringify(control)}`);
+    if (!control.icon) return;
+    assert(Math.abs((control.icon.left + control.icon.right) / 2 - (control.button.left + control.button.right) / 2) <= 0.5, `${width}px ${state} icon is not horizontally centered: ${JSON.stringify(control)}`);
+    assert(Math.abs((control.icon.top + control.icon.bottom) / 2 - (control.button.top + control.button.bottom) / 2) <= 0.5, `${width}px ${state} icon is not vertically centered: ${JSON.stringify(control)}`);
+  });
+}
+
 async function openPage(width = 390, options = {}) {
   const context = await browser.newContext({
     viewport: { width, height: 844 },
@@ -124,6 +148,7 @@ try {
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     assert(overflow <= 1, `${width}px home overflows by ${overflow}px`);
     await page.click("#openSearchView");
+    await assertSquareIconControls(page, "#subBack, #toggleSearchFilters", width, "empty search");
     const emptyGeometry = await page.evaluate(() => {
       const bar = document.querySelector(".searchViewBar").getBoundingClientRect();
       const intro = document.querySelector(".searchEmptyIntro").getBoundingClientRect();
@@ -163,6 +188,7 @@ try {
     assert(compactFilterGeometry.panelHeight <= 410, `${width}px filter panel is still too tall: ${compactFilterGeometry.panelHeight}px`);
     assert(compactFilterGeometry.ruleHeights.every((height) => height <= 100), `${width}px rules are not compact: ${compactFilterGeometry.ruleHeights.join(", ")}px`);
     assert(compactFilterGeometry.negateLabels.every((label) => label === "– Ikke: av"), `${width}px inactive negation is ambiguous: ${compactFilterGeometry.negateLabels.join(", ")}`);
+    await assertSquareIconControls(page, "#toggleSearchFilters, .filterRemove", width, "search filters");
     const searchOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     assert(searchOverflow <= 1, `${width}px modular filters overflow by ${searchOverflow}px`);
     await assertMobileNavGeometry(page, width, "filters");
@@ -197,8 +223,10 @@ try {
     assert(reviewGeometry.actions.bottom <= reviewGeometry.tabTop - 4 && reviewGeometry.actions.bottom <= reviewGeometry.viewport, `${width}px review actions are clipped by navigation: ${JSON.stringify(reviewGeometry)}`);
     assert(reviewGeometry.tabTop - reviewGeometry.actions.bottom >= 10 && reviewGeometry.tabTop - reviewGeometry.actions.bottom <= 16, `${width}px review actions are not anchored directly above navigation: ${JSON.stringify(reviewGeometry)}`);
     assert(reviewGeometry.actions.top - reviewGeometry.card.bottom >= 8 && reviewGeometry.actions.top - reviewGeometry.card.bottom <= 18, `${width}px review card does not fill the space down to the actions: ${JSON.stringify(reviewGeometry)}`);
+    await assertSquareIconControls(page, "#reviewMenu, .reviewOrder button", width, "review controls");
     await assertMobileNavGeometry(page, width, "review");
     await page.click(".tabBar [data-tab='mine']");
+    await assertSquareIconControls(page, "#openBackup, .manageNameRow .moreButton", width, "our names controls");
     await assertMobileNavGeometry(page, width, "mine");
     assert(errors.length === 0, `${width}px home JS errors: ${errors.join("; ")}`);
     await context.close();

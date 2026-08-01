@@ -94,6 +94,28 @@ try {
       };
     });
     const titleStyle = getComputedStyle(document.querySelector("#subTitle"));
+    const iconButtons = [...document.querySelectorAll("button:has(svg)")]
+      .filter((button) => {
+        const rect = button.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      })
+      .map((button) => {
+        const rect = button.getBoundingClientRect();
+        const iconRect = button.querySelector("svg").getBoundingClientRect();
+        const style = getComputedStyle(button);
+        return {
+          id: button.id,
+          className: button.className,
+          label: button.getAttribute("aria-label") || button.textContent.replace(/\s+/g, " ").trim(),
+          button: [rect.left, rect.top, rect.right, rect.bottom, rect.width, rect.height],
+          icon: [iconRect.left, iconRect.top, iconRect.right, iconRect.bottom, iconRect.width, iconRect.height],
+          radius: style.borderRadius,
+          iconOffset: [
+            (iconRect.left + iconRect.right - rect.left - rect.right) / 2,
+            (iconRect.top + iconRect.bottom - rect.top - rect.bottom) / 2,
+          ],
+        };
+      });
     return {
       viewport: [innerWidth, innerHeight],
       documentWidth: document.documentElement.scrollWidth,
@@ -105,6 +127,7 @@ try {
       reviewActions: reviewActions && [reviewActions.top, reviewActions.bottom, reviewActions.height],
       tabBarTop: tabBar?.top || 0,
       tabs,
+      iconButtons,
       titleFont: [titleStyle.fontFamily, titleStyle.fontStyle, titleStyle.fontWeight],
     };
   });

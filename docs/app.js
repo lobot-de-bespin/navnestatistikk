@@ -1169,7 +1169,7 @@ function openSearchView() {
       <div class="searchViewBar">
         <svg><use href="#icon-search"></use></svg>
         <input id="searchViewInput" type="search" value="${escapeHtml(state.query)}" placeholder="Søk etter navn..." autocomplete="off" />
-        <button id="toggleSearchFilters" class="${state.searchFiltersOpen || state.filters.rules.length ? "active" : ""}" type="button" aria-label="Vis filtre" aria-expanded="${state.searchFiltersOpen}"><svg><use href="#icon-filter"></use>${state.filters.rules.length ? `<span>${state.filters.rules.length}</span>` : ""}</button>
+        <button id="toggleSearchFilters" class="${state.searchFiltersOpen || state.filters.rules.length ? "active" : ""}" type="button" aria-label="Vis filtre" aria-expanded="${state.searchFiltersOpen}"><svg><use href="#icon-filter"></use></svg>${state.filters.rules.length ? `<span>${state.filters.rules.length}</span>` : ""}</button>
       </div>
       <section id="searchFilterPanel" class="searchFilterPanel" ${state.searchFiltersOpen ? "" : "hidden"}>
         <div class="filterBuilderHead">

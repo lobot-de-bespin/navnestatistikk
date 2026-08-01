@@ -754,10 +754,12 @@ body {
 .reviewOrder button {
   display: grid;
   width: 28px;
-  min-height: 26px;
+  min-width: 28px;
+  height: 28px;
+  min-height: 28px;
   padding: 0;
   place-items: center;
-  border-radius: 999px;
+  border-radius: 50%;
   color: #8a8a7e;
 }
 
@@ -1051,7 +1053,10 @@ body {
   grid-column: 4;
   grid-row: 1 / 3;
   width: 32px;
+  min-width: 32px;
   height: 32px;
+  min-height: 32px;
+  padding: 0;
   border-radius: 50%;
   background: transparent;
   color: #a38f7e;
@@ -1138,7 +1143,10 @@ body {
 
 .decisionRow .moreButton {
   width: 32px;
+  min-width: 32px;
   height: 32px;
+  min-height: 32px;
+  padding: 0;
   background: transparent;
   color: #a38f7e;
   box-shadow: none;
@@ -1566,7 +1574,10 @@ body {
   position: relative;
   display: grid;
   width: 38px;
+  min-width: 38px;
   height: 38px;
+  min-height: 38px;
+  padding: 0;
   place-items: center;
   border-radius: 50%;
   background: #f4f1df;
@@ -1579,8 +1590,10 @@ body {
 }
 
 .searchViewBar button svg {
+  display: block;
   width: 18px;
   height: 18px;
+  margin: 0;
 }
 
 .searchViewBar button span {
@@ -1758,8 +1771,10 @@ body {
 
 .filterRemove {
   display: grid;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
   place-items: center;
   padding: 0;
   border-radius: 50%;

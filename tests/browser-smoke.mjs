@@ -77,6 +77,35 @@ try {
     assert(await page.locator(".discoveryNameCard").count() >= 20, "Discovery cards missing");
     const discoveryFont = await page.locator(".discoveryNameMain strong").first().evaluate((node) => getComputedStyle(node).fontFamily);
     assert(!/Georgia|Times|(^|,)\s*serif/i.test(discoveryFont), `Discovery names still use serif: ${discoveryFont}`);
+    const discoveryGeometry = await page.locator(".discoverySection").first().evaluate((section) => {
+      const rail = section.querySelector(".discoveryRail");
+      const card = section.querySelector(".discoveryNameCard");
+      const add = card.querySelector(".discoveryAdd");
+      const icon = add.querySelector("svg");
+      const railRect = rail.getBoundingClientRect();
+      const cardRect = card.getBoundingClientRect();
+      const addRect = add.getBoundingClientRect();
+      const iconRect = icon.getBoundingClientRect();
+      const railStyle = getComputedStyle(rail);
+      return {
+        rail: { top: railRect.top, right: railRect.right, bottom: railRect.bottom, left: railRect.left },
+        card: { top: cardRect.top, right: cardRect.right, bottom: cardRect.bottom, left: cardRect.left, width: cardRect.width, height: cardRect.height },
+        add: { top: addRect.top, right: addRect.right, bottom: addRect.bottom, left: addRect.left, width: addRect.width, height: addRect.height },
+        icon: { top: iconRect.top, right: iconRect.right, bottom: iconRect.bottom, left: iconRect.left },
+        railPadding: {
+          top: Number.parseFloat(railStyle.paddingTop),
+          right: Number.parseFloat(railStyle.paddingRight),
+          bottom: Number.parseFloat(railStyle.paddingBottom),
+          left: Number.parseFloat(railStyle.paddingLeft),
+        },
+      };
+    });
+    assert(Math.abs(discoveryGeometry.card.width - discoveryGeometry.card.height) <= 1, `${width}px discovery card is not square: ${JSON.stringify(discoveryGeometry)}`);
+    assert(Math.abs(discoveryGeometry.add.width - discoveryGeometry.add.height) <= 0.5, `${width}px discovery add control is not circular: ${JSON.stringify(discoveryGeometry)}`);
+    assert(Math.abs((discoveryGeometry.icon.left + discoveryGeometry.icon.right) / 2 - (discoveryGeometry.add.left + discoveryGeometry.add.right) / 2) <= 0.5, `${width}px discovery add icon is not horizontally centered`);
+    assert(Math.abs((discoveryGeometry.icon.top + discoveryGeometry.icon.bottom) / 2 - (discoveryGeometry.add.top + discoveryGeometry.add.bottom) / 2) <= 0.5, `${width}px discovery add icon is not vertically centered`);
+    assert(discoveryGeometry.railPadding.top >= 6 && discoveryGeometry.railPadding.bottom >= 18 && discoveryGeometry.railPadding.left >= 14, `${width}px discovery rail lacks shadow breathing room: ${JSON.stringify(discoveryGeometry)}`);
+    assert(discoveryGeometry.card.top > discoveryGeometry.rail.top && discoveryGeometry.card.bottom < discoveryGeometry.rail.bottom, `${width}px discovery card shadow area is clipped vertically`);
     const homeSearchAppearance = await page.locator("#openSearchView").evaluate((node) => {
       const rect = node.getBoundingClientRect();
       const style = getComputedStyle(node);
@@ -177,6 +206,10 @@ try {
 
   {
     const { context, page, errors } = await openPage();
+    await page.locator(".discoverySectionHead > button").first().click();
+    assert((await page.locator("#addAllCandidates").textContent()) === "Legg alle til vurdering", "Candidate-list bulk action has the wrong wording");
+    assert(await page.getByText("Legg alle til for vurdering", { exact: true }).count() === 0, "Candidate list renders the old bulk-action wording");
+    await page.click("#subBack");
     await page.click("#openSearchView");
     assert(await page.locator("#subscreen").evaluate((node) => node.classList.contains("searchMode")), "Dedicated search mode did not open");
     assert(await page.locator(".tabBar [data-tab='explore']").evaluate((node) => node.classList.contains("active")), "Oppdag tab is not active in search");
@@ -194,6 +227,8 @@ try {
     assert(renderedRows >= 100 && renderedRows < eCount, `Search rendered an invalid progressive batch: ${renderedRows} of ${eCount}`);
 
     await page.fill("#searchViewInput", "Nora");
+    assert((await page.locator("#addAllSearchResults").textContent()) === "Legg alle til vurdering", "Search-results bulk action has the wrong wording");
+    assert(await page.getByText("Legg alle til for vurdering", { exact: true }).count() === 0, "Search results render the old bulk-action wording");
     await page.locator("#searchResultList .nameMain").first().click();
     assert((await page.locator("#subTitle").textContent()) === "Nora", "Name detail did not open from search");
     const populationDetail = await page.locator(".populationCard").textContent();

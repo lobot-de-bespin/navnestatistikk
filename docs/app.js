@@ -1522,7 +1522,7 @@ function renderSearchResults() {
   $("#searchResultScope").textContent = filterErrors.length ? filterErrors[0] : searchScopeLabel();
   const bulk = $("#searchBulkActions");
   bulk.innerHTML = rows.length ? `
-    <button class="primaryWide" id="addAllSearchResults" type="button">Legg alle til for vurdering</button>
+    <button class="primaryWide" id="addAllSearchResults" type="button">Legg alle til vurdering</button>
     <button class="secondaryWide" id="reviewAllSearchResults" type="button">Vurder alle</button>
   ` : "";
   $("#addAllSearchResults")?.addEventListener("click", () => addCandidateRowsToWork(rows));
@@ -1573,7 +1573,7 @@ function openCandidateBuilder(rows = filteredRows(), title = "Alle treff", subti
       <small>${escapeHtml(subtitle)}</small>
     </section>
     <div class="candidateBulkActions">
-      <button class="primaryWide" id="addAllCandidates" type="button">Legg alle til for vurdering</button>
+      <button class="primaryWide" id="addAllCandidates" type="button">Legg alle til vurdering</button>
       <button class="secondaryWide" id="reviewAllCandidates" type="button">Vurder alle</button>
     </div>
     <p id="candidateProgress" class="candidateProgress"></p>

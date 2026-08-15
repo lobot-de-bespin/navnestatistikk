@@ -26,6 +26,10 @@ try {
   if (mode !== "home") {
     await page.click("#openSearchView");
     if (mode === "results") await page.fill("#searchViewInput", "e");
+    if (mode === "paul") {
+      await page.fill("#searchViewInput", "Paul");
+      await page.locator("#searchResultList .nameMain").first().click();
+    }
     if (mode === "dataset") {
       await page.click("#toggleSearchFilters");
       await page.click("#addSearchRule");

@@ -38,7 +38,10 @@ python3 scripts/build_data.py
 ```
 
 Byggingen validerer unike ID-er, obligatorisk navn/kjønn, capabilities og alle
-kildehenvisninger før JSON-filen skrives.
+kildehenvisninger før JSON-filen skrives. Rang beregnes lokalt fra publiserte
+tall, separat for kjønn og år, med delt konkurranserang (1, 2, 2, 4) både for
+fødselsserier og befolkningsserier. Skjulte SSB-tall rangeres ikke; appen viser
+da siste år navnet faktisk har et publisert tall.
 
 Kjør mobil- og funksjonssmoke-test mot en lokal server:
 

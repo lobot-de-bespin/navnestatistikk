@@ -222,6 +222,20 @@ def attach_catalog_metadata(record: dict) -> None:
     }
 
 
+def competition_ranks(rows: list[tuple[object, int | float]]) -> dict[object, int]:
+    """Return 1, 2, 2, 4-style ranks for already identified observations."""
+    ordered = sorted(rows, key=lambda item: (-item[1], str(item[0])))
+    ranks = {}
+    previous_value = None
+    previous_rank = 0
+    for position, (identifier, value) in enumerate(ordered, start=1):
+        rank = previous_rank if value == previous_value else position
+        ranks[identifier] = rank
+        previous_value = value
+        previous_rank = rank
+    return ranks
+
+
 def validate_catalog(payload: dict) -> None:
     source_ids = set(payload["meta"]["sourceCatalog"])
     seen_ids = set()
@@ -238,6 +252,14 @@ def validate_catalog(payload: dict) -> None:
             raise ValueError(f"Birth-series coverage mismatch for {record['id']}")
         if coverage.get("populationSeries") != bool(record.get("populationSeries")):
             raise ValueError(f"Population-series coverage mismatch for {record['id']}")
+        for point in record.get("series", []):
+            if not isinstance(point[2], int) or point[2] < 1:
+                raise ValueError(f"Missing computed birth rank for {record['id']} at year index {point[0]}")
+        for point in record.get("populationSeries", []):
+            if len(point) < 3 or not isinstance(point[2], int) or point[2] < 1:
+                raise ValueError(f"Missing computed population rank for {record['id']} in {point[0]}")
+        if record.get("populationCount") is not None and not isinstance(record.get("populationRank"), int):
+            raise ValueError(f"Missing current population rank for {record['id']}")
         if not set(record.get("sourceRefs", [])).issubset(source_ids):
             raise ValueError(f"Unknown source reference for {record['id']}")
         for refs in record.get("factSources", {}).values():
@@ -326,14 +348,8 @@ def build() -> dict:
 
     ranks: dict[int, dict[int, int]] = defaultdict(dict)
     for (yi, sex), rows in per_year_sex.items():
-        rows.sort(key=lambda item: (-item[1], raw_records[item[0]]["name"]))
-        previous_count = None
-        previous_rank = 0
-        for pos, (ni, count) in enumerate(rows, start=1):
-            rank = previous_rank if count == previous_count else pos
+        for ni, rank in competition_ranks(rows).items():
             ranks[ni][yi] = rank
-            previous_count = count
-            previous_rank = rank
 
     records = []
     for ni, record in enumerate(raw_records):
@@ -376,12 +392,15 @@ def build() -> dict:
     population_values = population_data.get("value", [])
     population_shape = population_data["size"]
     population_rows = []
+    population_values_by_year_sex = defaultdict(list)
     for ni, code in enumerate(population_codes):
         population_series = []
         for yi, year in enumerate(population_year_codes):
             value = value_at(population_values, population_shape, (ni, 0, yi))
             if value is not None:
-                population_series.append([int(year), int(value)])
+                year_value = int(value)
+                population_series.append([int(year), year_value])
+                population_values_by_year_sex[(int(year), clean_name_id(code)[0])].append((code, year_value))
         if not population_series:
             continue
         population_rows.append(
@@ -395,19 +414,15 @@ def build() -> dict:
             }
         )
 
-    population_ranks = {}
-    for sex in ("jente", "gutt"):
-        rows = sorted(
-            (row for row in population_rows if row["sex"] == sex and row["populationCount"] is not None),
-            key=lambda row: (-row["populationCount"], row["id"]),
-        )
-        previous_count = None
-        previous_rank = 0
-        for position, row in enumerate(rows, start=1):
-            rank = previous_rank if row["populationCount"] == previous_count else position
-            population_ranks[row["id"]] = rank
-            previous_count = row["populationCount"]
-            previous_rank = rank
+    population_ranks_by_year_sex = {
+        key: competition_ranks(rows)
+        for key, rows in population_values_by_year_sex.items()
+    }
+    for row in population_rows:
+        row["populationSeries"] = [
+            [year, count, population_ranks_by_year_sex[(year, row["sex"])][row["id"]]]
+            for year, count in row["populationSeries"]
+        ]
 
     # 10501 enriches only names already admitted through the birth-series
     # catalogue. It must never expand the catalogue by itself.
@@ -419,7 +434,7 @@ def build() -> dict:
         record["populationSeries"] = row["populationSeries"]
         if row["populationCount"] is not None:
             record["populationCount"] = row["populationCount"]
-            record["populationRank"] = population_ranks[row["id"]]
+            record["populationRank"] = row["populationSeries"][-1][2]
 
     snl_names = fetch_snl_names()
     records_by_identity = {(record["sex"], name_identity(record["name"])): record for record in records}

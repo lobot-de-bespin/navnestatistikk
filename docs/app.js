@@ -1070,7 +1070,8 @@ function openNameDetail(item) {
 
 function detailMarkup(item) {
   if (!hasHistory(item)) return identityNameDetailMarkup(item);
-  const latest = pointInYear(item, state.latestYear);
+  const latest = latestBirthPoint(item);
+  const latestYear = state.years[latest[0]];
   return `
     <section class="detailHero">
       <div><h2>${escapeHtml(item.name)} ${sexIconMarkup(item)}</h2><p>${escapeHtml(item.sex)}</p></div>
@@ -1082,9 +1083,9 @@ function detailMarkup(item) {
       <h3>Utvikling over tid</h3>
       <div id="detailChart" class="miniChart"></div>
       <div class="detailStats">
-        <span><small>Antall (${state.latestYear})</small><b>${formatNumber(latest?.[1] ?? 0)}</b></span>
-        <span><small>Rang (${state.latestYear})</small><b>${latest?.[2] ? formatNumber(latest[2]) : "-"}</b></span>
-        <span><small>Andel</small><b>${formatPercent(latest?.[3])}</b></span>
+        <span><small>Antall (${latestYear})</small><b>${formatNumber(latest[1])}</b></span>
+        <span><small>Rang (${latestYear})</small><b>${formatNumber(latest[2])}</b></span>
+        <span><small>Andel</small><b>${formatPercent(latest[3])}</b></span>
       </div>
     </section>
     <section class="subCard gridStats">
@@ -1123,16 +1124,17 @@ function detailListActionMarkup(item) {
 }
 
 function decisionSummaryMarkup(item) {
-  const latest = pointInYear(item, state.latestYear);
+  const latest = latestBirthPoint(item);
+  const latestYear = state.years[latest[0]];
   const trend = trendScore(item);
   const estimate = schoolEstimateForCurrentSettings(item);
-  const rank = latest?.[2] ? `#${formatNumber(latest[2])}` : "uten rang";
+  const rank = `#${formatNumber(latest[2])}`;
   const trendText = trend > 20 ? "tydelig på vei opp" : trend > 0 ? "svakt på vei opp" : trend < -20 ? "på vei ned" : "stabilt";
   const schoolText = estimate.school < 1 ? "svært få i skoleløpet" : estimate.school < 3 ? "lav klasse-risiko" : "flere mulige navnebrødre";
   return `
     <h3>Beslutningskort</h3>
     <div class="decisionPills">
-      <span><b>${rank}</b><small>rang ${state.latestYear}</small></span>
+      <span><b>${rank}</b><small>rang ${latestYear}</small></span>
       <span><b>${trendText}</b><small>siste 10 år</small></span>
       <span><b>${schoolText}</b><small>${formatDecimal(estimate.school, 1)} i skoleløpet</small></span>
     </div>
@@ -2340,6 +2342,10 @@ function pointInYear(item, year) {
   return (item.series || []).find(([yearIndex]) => yearIndex === index) ?? null;
 }
 
+function latestBirthPoint(item) {
+  return item.series[item.series.length - 1];
+}
+
 function latestCount(item) {
   return pointInYear(item, state.latestYear)?.[1] ?? 0;
 }
@@ -2462,7 +2468,8 @@ function populationHistoryStats(item) {
 function populationHistoryMarkup(item, latestBirthPoint) {
   const stats = populationHistoryStats(item);
   if (!stats) return "";
-  const birthRank = latestBirthPoint?.[2] ? `#${formatNumber(latestBirthPoint[2])}` : "–";
+  const birthRank = `#${formatNumber(latestBirthPoint[2])}`;
+  const birthYear = state.years[latestBirthPoint[0]];
   const populationRank = item.populationRank ? `#${formatNumber(item.populationRank)}` : "–";
   return `
     <section class="subCard populationCard">
@@ -2475,7 +2482,7 @@ function populationHistoryMarkup(item, latestBirthPoint) {
         </div>
       </div>
       <div class="populationRankCompare" aria-label="Rangering blant nyfødte og i befolkningen">
-        <span><small>Blant nyfødte</small><b>${birthRank}</b><em>${state.latestYear}</em></span>
+        <span><small>Blant nyfødte</small><b>${birthRank}</b><em>${birthYear}</em></span>
         <span><small>I hele befolkningen</small><b>${populationRank}</b><em>${stats.lastYear}</em></span>
       </div>
       <div class="populationMiniChart">${populationSparklineSvg(item)}</div>

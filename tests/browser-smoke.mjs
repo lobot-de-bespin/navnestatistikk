@@ -198,6 +198,13 @@ try {
     const detailOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     assert(detailOverflow <= 1, `${width}px enriched detail overflows by ${detailOverflow}px`);
     await page.click("#subBack");
+    await page.fill("#searchViewInput", "Paul");
+    await page.locator("#searchResultList .nameMain").first().click();
+    const paulDetail = await page.locator("#subContent").textContent();
+    assert(paulDetail.includes("Rang (2024)354"), `Paul does not show his latest computed birth rank: ${paulDetail}`);
+    assert(paulDetail.includes("rang 2024"), `Paul decision card labels the wrong rank year: ${paulDetail}`);
+    assert(!paulDetail.includes("uten rang"), `Paul is still shown without rank: ${paulDetail}`);
+    await page.click("#subBack");
     await page.fill("#searchViewInput", "Ferdinand");
     await page.locator("#searchResultList .addButton").first().click();
     await page.click(".tabBar [data-tab='review']");
